@@ -91,17 +91,17 @@ RPP is developed for **Linux** operating system.
 
 ## Instructions to test functionalities after HOST installation
 
-    $ cd rpp/utilities/rpp-unittests/HOST_NEW
+    $ cd rpp/utilities/rpp-unittests/HOST
     $ ./testAllScript.sh
 
 ## Instructions to test functionalities after OCL installation
 
-    $ cd rpp/utilities/rpp-unittests/OCL_NEW
+    $ cd rpp/utilities/rpp-unittests/OCL
     $ ./testAllScript.sh
 
 ## Instructions to test functionalities after HIP installation
 
-    $ cd rpp/utilities/rpp-unittests/HIP_NEW
+    $ cd rpp/utilities/rpp-unittests/HIP
     $ ./testAllScript.sh
 
 ## MIVisionX(OpenVX) Support

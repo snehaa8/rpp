@@ -29,9 +29,9 @@ if profilingOption == "NO":
     subprocess.call(["./rawLogsGenScript.sh", "0", caseStart, caseEnd])
 
     log_file_list = [
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pkd3_hip_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pln3_hip_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pln1_hip_raw_performance_log.txt"
+        "../OUTPUT_PERFORMANCE_LOGS_OCL/BatchPD_ocl_pkd3_ocl_raw_performance_log.txt",
+        "../OUTPUT_PERFORMANCE_LOGS_OCL/BatchPD_ocl_pln3_ocl_raw_performance_log.txt",
+        "../OUTPUT_PERFORMANCE_LOGS_OCL/BatchPD_ocl_pln1_ocl_raw_performance_log.txt"
         ]
 
     functionality_group_list = [
@@ -50,7 +50,7 @@ if profilingOption == "NO":
 
     for log_file in log_file_list:
 
-        # Open log file
+        # Opening log file
         f = open(log_file,"r")
         print("\n\n\nOpened log file -> ", log_file)
 
@@ -88,8 +88,7 @@ if profilingOption == "NO":
                     avgVals.append(stats[2])
                     funcCount += 1
 
-            if line != "\n":
-                prevLine = line
+            prevLine = line
 
         # Print log lengths
         print("Functionalities - ", funcCount)
@@ -101,7 +100,7 @@ if profilingOption == "NO":
         for i, func in enumerate(functions):
             print(func, "\t", frames[i], "\t\t", maxVals[i], "\t", minVals[i], "\t", avgVals[i])
 
-        # Close log file
+        # Closing log file
         f.close()
 
 elif profilingOption == "YES":
@@ -135,23 +134,23 @@ elif profilingOption == "YES":
 
     subprocess.call(["./rawLogsGenScript.sh", "1", caseStart, caseEnd])
 
-    RESULTS_DIR = "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW"
+    RESULTS_DIR = "../OUTPUT_PERFORMANCE_LOGS_OCL"
     print("RESULTS_DIR = " + RESULTS_DIR)
     CONSOLIDATED_FILE_PKD3 = RESULTS_DIR + "/consolidated_results_pkd3.stats.csv"
-    CONSOLIDATED_FILE_PLN1 = RESULTS_DIR + "/consolidated_results_pln1.stats.csv"
     CONSOLIDATED_FILE_PLN3 = RESULTS_DIR + "/consolidated_results_pln3.stats.csv"
+    CONSOLIDATED_FILE_PLN1 = RESULTS_DIR + "/consolidated_results_pln1.stats.csv"
 
-    TYPE_LIST = ["PKD3", "PLN1", "PLN3"]
+    TYPE_LIST = ["PKD3", "PLN3", "PLN1"]
     CASE_NUM_LIST = range(int(caseStart), int(caseEnd) + 1, 1)
     BIT_DEPTH_LIST = range(0, 7, 1)
     OFT_LIST = range(0, 2, 1)
-    d_counter = {"PKD3":0, "PLN1":0, "PLN3":0}
+    d_counter = {"PKD3":0, "PLN3":0, "PLN1":0}
 
     for TYPE in TYPE_LIST:
 
         # Open csv file
         new_file = open(RESULTS_DIR + "/consolidated_results_" + TYPE + ".stats.csv",'w')
-        new_file.write('"HIP Kernel Name","Calls","TotalDurationNs","AverageNs","Percentage"\n')
+        new_file.write('"OCL Kernel Name","Calls","TotalDurationNs","AverageNs","Percentage"\n')
 
         prev=""
 
@@ -205,7 +204,7 @@ elif profilingOption == "YES":
             df = pd.read_csv(RESULTS_DIR + "/consolidated_results_" + TYPE + ".stats.csv")
             df["AverageMs"] = df["AverageNs"] / 1000000
             dfPrint = df.drop(['Percentage'], axis=1)
-            dfPrint["HIP Kernel Name"] = dfPrint.iloc[:,0].str.lstrip("Hip_")
+            dfPrint["OCL Kernel Name"] = dfPrint.iloc[:,0].str.lstrip("Ocl_")
             dfPrint_noIndices = dfPrint.astype(str)
             dfPrint_noIndices.replace(['0', '0.0'], '', inplace=True)
             dfPrint_noIndices = dfPrint_noIndices.to_string(index=False)

@@ -25,9 +25,9 @@ if caseEnd < "0" or caseEnd > "79":
 subprocess.call(["./rawLogsGenScript.sh", caseStart, caseEnd])
 
 log_file_list = [
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pkd3_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pln3_host_raw_performance_log.txt",
-    "../OUTPUT_PERFORMANCE_LOGS_HOST_NEW/BatchPD_host_pln1_host_raw_performance_log.txt"
+    "../OUTPUT_PERFORMANCE_LOGS_HOST/BatchPD_host_pkd3_host_raw_performance_log.txt",
+    "../OUTPUT_PERFORMANCE_LOGS_HOST/BatchPD_host_pln3_host_raw_performance_log.txt",
+    "../OUTPUT_PERFORMANCE_LOGS_HOST/BatchPD_host_pln1_host_raw_performance_log.txt"
     ]
 
 functionality_group_list = [

@@ -4,14 +4,26 @@ The Radeon Performance Primitives library provides a test suite, to run unit tes
 - OCL backend - (On a GPU with OpenCL backend)
 - HIP backend - (On a GPU with HIP backend)
 ## Test Suite for HOST backend
-### Testing all functionalities with default images (3 224x224 images - batch size = 3)
+### Option 1 - Testing all functionalities with default images (3 224x224 images - batch size = 3)
 Executing the following should run and dump output images for all variants of functionalities running with HOST backend.
 ```
-cd utilities/rpp-unittests/HOST_NEW
+cd utilities/rpp-unittests/HOST
 ./testAllScript.sh
 ```
-### Testing all functionalities with a differnet image folder
-Navigate to utilities/rpp-unittests/HOST_NEW/testAllScript.sh and set the correct SRC1, SRC2 and DST paths under "MANUAL OVERRIDE".
+### Option 2 - Testing a sub-range of functionalities with default images (3 224x224 images - batch size = 3)
+Executing the following should run and dump output images for all variants of a sub-range of functionalities running with HOST backend.
+```
+cd utilities/rpp-unittests/HOST
+./testAllScript.sh <S> <E> <U>
+```
+where:
+```
+S     CASE_START (Starting case# (0-79))
+E     CASE_END (Ending case# (0-79))
+U     UNIQUE_FUNC (0 = Skip / 1 = Run)
+```
+### Option 3 - Testing all functionalities with a differnet image folder
+Navigate to utilities/rpp-unittests/HOST/testAllScript.sh and set the correct SRC1, SRC2 and DST paths under "MANUAL OVERRIDE".
 ```
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
 SRC_FOLDER_1="<your complete folder path that containes images for  srcPtr1>"
@@ -23,10 +35,10 @@ Run the script
 ```
 ./testAllScript.sh
 ```
-### Testing individual functionalities and specific sub-cases
+### Option 4 - Testing individual functionalities and specific sub-cases
 First build the HOST backend test suite.
 ```
-cd utilities/rpp-unittests/HOST_NEW
+cd utilities/rpp-unittests/HOST
 mkdir build
 cd build
 cmake ..
@@ -40,14 +52,26 @@ Run either of the following executibles for packed-3channel / planar-3channel / 
 ```
 
 ## Test Suite for OCL backend
-### Testing all functionalities with default images (3 224x224 images - batch size = 3)
+### Option 1 - Testing all functionalities with default images (3 224x224 images - batch size = 3)
 Executing the following should run and dump output images for all variants of functionalities running with OCL backend.
 ```
-cd utilities/rpp-unittests/OCL_NEW
+cd utilities/rpp-unittests/OCL
 ./testAllScript.sh
 ```
-### Testing all functionalities with a differnet image folder
-Navigate to utilities/rpp-unittests/OCL_NEW/testAllScript.sh and set the correct SRC1, SRC2 and DST paths under "MANUAL OVERRIDE".
+### Option 2 - Testing a sub-range of functionalities with default images (3 224x224 images - batch size = 3)
+Executing the following should run and dump output images for all variants of a sub-range of functionalities running with OCL backend.
+```
+cd utilities/rpp-unittests/OCL
+./testAllScript.sh <S> <E> <U>
+```
+where:
+```
+S     CASE_START (Starting case# (0-79))
+E     CASE_END (Ending case# (0-79))
+U     UNIQUE_FUNC (0 = Skip / 1 = Run)
+```
+### Option 3 - Testing all functionalities with a differnet image folder
+Navigate to utilities/rpp-unittests/OCL/testAllScript.sh and set the correct SRC1, SRC2 and DST paths under "MANUAL OVERRIDE".
 ```
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
 SRC_FOLDER_1="<your complete folder path that containes images for  srcPtr1>"
@@ -59,10 +83,10 @@ Run the script
 ```
 ./testAllScript.sh
 ```
-### Testing individual functionalities and specific sub-cases
+### Option 4 - Testing individual functionalities and specific sub-cases
 First build the OCL backend test suite.
 ```
-cd utilities/rpp-unittests/OCL_NEW
+cd utilities/rpp-unittests/OCL
 mkdir build
 cd build
 cmake ..
@@ -76,14 +100,26 @@ Run either of the following executibles for packed-3channel / planar-3channel / 
 ```
 
 ## Test Suite for HIP backend
-### Testing all functionalities with default images (3 224x224 images - batch size = 3)
+### Option 1 - Testing all functionalities with default images (3 224x224 images - batch size = 3)
 Executing the following should run and dump output images for all variants of functionalities running with HIP backend.
 ```
-cd utilities/rpp-unittests/HIP_NEW
+cd utilities/rpp-unittests/HIP
 ./testAllScript.sh
 ```
-### Testing all functionalities with a differnet image folder
-Navigate to utilities/rpp-unittests/HIP_NEW/testAllScript.sh and set the correct SRC1, SRC2 and DST paths under "MANUAL OVERRIDE".
+### Option 2 - Testing a sub-range of functionalities with default images (3 224x224 images - batch size = 3)
+Executing the following should run and dump output images for all variants of a sub-range of functionalities running with HIP backend.
+```
+cd utilities/rpp-unittests/HIP
+./testAllScript.sh <S> <E> <U>
+```
+where:
+```
+S     CASE_START (Starting case# (0-79))
+E     CASE_END (Ending case# (0-79))
+U     UNIQUE_FUNC (0 = Skip / 1 = Run)
+```
+### Option 3 - Testing all functionalities with a differnet image folder
+Navigate to utilities/rpp-unittests/HIP/testAllScript.sh and set the correct SRC1, SRC2 and DST paths under "MANUAL OVERRIDE".
 ```
 # <<<<<<<<<<<<<< FOR MANUAL OVERRIDE, JUST REPLACE AND POINT TO THE SOURCE AND DESTINATION FOLDERS HERE >>>>>>>>>>>>>>
 SRC_FOLDER_1="<your complete folder path that containes images for  srcPtr1>"
@@ -95,10 +131,10 @@ Run the script
 ```
 ./testAllScript.sh
 ```
-### Testing individual functionalities and specific sub-cases
+### Option 4 - Testing individual functionalities and specific sub-cases
 First build the HIP backend test suite.
 ```
-cd utilities/rpp-unittests/HIP_NEW
+cd utilities/rpp-unittests/HIP
 mkdir build
 cd build
 cmake ..
