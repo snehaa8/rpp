@@ -389,7 +389,7 @@ extern "C" __global__ void resize_nn_crop_batch(unsigned char *srcPtr,
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
 
-    if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
+    if (x < source_width[id_z] && y < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
