@@ -1,8 +1,5 @@
 #include <hip/hip_runtime.h>
-
-#if defined(STATIC)
 #include "rpp_hip_host_decls.hpp"
-#endif
 
 #define saturate_8u(value) ( (value) > 255 ? 255 : ((value) < 0 ? 0 : (value) ))
 #define amd_max3_hip(a,b,c) ((a > b) && (a > c) ? a : ((b > c) ? b : c))
@@ -123,9 +120,9 @@ __device__ float4 convert_one_pixel_to_hsv(uchar4 pixel)
 }
 
 extern "C" __global__ void huergb_pkd(unsigned char *input,
-                                        unsigned char *output,
-                                      const  float hue,
-                                      const  float sat,
+                                      unsigned char *output,
+                                      const float hue,
+                                      const float sat,
                                       const unsigned int height,
                                       const unsigned int width)
 {
@@ -175,9 +172,9 @@ extern "C" __global__ void huergb_pkd(unsigned char *input,
 }
 
 extern "C" __global__ void huergb_pln(unsigned char *input,
-                                        unsigned char *output,
-                                      const  float hue,
-                                      const  float sat,
+                                      unsigned char *output,
+                                      const float hue,
+                                      const float sat,
                                       const unsigned int height,
                                       const unsigned int width)
 {
@@ -287,17 +284,17 @@ extern "C" __global__ void hue_batch(unsigned char *input,
 }
 
 extern "C" __global__ void saturation_batch(unsigned char *input,
-                                             unsigned char *output,
-                                             float *sat,
-                                             unsigned int *xroi_begin,
-                                             unsigned int *xroi_end,
-                                             unsigned int *yroi_begin,
-                                             unsigned int *yroi_end,
-                                             unsigned int *height,
-                                             unsigned int *width,
-                                             unsigned int *max_width,
-                                             unsigned long long *batch_index,
-                                             unsigned int *inc, // use width * height for pln and 1 for pkd
+                                            unsigned char *output,
+                                            float *sat,
+                                            unsigned int *xroi_begin,
+                                            unsigned int *xroi_end,
+                                            unsigned int *yroi_begin,
+                                            unsigned int *yroi_end,
+                                            unsigned int *height,
+                                            unsigned int *width,
+                                            unsigned int *max_width,
+                                            unsigned long long *batch_index,
+                                            unsigned int *inc, // use width * height for pln and 1 for pkd
                                             const int plnpkdindex) // use 1 pln 3 for pkd
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
@@ -337,17 +334,17 @@ extern "C" __global__ void saturation_batch(unsigned char *input,
 }
 
 extern "C" __global__ void convert_batch_rgb_hsv(unsigned char *input,
-                                                float *output,
-                                                int *xroi_begin,
-                                                int *xroi_end,
-                                                int *yroi_begin,
-                                                int *yroi_end,
-                                                unsigned int *height,
-                                                unsigned int *width,
-                                                unsigned int *max_width,
-                                                unsigned long *batch_index,
-                                                unsigned int *inc, // use width * height for pln and 1 for pkd
-                                                const int plnpkdindex) // use 1 pln 3 for pkd
+                                                 float *output,
+                                                 unsigned int *xroi_begin,
+                                                 unsigned int *xroi_end,
+                                                 unsigned int *yroi_begin,
+                                                 unsigned int *yroi_end,
+                                                 unsigned int *height,
+                                                 unsigned int *width,
+                                                 unsigned int *max_width,
+                                                 unsigned long long *batch_index,
+                                                 unsigned int *inc, // use width * height for pln and 1 for pkd
+                                                 const int plnpkdindex) // use 1 pln 3 for pkd
 {
     int id_x = hipBlockIdx_x *hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y *hipBlockDim_y + hipThreadIdx_y;
@@ -382,15 +379,15 @@ extern "C" __global__ void convert_batch_rgb_hsv(unsigned char *input,
 }
 
 extern "C" __global__ void convert_batch_hsv_rgb(float *input,
-                                                  unsigned char *output,
-                                                 int *xroi_begin,
-                                                 int *xroi_end,
-                                                 int *yroi_begin,
-                                                 int *yroi_end,
+                                                 unsigned char *output,
+                                                 unsigned int *xroi_begin,
+                                                 unsigned int *xroi_end,
+                                                 unsigned int *yroi_begin,
+                                                 unsigned int *yroi_end,
                                                  unsigned int *height,
                                                  unsigned int *width,
-                                                  unsigned int *max_width,
-                                                 unsigned long *batch_index,
+                                                 unsigned int *max_width,
+                                                 unsigned long long *batch_index,
                                                  unsigned int *inc, // use width * height for pln and 1 for pkd
                                                  const int plnpkdindex) // use 1 pln 3 for pkd
 {
@@ -426,7 +423,6 @@ extern "C" __global__ void convert_batch_hsv_rgb(float *input,
     }
 }
 
-#if defined(STATIC)
 RppStatus hip_exec_hueRGB_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, Rpp32s plnpkdind, Rpp32u max_height, Rpp32u max_width)
 {
     int localThreads_x = 32;
@@ -488,4 +484,63 @@ RppStatus hip_exec_saturationRGB_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle
 
     return RPP_SUCCESS;
 }
-#endif
+
+RppStatus hip_exec_convert_batch_rgb_hsv(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, Rpp32s plnpkdind, Rpp32u max_width, Rpp32u max_height)
+{
+    int localThreads_x = 32;
+    int localThreads_y = 32;
+    int localThreads_z = 1;
+    int globalThreads_x = max_width;
+    int globalThreads_y = max_height;
+    int globalThreads_z = handle.GetBatchSize();
+
+    hipLaunchKernelGGL(convert_batch_rgb_hsv,
+                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                       dim3(localThreads_x, localThreads_y, localThreads_z),
+                       0,
+                       handle.GetStream(),
+                       srcPtr,
+                       dstPtr,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.x,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.roiWidth,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.y,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.roiHeight,
+                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                       handle.GetInitHandle()->mem.mgpu.inc,
+                       plnpkdind);
+
+    return RPP_SUCCESS;
+}
+
+RppStatus hip_exec_convert_batch_hsv_rgb(Rpp32f *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, Rpp32s plnpkdind, Rpp32u max_width, Rpp32u max_height)
+{
+    int localThreads_x = 32;
+    int localThreads_y = 32;
+    int localThreads_z = 1;
+    int globalThreads_x = max_width;
+    int globalThreads_y = max_height;
+    int globalThreads_z = handle.GetBatchSize();
+
+    hipLaunchKernelGGL(convert_batch_hsv_rgb,
+                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                       dim3(localThreads_x, localThreads_y, localThreads_z),
+                       0,
+                       handle.GetStream(),
+                       srcPtr,
+                       dstPtr,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.x,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.roiWidth,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.y,
+                       handle.GetInitHandle()->mem.mgpu.roiPoints.roiHeight,
+                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                       handle.GetInitHandle()->mem.mgpu.inc,
+                       plnpkdind);
+
+    return RPP_SUCCESS;
+}
