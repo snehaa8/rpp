@@ -3507,7 +3507,7 @@ int main(int argc, char **argv)
     mkdir(dst, 0700);
     strcat(dst, "/");
     count = 0;
-    elementsInRowMax = maxWidth * ip_channel;
+    elementsInRowMax = maxDstWidth * ip_channel;
 
     for (j = 0; j < noOfImages; j++)
     {
@@ -3527,7 +3527,7 @@ int main(int argc, char **argv)
             temp_output_row += elementsInRow;
             output_row += elementsInRowMax;
         }
-        count += maxHeight * maxWidth * ip_channel;
+        count += maxDstHeight * maxDstWidth * ip_channel;
 
         char temp[1000];
         strcpy(temp, dst);
