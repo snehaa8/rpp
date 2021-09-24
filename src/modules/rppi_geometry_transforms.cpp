@@ -251,7 +251,8 @@ RppStatus resize_helper(RppiChnFormat chn_format,
                         RppiSize *dstSize,
                         RppiSize maxDstSize,
                         Rpp32u nbatchSize,
-                        rppHandle_t rppHandle)
+                        rppHandle_t rppHandle,
+                        RppiResizeInterpType interp_type = RppiResizeInterpType::LINEAR)
 {
     RPPTensorFunctionMetaData tensor_info(chn_format, in_tensor_type, out_tensor_type, num_of_channels,
                                           (bool)outputFormatToggle);
@@ -285,7 +286,8 @@ RppStatus resize_helper(RppiChnFormat chn_format,
                 resize_hip_batch_tensor(static_cast<Rpp8u *>(srcPtr),
                                         static_cast<Rpp8u *>(dstPtr),
                                         rpp::deref(rppHandle),
-                                        tensor_info);
+                                        tensor_info,
+                                        interp_type);
             }
             else if (out_tensor_type == RPPTensorDataType::FP16)
             {
@@ -500,9 +502,9 @@ rppi_resize_u8_i8_pln1_batchPD_gpu(RppPtr_t srcPtr, RppiSize *srcSize, RppiSize 
     return (resize_helper(RPPI_CHN_PLANAR, 1, RPPTensorDataType::U8, RPPTensorDataType::I8, outputFormatToggle, srcPtr, srcSize, maxSrcSize, dstPtr, dstSize, maxSrcSize, nbatchSize, rppHandle));
 }
 RppStatus
-rppi_resize_u8_pln3_batchPD_gpu(RppPtr_t srcPtr, RppiSize *srcSize, RppiSize maxSrcSize, RppPtr_t dstPtr, RppiSize *dstSize, RppiSize maxDstSize, Rpp32u outputFormatToggle, Rpp32u nbatchSize, rppHandle_t rppHandle)
+rppi_resize_u8_pln3_batchPD_gpu(RppPtr_t srcPtr, RppiSize *srcSize, RppiSize maxSrcSize, RppPtr_t dstPtr, RppiSize *dstSize, RppiSize maxDstSize, Rpp32u outputFormatToggle, Rpp32u nbatchSize, rppHandle_t rppHandle, RppiResizeInterpType interp_type)
 {
-    return (resize_helper(RPPI_CHN_PLANAR, 3, RPPTensorDataType::U8, RPPTensorDataType::U8, outputFormatToggle, srcPtr, srcSize, maxSrcSize, dstPtr, dstSize, maxSrcSize, nbatchSize, rppHandle));
+    return (resize_helper(RPPI_CHN_PLANAR, 3, RPPTensorDataType::U8, RPPTensorDataType::U8, outputFormatToggle, srcPtr, srcSize, maxSrcSize, dstPtr, dstSize, maxSrcSize, nbatchSize, rppHandle, interp_type));
 }
 RppStatus
 rppi_resize_f16_pln3_batchPD_gpu(RppPtr_t srcPtr, RppiSize *srcSize, RppiSize maxSrcSize, RppPtr_t dstPtr, RppiSize *dstSize, RppiSize maxDstSize, Rpp32u outputFormatToggle, Rpp32u nbatchSize, rppHandle_t rppHandle)

@@ -1480,7 +1480,7 @@ int main(int argc, char **argv)
     case 21:
     {
         test_case_name = "resize";
-
+        RppiResizeInterpType interpolation_type = RppiResizeInterpType::LINEAR;
         for (i = 0; i < images; i++)
         {
             dstSize[i].height = srcSize[i].height / 3;
@@ -1500,7 +1500,7 @@ int main(int argc, char **argv)
         start = clock();
 
         if (ip_bitDepth == 0)
-            rppi_resize_u8_pln3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_pln3_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 1)
             missingFuncFlag = 1; // rppi_resize_f16_pln3_batchPD_gpu(d_inputf16, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
         else if (ip_bitDepth == 2)

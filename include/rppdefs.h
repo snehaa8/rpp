@@ -199,6 +199,11 @@ typedef enum
 
 } RpptRoiType;
 
+typedef enum {
+    NEAREST_NEIGHBOR,
+    LINEAR
+} RppiResizeInterpType;
+
 typedef struct
 {
     RppiPoint lt, rb;

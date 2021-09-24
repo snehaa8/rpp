@@ -363,7 +363,7 @@ resize_hip_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, RppiChnForma
 }
 
 RppStatus
-resize_hip_batch_tensor(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle &handle, RPPTensorFunctionMetaData &tensor_info)
+resize_hip_batch_tensor(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle &handle, RPPTensorFunctionMetaData &tensor_info, RppiResizeInterpType interp_type)
 {
     Rpp32u max_height, max_width;
     max_size(handle.GetInitHandle()->mem.mgpu.cdstSize.height, handle.GetInitHandle()->mem.mgpu.cdstSize.width, handle.GetBatchSize(), &max_height, &max_width);
@@ -372,7 +372,7 @@ resize_hip_batch_tensor(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle &handle, RPPTe
     unsigned int type = 0;
     int in_plnpkdind = getplnpkdind(tensor_info._in_format);
     int out_plnpkdind = getplnpkdind(tensor_info._out_format);
-    hip_exec_resize_crop_batch(srcPtr, dstPtr, handle, tensor_info, padding, type, in_plnpkdind, out_plnpkdind, max_height, max_width);
+    hip_exec_resize_crop_batch(srcPtr, dstPtr, handle, tensor_info, padding, type, in_plnpkdind, out_plnpkdind, max_height, max_width, interp_type);
 
     return RPP_SUCCESS;
 }
@@ -566,7 +566,7 @@ resize_crop_hip_batch_tensor(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle &handle, 
     unsigned int type = 1;
     int in_plnpkdind = getplnpkdind(tensor_info._in_format);
     int out_plnpkdind = getplnpkdind(tensor_info._out_format);
-    hip_exec_resize_crop_batch(srcPtr, dstPtr, handle, tensor_info, padding, type, in_plnpkdind, out_plnpkdind, max_height, max_width);
+    hip_exec_resize_crop_batch(srcPtr, dstPtr, handle, tensor_info, padding, type, in_plnpkdind, out_plnpkdind, max_height, max_width, RppiResizeInterpType::LINEAR);
 
     return RPP_SUCCESS;
 }
