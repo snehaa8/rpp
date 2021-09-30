@@ -1360,7 +1360,7 @@ int main(int argc, char **argv)
     case 21:
     {
         test_case_name = "resize";
-        RppiResizeInterpType interpolation_type = RppiResizeInterpType::NEAREST_NEIGHBOR;
+        RppiResizeInterpType interpolation_type = RppiResizeInterpType::LINEAR;
         for (i = 0; i < images; i++)
         {
             dstSize[i].height = srcSize[i].height / 3;
@@ -1382,17 +1382,17 @@ int main(int argc, char **argv)
         if (ip_bitDepth == 0)
             rppi_resize_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 1)
-            rppi_resize_f16_pkd3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_f16_pkd3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 2)
-            rppi_resize_f32_pkd3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_f32_pkd3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 3)
-            rppi_resize_u8_f16_pkd3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_f16_pkd3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 4)
-            rppi_resize_u8_f32_pkd3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_f32_pkd3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 5)
-            rppi_resize_i8_pkd3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_i8_pkd3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 6)
-            rppi_resize_u8_i8_pkd3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_i8_pkd3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else
             missingFuncFlag = 1;
         end = clock();

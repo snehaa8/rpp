@@ -2991,7 +2991,7 @@ RppStatus rotate_host(T* srcPtr, RppiSize srcSize, T* dstPtr, RppiSize dstSize,
 template <typename T, typename U>
 RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, U* dstPtr, RppiSize *batch_dstSize, RppiSize *batch_dstSizeMax, 
                             RppiROI *roiPoints, Rpp32u outputFormatToggle, Rpp32u nbatchSize,
-                            RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interp_type = RppiResizeInterpType::LINEAR)
+                            RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interp_type)
 {
     if(chnFormat == RPPI_CHN_PLANAR)
     {
@@ -3163,7 +3163,7 @@ RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_
 template <typename T, typename U>
 RppStatus resize_u8_i8_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, U* dstPtr, RppiSize *batch_dstSize, RppiSize *batch_dstSizeMax, 
                             RppiROI *roiPoints, Rpp32u outputFormatToggle, Rpp32u nbatchSize,
-                            RppiChnFormat chnFormat, Rpp32u channel)
+                            RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interp_type)
 {
     if(chnFormat == RPPI_CHN_PLANAR)
     {
@@ -3222,7 +3222,7 @@ RppStatus resize_u8_i8_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *
                 }
             }
 
-            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel);
+            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel, interp_type);
 
             T *dstPtrROIipTypeTemp;
             dstPtrROIipTypeTemp = dstPtrROIipType;
@@ -3310,7 +3310,7 @@ RppStatus resize_u8_i8_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *
                 srcPtrROITemp += elementsInRowROI;
             }
 
-            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel);
+            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel, interp_type);
 
             T *dstPtrROIipTypeTemp;
             dstPtrROIipTypeTemp = dstPtrROIipType;
