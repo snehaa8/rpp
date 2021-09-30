@@ -373,8 +373,11 @@ extern "C" __global__ void resize_nn_crop_batch(unsigned char *srcPtr,
 
     unsigned int src_roi_width = xroi_end[id_z] - xroi_begin[id_z];
     unsigned int src_roi_height = yroi_end[id_z] - yroi_begin[id_z];
-    float x_ratio = ((float)((src_roi_width > dest_width[id_z]) ? src_roi_width : src_roi_width - 1)) / dest_width[id_z];
-    float y_ratio =((float)((src_roi_height > dest_height[id_z]) ? src_roi_height : src_roi_height - 1)) / dest_height[id_z];
+    float x_ratio = (float)src_roi_width / dest_width[id_z];
+    float y_ratio =(float) src_roi_height / dest_height[id_z];
+    float origin_x = xroi_begin[id_z] + (0.5f * x_ratio);
+    float origin_y = yroi_begin[id_z] + (0.5f * y_ratio);
+
     int x, y;
 
     unsigned long dst_pixIdx = 0;
@@ -384,10 +387,10 @@ extern "C" __global__ void resize_nn_crop_batch(unsigned char *srcPtr,
         return;
     }
 
-    x = (int)(round(x_ratio * id_x));
-    y = (int)(round(y_ratio * id_y));
-    x = xroi_begin[id_z] + x;
-    y = yroi_begin[id_z] + y;
+    x = (int)(floor(x_ratio * id_x + origin_x));
+    y = (int)(floor(y_ratio * id_y + origin_y));
+    x = x <= 0 ? 0 : x;
+    y = y <= 0 ? 0 : y;
 
     if (x < source_width[id_z] && y < source_height[id_z])
     {
