@@ -22,7 +22,7 @@ typedef half Rpp16f;
 
 #define RPPPIXELCHECK(pixel) (pixel < (Rpp32f)0) ? ((Rpp32f)0) : ((pixel < (Rpp32f)255) ? pixel : ((Rpp32f)255))
 
-std::string get_interpolation_type(unsigned int val)
+std::string get_interpolation_type(int val)
 {
     switch(val)
     {
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     unsigned int outputFormatToggle = atoi(argv[5]);
     int test_case = atoi(argv[6]);
     unsigned int verbosity = (test_case == 21) ? atoi(argv[8]) : atoi(argv[7]);
-    unsigned int interpolation_type = (test_case == 21) ? atoi(argv[7]) : 1;
+    int interpolation_type = (test_case == 21) ? atoi(argv[7]) : 1;
 
     if (verbosity)
     {
@@ -1383,7 +1383,7 @@ int main(int argc, char **argv)
     case 21:
     {
         test_case_name = "resize";
-        RppiResizeInterpType interp_type = (RppiResizeInterpType)interpolation_type;
+
         for (i = 0; i < images; i++)
         {
             dstSize[i].height = srcSize[i].height / 3;
@@ -1403,19 +1403,19 @@ int main(int argc, char **argv)
         start_omp = omp_get_wtime();
         start = clock();
         if (ip_bitDepth == 0)
-            rppi_resize_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 1)
-            rppi_resize_f16_pkd3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_f16_pkd3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 2)
-            rppi_resize_f32_pkd3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_f32_pkd3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 3)
-            rppi_resize_u8_f16_pkd3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_f16_pkd3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 4)
-            rppi_resize_u8_f32_pkd3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_f32_pkd3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 5)
-            rppi_resize_i8_pkd3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_i8_pkd3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 6)
-            rppi_resize_u8_i8_pkd3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_i8_pkd3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else
             missingFuncFlag = 1;
         end = clock();
@@ -3393,7 +3393,7 @@ int main(int argc, char **argv)
     case 76:
     {
         test_case_name = "reconstruction_laplacian_image_pyramid";
-        RppiResizeInterpType interpolation_type = RppiResizeInterpType::LINEAR;
+
         Rpp32u kernelSize[images];
         Rpp32f stdDev[images];
         RppiSize srcSizeHalf[images];

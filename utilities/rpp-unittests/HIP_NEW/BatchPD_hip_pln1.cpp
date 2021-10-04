@@ -35,7 +35,7 @@ void check_hip_error(void)
     }
 }
 
-std::string get_interpolation_type(unsigned int val)
+std::string get_interpolation_type(int val)
 {
     switch(val)
     {
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     }
     if (atoi(argv[6]) == 21 && argc < MIN_ARG_COUNT + 1)
     {
-        printf("\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <interp_type = 0:2> <verbosity = 0/1>\n");
+        printf("\nUsage: ./BatchPD_hip_pln1 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <interp_type = 0:2> <verbosity = 0/1>\n");
         return -1;
     }
 
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
     unsigned int outputFormatToggle = atoi(argv[5]);
     int test_case = atoi(argv[6]);
     unsigned int verbosity = (test_case == 21) ? atoi(argv[8]) : atoi(argv[7]);
-    unsigned int interpolation_type = (test_case == 21) ? atoi(argv[7]) : 1;
+    int interpolation_type = (test_case == 21) ? atoi(argv[7]) : 1;
 
     if (verbosity)
     {
@@ -1396,7 +1396,7 @@ int main(int argc, char **argv)
     case 21:
     {
         test_case_name = "resize";
-        RppiResizeInterpType interp_type = (RppiResizeInterpType)interpolation_type;
+
         for (i = 0; i < images; i++)
         {
             dstSize[i].height = srcSize[i].height / 3;
@@ -1416,19 +1416,19 @@ int main(int argc, char **argv)
         start = clock();
 
         if (ip_bitDepth == 0)
-            rppi_resize_u8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 1)
-            missingFuncFlag = 1; // rppi_resize_f16_pln1_batchPD_gpu(d_inputf16, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            missingFuncFlag = 1; // rppi_resize_f16_pln1_batchPD_gpu(d_inputf16, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 2)
-            rppi_resize_f32_pln1_batchPD_gpu(d_inputf32, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_f32_pln1_batchPD_gpu(d_inputf32, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 3)
-            missingFuncFlag = 1; // rppi_resize_u8_f16_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            missingFuncFlag = 1; // rppi_resize_u8_f16_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 4)
-            rppi_resize_u8_f32_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_f32_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 5)
-            rppi_resize_i8_pln1_batchPD_gpu(d_inputi8, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_i8_pln1_batchPD_gpu(d_inputi8, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 6)
-            rppi_resize_u8_i8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interp_type);
+            rppi_resize_u8_i8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
         else
             missingFuncFlag = 1;
 
