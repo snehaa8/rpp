@@ -1404,19 +1404,19 @@ int main(int argc, char **argv)
             start_omp = omp_get_wtime();
             start = clock();
             if (ip_bitDepth == 0)
-                rppi_resize_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_u8_pkd3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 1)
-                rppi_resize_f16_pkd3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_f16_pkd3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 2)
-                rppi_resize_f32_pkd3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_f32_pkd3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 3)
-                rppi_resize_u8_f16_pkd3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_u8_f16_pkd3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 4)
-                rppi_resize_u8_f32_pkd3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_u8_f32_pkd3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 5)
-                rppi_resize_i8_pkd3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_i8_pkd3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 6)
-                rppi_resize_u8_i8_pkd3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle, interpolation_type);
+                rppi_resize_u8_i8_pkd3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else
                 missingFuncFlag = 1;
             end = clock();
@@ -3423,13 +3423,13 @@ int main(int argc, char **argv)
             Rpp8u *srcPtr1 = (Rpp8u*) calloc(noOfImages * srcSize1Max.height * srcSize1Max.width * ip_channel, sizeof(Rpp8u));
             Rpp8u *srcPtr2 = (Rpp8u*) calloc(noOfImages * srcSize2Max.height * srcSize2Max.width * ip_channel, sizeof(Rpp8u));
 
-            rppi_resize_u8_pkd3_batchPD_host(input, srcSize, srcSize1Max, srcPtr2, srcSizeHalf, srcSize2Max, outputFormatToggle, noOfImages, handle, interpolation_type);
+            rppi_resize_u8_pkd3_batchPD_host(input, srcSize, srcSize1Max, srcPtr2, srcSizeHalf, srcSize2Max, interpolation_type, outputFormatToggle, noOfImages, handle);
 
             rppi_laplacian_image_pyramid_u8_pkd3_batchPD_host(input, srcSize, maxSize, srcPtr1, stdDev, kernelSize, noOfImages, handle);
             memcpy(input, srcPtr1, ioBufferSize * sizeof(Rpp8u));
             memset(srcPtr1, 0, ioBufferSize * sizeof(Rpp8u));
 
-            rppi_resize_u8_pkd3_batchPD_host(input, srcSizeHalf, srcSize1Max, srcPtr1, srcSize, srcSize1Max, outputFormatToggle, noOfImages, handle, interpolation_type);
+            rppi_resize_u8_pkd3_batchPD_host(input, srcSizeHalf, srcSize1Max, srcPtr1, srcSize, srcSize1Max, interpolation_type, outputFormatToggle, noOfImages, handle);
 
             start_omp = omp_get_wtime();
             start = clock();

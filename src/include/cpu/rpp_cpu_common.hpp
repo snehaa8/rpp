@@ -757,9 +757,9 @@ inline RppStatus normalize_kernel_host(U* dstPtrROI, RppiSize dstSize, Rpp32u ch
 
 template <typename T, typename U>
 inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, RppiSize dstSize,
-                           RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interp_type = RppiResizeInterpType::LINEAR)
+                           RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interpType = RppiResizeInterpType::LINEAR)
 {
-    if (interp_type == RppiResizeInterpType::LINEAR)
+    if (interpType == RppiResizeInterpType::LINEAR)
     {
         if (chnFormat == RPPI_CHN_PLANAR)
         {
@@ -972,7 +972,7 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
             }
         }
     }
-    if (interp_type == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    else if (interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
         if (chnFormat == RPPI_CHN_PLANAR)
         {

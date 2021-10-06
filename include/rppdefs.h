@@ -176,8 +176,11 @@ typedef enum
     HSV
 } RppiFormat;
 
-
-
+typedef enum 
+{
+    NEAREST_NEIGHBOR,
+    LINEAR
+} RppiResizeInterpType;
 
 
 /******************** RPPT typedefs ********************/
@@ -202,11 +205,6 @@ typedef enum
     XYWH
 
 } RpptRoiType;
-
-typedef enum {
-    NEAREST_NEIGHBOR,
-    LINEAR
-} RppiResizeInterpType;
 
 typedef struct
 {

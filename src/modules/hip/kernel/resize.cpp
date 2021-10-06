@@ -1496,7 +1496,7 @@ extern "C" __global__ void random_crop_letterbox_batch(unsigned char *srcPtr,
     }
 }
 
-RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1521,7 +1521,7 @@ RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& 
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
 
-    if(interp_type == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
         hipLaunchKernelGGL(resize_nn_crop_batch,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
@@ -1583,7 +1583,7 @@ RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& 
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_u8_fp16(Rpp8u *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch_u8_fp16(Rpp8u *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     // int localThreads_x = 16;
     // int localThreads_y = 16;
@@ -1638,7 +1638,7 @@ RppStatus hip_exec_resize_crop_batch_u8_fp16(Rpp8u *srcPtr, Rpp16f *dstPtr, rpp:
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1662,7 +1662,7 @@ RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp:
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-    if(interp_type == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
         hipLaunchKernelGGL(resize_nn_crop_batch_u8_fp32,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
@@ -1724,7 +1724,7 @@ RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp:
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1748,7 +1748,7 @@ RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-    if(interp_type == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
         hipLaunchKernelGGL(resize_nn_crop_batch_u8_int8,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
@@ -1810,7 +1810,7 @@ RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     // int localThreads_x = 16;
     // int localThreads_y = 16;
@@ -1865,7 +1865,7 @@ RppStatus hip_exec_resize_crop_batch_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::H
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1889,7 +1889,7 @@ RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::H
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-    if(interp_type == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
         hipLaunchKernelGGL(resize_nn_crop_batch_fp32,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
@@ -1951,7 +1951,7 @@ RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::H
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_int8(Rpp8s *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interp_type)
+RppStatus hip_exec_resize_crop_batch_int8(Rpp8s *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1975,7 +1975,7 @@ RppStatus hip_exec_resize_crop_batch_int8(Rpp8s *srcPtr, Rpp8s *dstPtr, rpp::Han
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-    if(interp_type == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
         hipLaunchKernelGGL(resize_nn_crop_batch_int8,
                         dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
