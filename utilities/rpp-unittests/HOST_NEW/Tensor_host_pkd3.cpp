@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
     // Set maxHeight, maxWidth and ROIs for src/dst
 
-    const int images = noOfImages;
+    int images = noOfImages;
     char imageNames[images][1000];
 
     DIR *dr1 = opendir(src);
@@ -479,6 +479,30 @@ int main(int argc, char **argv)
     {
         test_case_name = "color_jitter";
 
+        images = 1;
+        Rpp8u inputImage[12] = {1,1,1,2,2,2,3,3,3,4,4,4};
+        Rpp8u outputImage[12] = {0};
+
+        srcDescPtr->n = images;
+        srcDescPtr->h = 2;
+        srcDescPtr->w = 2;
+        srcDescPtr->c = 3;
+
+        dstDescPtr->n = images;
+        dstDescPtr->h = 2;
+        dstDescPtr->w = 2;
+        dstDescPtr->c = 3;
+
+        srcDescPtr->strides.nStride = 3 * srcDescPtr->w * srcDescPtr->h;
+        srcDescPtr->strides.hStride = 3 * srcDescPtr->w;
+        srcDescPtr->strides.wStride = 3;
+        srcDescPtr->strides.cStride = 1;
+
+        dstDescPtr->strides.nStride = 3 * dstDescPtr->w * dstDescPtr->h;
+        dstDescPtr->strides.hStride = 3 * dstDescPtr->w;
+        dstDescPtr->strides.wStride = 3;
+        dstDescPtr->strides.cStride = 1;
+
         Rpp32f brightness[images];
         Rpp32f contrast[images];
         Rpp32f hue[images];
@@ -491,10 +515,10 @@ int main(int argc, char **argv)
             saturation[i] = 1.3;
 
             // xywhROI override sample
-            // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
-            // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
-            // roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-            // roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+            roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            roiTensorPtrSrc[i].xywhROI.roiWidth = 2;
+            roiTensorPtrSrc[i].xywhROI.roiHeight = 2;
 
             // ltrbROI override sample
             // roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
@@ -510,7 +534,7 @@ int main(int argc, char **argv)
         start_omp = omp_get_wtime();
         start = clock();
         if (ip_bitDepth == 0)
-            rppt_color_jitter_host(input, srcDescPtr, output, dstDescPtr, brightness, contrast, hue, saturation, roiTensorPtrSrc, roiTypeSrc, handle);
+            rppt_color_jitter_host(inputImage, srcDescPtr, outputImage, dstDescPtr, brightness, contrast, hue, saturation, roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 1)
             rppt_color_jitter_host(inputf16, srcDescPtr, outputf16, dstDescPtr, brightness, contrast, hue, saturation, roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 2)
@@ -527,6 +551,14 @@ int main(int argc, char **argv)
             missingFuncFlag = 1;
         end = clock();
         end_omp = omp_get_wtime();
+
+        printf("\n\nInput Image:\n");
+        for (int x = 0; x < 12; x++)
+            printf("%d ", inputImage[x]);
+
+        printf("\n\nOutput Image:\n");
+        for (int x = 0; x < 12; x++)
+            printf("%d ", outputImage[x]);
 
         break;
     }
@@ -548,6 +580,8 @@ int main(int argc, char **argv)
     cout << "\nCPU Time - BatchPD : " << cpu_time_used;
     cout << "\nOMP Time - BatchPD : " << omp_time_used;
     printf("\n");
+
+    return 0;
 
     // Reconvert other bit depths to 8u for output display purposes
 
