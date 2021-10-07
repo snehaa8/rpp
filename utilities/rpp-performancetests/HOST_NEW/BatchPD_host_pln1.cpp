@@ -427,6 +427,11 @@ int main(int argc, char **argv)
     char func[1000];
     strcpy(func, funcName);
     strcat(func, funcType);
+    if(test_case == 21)
+    {
+        strcat(func, "_");
+        strcat(func, get_interpolation_type(interpolation_type).c_str());
+    }
 
     int missingFuncFlag = 0;
 

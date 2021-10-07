@@ -436,6 +436,11 @@ int main(int argc, char **argv)
     char func[1000];
     strcpy(func, funcName);
     strcat(func, funcType);
+    if(test_case == 21)
+    {
+        strcat(func, "_");
+        strcat(func, get_interpolation_type(interpolation_type).c_str());
+    }
 
     int ip_bitDepth_1_cases[14] = {21, 22, 23, 24, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39};
     int ip_bitDepth_2_cases[14] = {21, 22, 23, 24, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39};
