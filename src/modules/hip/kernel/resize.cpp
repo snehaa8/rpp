@@ -232,24 +232,18 @@ extern "C" __global__ void resize_batch(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    float x_ratio = ((float)(source_width[id_z] -1 )) / dest_width[id_z];
-    float y_ratio = ((float)(source_height[id_z] -1 )) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
-
+    
+    float x_ratio = ((float)(source_width[id_z] -1 )) / dest_width[id_z];
+    float y_ratio = ((float)(source_height[id_z] -1 )) / dest_height[id_z];
     int x = (int)(x_ratio * id_x);
     int y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
-    dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * plnpkdindex;
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
+    unsigned long dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * plnpkdindex;
 
     for(int indextmp = 0; indextmp < channel; indextmp++)
     {
@@ -294,26 +288,20 @@ extern "C" __global__ void resize_crop_batch(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
@@ -324,12 +312,10 @@ extern "C" __global__ void resize_crop_batch(unsigned char *srcPtr,
             int B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             int pixVal = (int)(A * (1 - x_diff) * (1 - y_diff) +
                                B * (x_diff) * (1 - y_diff) +
                                C * (y_diff) * (1 - x_diff) +
                                D * (x_diff * y_diff));
-
             dstPtr[dst_pixIdx] = saturate_8u(pixVal);
             dst_pixIdx += dest_inc[id_z];
         }
@@ -371,31 +357,24 @@ extern "C" __global__ void resize_nn_crop_batch(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    unsigned int src_roi_width = xroi_end[id_z] - xroi_begin[id_z];
-    unsigned int src_roi_height = yroi_end[id_z] - yroi_begin[id_z];
-    float x_ratio = (float)src_roi_width / dest_width[id_z];
-    float y_ratio =(float) src_roi_height / dest_height[id_z];
-    float origin_x = xroi_begin[id_z] + (0.5f * x_ratio);
-    float origin_y = yroi_begin[id_z] + (0.5f * y_ratio);
-
-    int x, y;
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(floor(x_ratio * id_x + origin_x));
-    y = (int)(floor(y_ratio * id_y + origin_y));
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
 
     if (x < source_width[id_z] && y < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
-            int pixVal = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-            dstPtr[dst_pixIdx] = saturate_8u(pixVal);
+            dstPtr[dst_pixIdx] = saturate_8u(srcPtr[src_pixIdx + indextmp * source_inc[id_z]]);
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -436,43 +415,34 @@ extern "C" __global__ void resize_crop_batch_int8(signed char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
-
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
             int A = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             signed char pixVal = (signed char)(A * (1 - x_diff) * (1 - y_diff) +
                                                B * (x_diff) * (1 - y_diff) +
                                                C * (y_diff) * (1 - x_diff) +
                                                D * (x_diff * y_diff));
-
             dstPtr[dst_pixIdx] = pixVal;
             dst_pixIdx += dest_inc[id_z];
         }
@@ -514,32 +484,24 @@ extern "C" __global__ void resize_nn_crop_batch_int8(signed char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    unsigned int src_roi_width = xroi_end[id_z] - xroi_begin[id_z];
-    unsigned int src_roi_height = yroi_end[id_z] - yroi_begin[id_z];
-    float x_ratio = (float)src_roi_width / dest_width[id_z];
-    float y_ratio =(float) src_roi_height / dest_height[id_z];
-    float origin_x = xroi_begin[id_z] + (0.5f * x_ratio);
-    float origin_y = yroi_begin[id_z] + (0.5f * y_ratio);
-
-    int x, y;
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(floor(x_ratio * id_x + origin_x));
-    y = (int)(floor(y_ratio * id_y + origin_y));
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
 
     if (x < source_width[id_z] && y < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
-
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
-            signed char pixVal = (signed char)(srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]]);
-            dstPtr[dst_pixIdx] = pixVal;
+            dstPtr[dst_pixIdx] = (signed char)(srcPtr[src_pixIdx + indextmp * source_inc[id_z]]);
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -650,26 +612,20 @@ extern "C" __global__ void resize_crop_batch_fp32(float *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
@@ -680,12 +636,10 @@ extern "C" __global__ void resize_crop_batch_fp32(float *srcPtr,
             float B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             float pixVal = A * (1 - x_diff) * (1 - y_diff) +
                         B * (x_diff) * (1 - y_diff) +
                         C * (y_diff) * (1 - x_diff) +
                         D * (x_diff * y_diff);
-
             dstPtr[dst_pixIdx] = pixVal;
             dst_pixIdx += dest_inc[id_z];
         }
@@ -727,31 +681,24 @@ extern "C" __global__ void resize_nn_crop_batch_fp32(float *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    unsigned int src_roi_width = xroi_end[id_z] - xroi_begin[id_z];
-    unsigned int src_roi_height = yroi_end[id_z] - yroi_begin[id_z];
-    float x_ratio = (float)src_roi_width / dest_width[id_z];
-    float y_ratio =(float) src_roi_height / dest_height[id_z];
-    float origin_x = xroi_begin[id_z] + (0.5f * x_ratio);
-    float origin_y = yroi_begin[id_z] + (0.5f * y_ratio);
-
-    int x, y;
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(floor(x_ratio * id_x + origin_x));
-    y = (int)(floor(y_ratio * id_y + origin_y));
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
 
     if (x < source_width[id_z] && y < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
-            float pixVal = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-            dstPtr[dst_pixIdx] = pixVal;
+            dstPtr[dst_pixIdx] = srcPtr[src_pixIdx + indextmp * source_inc[id_z]];
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -792,26 +739,20 @@ extern "C" __global__ void resize_crop_batch_u8_fp32(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y, index;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
-    if(id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
@@ -822,12 +763,10 @@ extern "C" __global__ void resize_crop_batch_u8_fp32(unsigned char *srcPtr,
             float B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             float pixVal = A * (1 - x_diff) * (1 - y_diff) +
                         B * (x_diff) * (1 - y_diff) +
                         C * (y_diff) * (1 - x_diff) +
                         D * (x_diff * y_diff);
-
             dstPtr[dst_pixIdx] = pixVal / 255.0;
             dst_pixIdx += dest_inc[id_z];
         }
@@ -869,31 +808,24 @@ extern "C" __global__ void resize_nn_crop_batch_u8_fp32(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    unsigned int src_roi_width = xroi_end[id_z] - xroi_begin[id_z];
-    unsigned int src_roi_height = yroi_end[id_z] - yroi_begin[id_z];
-    float x_ratio = (float)src_roi_width / dest_width[id_z];
-    float y_ratio =(float) src_roi_height / dest_height[id_z];
-    float origin_x = xroi_begin[id_z] + (0.5f * x_ratio);
-    float origin_y = yroi_begin[id_z] + (0.5f * y_ratio);
-
-    int x, y;
-    unsigned long dst_pixIdx = 0;
-
-    if(id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(floor(x_ratio * id_x + origin_x));
-    y = (int)(floor(y_ratio * id_y + origin_y));
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
 
     if (x < source_width[id_z] && y < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
-            float pixVal = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-            dstPtr[dst_pixIdx] = pixVal / 255.0;
+            dstPtr[dst_pixIdx] = srcPtr[src_pixIdx + indextmp * source_inc[id_z]] / 255.0;
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -1001,43 +933,34 @@ extern "C" __global__ void resize_crop_batch_u8_int8(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y, index;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
-
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
             float A = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             float pixVal = A * (1 - x_diff) * (1 - y_diff) +
                            B * (x_diff) * (1 - y_diff) +
                            C * (y_diff) * (1 - x_diff) +
                            D * (x_diff * y_diff);
-
             dstPtr[dst_pixIdx] = (signed char)(pixVal - 128);
             dst_pixIdx += dest_inc[id_z];
         }
@@ -1079,31 +1002,24 @@ extern "C" __global__ void resize_nn_crop_batch_u8_int8(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    unsigned int src_roi_width = xroi_end[id_z] - xroi_begin[id_z];
-    unsigned int src_roi_height = yroi_end[id_z] - yroi_begin[id_z];
-    float x_ratio = (float)src_roi_width / dest_width[id_z];
-    float y_ratio =(float) src_roi_height / dest_height[id_z];
-    float origin_x = xroi_begin[id_z] + (0.5f * x_ratio);
-    float origin_y = yroi_begin[id_z] + (0.5f * y_ratio);
-
-    int x, y;
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(floor(x_ratio * id_x + origin_x));
-    y = (int)(floor(y_ratio * id_y + origin_y));
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
 
     if (x < source_width[id_z] && y < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
-            float pixVal = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-            dstPtr[dst_pixIdx] = (signed char)(pixVal - 128);
+            dstPtr[dst_pixIdx] = (signed char)(srcPtr[src_pixIdx + indextmp * source_inc[id_z]] - 128);
             dst_pixIdx += dest_inc[id_z];
         }
     }
