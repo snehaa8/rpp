@@ -767,7 +767,7 @@ extern "C" __global__ void resize_crop_batch_u8_fp32(unsigned char *srcPtr,
                         B * (x_diff) * (1 - y_diff) +
                         C * (y_diff) * (1 - x_diff) +
                         D * (x_diff * y_diff);
-            dstPtr[dst_pixIdx] = pixVal / 255.0;
+            dstPtr[dst_pixIdx] = pixVal * 0.00392157f;
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -825,7 +825,7 @@ extern "C" __global__ void resize_nn_crop_batch_u8_fp32(unsigned char *srcPtr,
         src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
-            dstPtr[dst_pixIdx] = srcPtr[src_pixIdx + indextmp * source_inc[id_z]] / 255.0;
+            dstPtr[dst_pixIdx] = srcPtr[src_pixIdx + indextmp * source_inc[id_z]] * 0.00392157f;
             dst_pixIdx += dest_inc[id_z];
         }
     }
