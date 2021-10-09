@@ -232,24 +232,18 @@ extern "C" __global__ void resize_batch(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    float x_ratio = ((float)(source_width[id_z] -1 )) / dest_width[id_z];
-    float y_ratio = ((float)(source_height[id_z] -1 )) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
-
+    
+    float x_ratio = ((float)(source_width[id_z] -1 )) / dest_width[id_z];
+    float y_ratio = ((float)(source_height[id_z] -1 )) / dest_height[id_z];
     int x = (int)(x_ratio * id_x);
     int y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
-    dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * plnpkdindex;
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
+    unsigned long dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * plnpkdindex;
 
     for(int indextmp = 0; indextmp < channel; indextmp++)
     {
@@ -294,26 +288,20 @@ extern "C" __global__ void resize_crop_batch(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
@@ -324,13 +312,69 @@ extern "C" __global__ void resize_crop_batch(unsigned char *srcPtr,
             int B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             int pixVal = (int)(A * (1 - x_diff) * (1 - y_diff) +
                                B * (x_diff) * (1 - y_diff) +
                                C * (y_diff) * (1 - x_diff) +
                                D * (x_diff * y_diff));
-
             dstPtr[dst_pixIdx] = saturate_8u(pixVal);
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+    else
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = 0;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+}
+
+extern "C" __global__ void resize_nn_crop_batch(unsigned char *srcPtr,
+                                             unsigned char *dstPtr,
+                                             unsigned int *source_height,
+                                             unsigned int *source_width,
+                                             unsigned int *dest_height,
+                                             unsigned int *dest_width,
+                                             unsigned int *max_source_width,
+                                             unsigned int *max_dest_width,
+                                             unsigned int *xroi_begin,
+                                             unsigned int *xroi_end,
+                                             unsigned int *yroi_begin,
+                                             unsigned int *yroi_end,
+                                             unsigned long long *source_batch_index,
+                                             unsigned long long *dest_batch_index,
+                                             const unsigned int channel,
+                                             unsigned int *source_inc, // use width * height for pln and 1 for pkd
+                                             unsigned int *dest_inc,
+                                             const unsigned int padding,
+                                             const unsigned int type,
+                                             const int in_plnpkdind, // use 1 pln 3 for pkd
+                                             const int out_plnpkdind)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    {
+        return;
+    }
+
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
+
+    if (x < source_width[id_z] && y < source_height[id_z])
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = saturate_8u(srcPtr[src_pixIdx + indextmp * source_inc[id_z]]);
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -371,44 +415,93 @@ extern "C" __global__ void resize_crop_batch_int8(signed char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
-
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
             int A = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             int D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             signed char pixVal = (signed char)(A * (1 - x_diff) * (1 - y_diff) +
                                                B * (x_diff) * (1 - y_diff) +
                                                C * (y_diff) * (1 - x_diff) +
                                                D * (x_diff * y_diff));
-
             dstPtr[dst_pixIdx] = pixVal;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+    else
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = 0;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+}
+
+extern "C" __global__ void resize_nn_crop_batch_int8(signed char *srcPtr,
+                                                     signed char *dstPtr,
+                                                     unsigned int *source_height,
+                                                     unsigned int *source_width,
+                                                     unsigned int *dest_height,
+                                                     unsigned int *dest_width,
+                                                     unsigned int *max_source_width,
+                                                     unsigned int *max_dest_width,
+                                                     unsigned int *xroi_begin,
+                                                     unsigned int *xroi_end,
+                                                     unsigned int *yroi_begin,
+                                                     unsigned int *yroi_end,
+                                                     unsigned long long *source_batch_index,
+                                                     unsigned long long *dest_batch_index,
+                                                     const unsigned int channel,
+                                                     unsigned int *source_inc, // use width * height for pln and 1 for pkd
+                                                     unsigned int *dest_inc,
+                                                     const unsigned int padding,
+                                                     const unsigned int type,
+                                                     const int in_plnpkdind, // use 1 pln 3 for pkd
+                                                     const int out_plnpkdind)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    {
+        return;
+    }
+
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
+
+    if (x < source_width[id_z] && y < source_height[id_z])
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = (signed char)(srcPtr[src_pixIdx + indextmp * source_inc[id_z]]);
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -519,26 +612,20 @@ extern "C" __global__ void resize_crop_batch_fp32(float *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
@@ -549,13 +636,69 @@ extern "C" __global__ void resize_crop_batch_fp32(float *srcPtr,
             float B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             float pixVal = A * (1 - x_diff) * (1 - y_diff) +
                         B * (x_diff) * (1 - y_diff) +
                         C * (y_diff) * (1 - x_diff) +
                         D * (x_diff * y_diff);
-
             dstPtr[dst_pixIdx] = pixVal;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+    else
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = 0;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+}
+
+extern "C" __global__ void resize_nn_crop_batch_fp32(float *srcPtr,
+                                                    float *dstPtr,
+                                                    unsigned int *source_height,
+                                                    unsigned int *source_width,
+                                                    unsigned int *dest_height,
+                                                    unsigned int *dest_width,
+                                                    unsigned int *max_source_width,
+                                                    unsigned int *max_dest_width,
+                                                    unsigned int *xroi_begin,
+                                                    unsigned int *xroi_end,
+                                                    unsigned int *yroi_begin,
+                                                    unsigned int *yroi_end,
+                                                    unsigned long long *source_batch_index,
+                                                    unsigned long long *dest_batch_index,
+                                                    const unsigned int channel,
+                                                    unsigned int *source_inc, // use width * height for pln and 1 for pkd
+                                                    unsigned int *dest_inc,
+                                                    const unsigned int padding,
+                                                    const unsigned int type,
+                                                    const int in_plnpkdind, // use 1 pln 3 for pkd
+                                                    const int out_plnpkdind)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    {
+        return;
+    }
+
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
+
+    if (x < source_width[id_z] && y < source_height[id_z])
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = srcPtr[src_pixIdx + indextmp * source_inc[id_z]];
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -596,26 +739,20 @@ extern "C" __global__ void resize_crop_batch_u8_fp32(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y, index;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
-    if(id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
@@ -626,13 +763,69 @@ extern "C" __global__ void resize_crop_batch_u8_fp32(unsigned char *srcPtr,
             float B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             float pixVal = A * (1 - x_diff) * (1 - y_diff) +
                         B * (x_diff) * (1 - y_diff) +
                         C * (y_diff) * (1 - x_diff) +
                         D * (x_diff * y_diff);
+            dstPtr[dst_pixIdx] = pixVal * 0.00392157f;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+    else
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = 0;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+}
 
-            dstPtr[dst_pixIdx] = pixVal / 255.0;
+extern "C" __global__ void resize_nn_crop_batch_u8_fp32(unsigned char *srcPtr,
+                                                        float *dstPtr,
+                                                        unsigned int *source_height,
+                                                        unsigned int *source_width,
+                                                        unsigned int *dest_height,
+                                                        unsigned int *dest_width,
+                                                        unsigned int *max_source_width,
+                                                        unsigned int *max_dest_width,
+                                                        unsigned int *xroi_begin,
+                                                        unsigned int *xroi_end,
+                                                        unsigned int *yroi_begin,
+                                                        unsigned int *yroi_end,
+                                                        unsigned long long *source_batch_index,
+                                                        unsigned long long *dest_batch_index,
+                                                        const unsigned int channel,
+                                                        unsigned int *source_inc, // use width * height for pln and 1 for pkd
+                                                        unsigned int *dest_inc,
+                                                        const unsigned int padding,
+                                                        const unsigned int type,
+                                                        const int in_plnpkdind, // use 1 pln 3 for pkd
+                                                        const int out_plnpkdind)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    {
+        return;
+    }
+
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
+
+    if (x < source_width[id_z] && y < source_height[id_z])
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = srcPtr[src_pixIdx + indextmp * source_inc[id_z]] * 0.00392157f;
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -740,44 +933,93 @@ extern "C" __global__ void resize_crop_batch_u8_int8(unsigned char *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    int x, y, index;
-    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
-    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
-    float x_diff, y_diff, ya, yb;
-
-    unsigned long dst_pixIdx = 0;
-
     if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
     {
         return;
     }
 
-    x = (int)(x_ratio * id_x);
-    y = (int)(y_ratio * id_y);
-
-    x_diff = (x_ratio * id_x) - x;
-    y_diff = (y_ratio * id_y) - y;
-
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z] - 1)) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z] - 1)) / dest_height[id_z];
+    int x = (int)(x_ratio * id_x);
+    int y = (int)(y_ratio * id_y);
+    float x_diff = (x_ratio * id_x) - x;
+    float y_diff = (y_ratio * id_y) - y;
     x = xroi_begin[id_z] + x;
     y = yroi_begin[id_z] + y;
+    unsigned long dst_pixIdx = 0;
 
     if ((x + 1) < source_width[id_z] && (y + 1) < source_height[id_z])
     {
         dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
-
         for (int indextmp = 0; indextmp < channel; indextmp++)
         {
             float A = srcPtr[source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float B = srcPtr[source_batch_index[id_z] + ((x + 1) + y * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float C = srcPtr[source_batch_index[id_z] + (x + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
             float D = srcPtr[source_batch_index[id_z] + ((x + 1) + (y + 1) * max_source_width[id_z]) * in_plnpkdind + indextmp * source_inc[id_z]];
-
             float pixVal = A * (1 - x_diff) * (1 - y_diff) +
                            B * (x_diff) * (1 - y_diff) +
                            C * (y_diff) * (1 - x_diff) +
                            D * (x_diff * y_diff);
-
             dstPtr[dst_pixIdx] = (signed char)(pixVal - 128);
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+    else
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = -128;
+            dst_pixIdx += dest_inc[id_z];
+        }
+    }
+}
+
+extern "C" __global__ void resize_nn_crop_batch_u8_int8(unsigned char *srcPtr,
+                                                        signed char *dstPtr,
+                                                        unsigned int *source_height,
+                                                        unsigned int *source_width,
+                                                        unsigned int *dest_height,
+                                                        unsigned int *dest_width,
+                                                        unsigned int *max_source_width,
+                                                        unsigned int *max_dest_width,
+                                                        unsigned int *xroi_begin,
+                                                        unsigned int *xroi_end,
+                                                        unsigned int *yroi_begin,
+                                                        unsigned int *yroi_end,
+                                                        unsigned long long *source_batch_index,
+                                                        unsigned long long *dest_batch_index,
+                                                        const unsigned int channel,
+                                                        unsigned int *source_inc, // use width * height for pln and 1 for pkd
+                                                        unsigned int *dest_inc,
+                                                        const unsigned int padding,
+                                                        const unsigned int type,
+                                                        const int in_plnpkdind, // use 1 pln 3 for pkd
+                                                        const int out_plnpkdind)
+{
+    int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if (id_x >= dest_width[id_z] || id_y >= dest_height[id_z])
+    {
+        return;
+    }
+
+    float x_ratio = ((float)(xroi_end[id_z] - xroi_begin[id_z])) / dest_width[id_z];
+    float y_ratio = ((float)(yroi_end[id_z] - yroi_begin[id_z])) / dest_height[id_z];
+    int x = (int)(xroi_begin[id_z] + (x_ratio * (id_x + 0.5f)));
+    int y = (int)(yroi_begin[id_z] + (y_ratio * (id_y + 0.5f)));
+    unsigned long dst_pixIdx, src_pixIdx;
+
+    if (x < source_width[id_z] && y < source_height[id_z])
+    {
+        dst_pixIdx = dest_batch_index[id_z] + (id_x + id_y * max_dest_width[id_z]) * out_plnpkdind;
+        src_pixIdx = source_batch_index[id_z] + (x + y * max_source_width[id_z]) * in_plnpkdind;
+        for (int indextmp = 0; indextmp < channel; indextmp++)
+        {
+            dstPtr[dst_pixIdx] = (signed char)(srcPtr[src_pixIdx + indextmp * source_inc[id_z]] - 128);
             dst_pixIdx += dest_inc[id_z];
         }
     }
@@ -1170,7 +1412,7 @@ extern "C" __global__ void random_crop_letterbox_batch(unsigned char *srcPtr,
     }
 }
 
-RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1195,37 +1437,69 @@ RppStatus hip_exec_resize_crop_batch(Rpp8u *srcPtr, Rpp8u *dstPtr, rpp::Handle& 
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
 
-    hipLaunchKernelGGL(resize_crop_batch,
-                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
-                       dim3(localThreads_x, localThreads_y, localThreads_z),
-                       0,
-                       handle.GetStream(),
-                       srcPtr,
-                       dstPtr,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.height,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
-                       x,
-                       roiWidth,
-                       y,
-                       roiHeight,
-                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
-                       handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
-                       tensor_info._in_channels,
-                       handle.GetInitHandle()->mem.mgpu.inc,
-                       handle.GetInitHandle()->mem.mgpu.dstInc,
-                       padding,
-                       type,
-                       in_plnpkdind,
-                       out_plnpkdind);
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    {
+        hipLaunchKernelGGL(resize_nn_crop_batch,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
+    else
+    {
+        hipLaunchKernelGGL(resize_crop_batch,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
 
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_u8_fp16(Rpp8u *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch_u8_fp16(Rpp8u *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     // int localThreads_x = 16;
     // int localThreads_y = 16;
@@ -1280,7 +1554,7 @@ RppStatus hip_exec_resize_crop_batch_u8_fp16(Rpp8u *srcPtr, Rpp16f *dstPtr, rpp:
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1304,38 +1578,69 @@ RppStatus hip_exec_resize_crop_batch_u8_fp32(Rpp8u *srcPtr, Rpp32f *dstPtr, rpp:
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-
-    hipLaunchKernelGGL(resize_crop_batch_u8_fp32,
-                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
-                       dim3(localThreads_x, localThreads_y, localThreads_z),
-                       0,
-                       handle.GetStream(),
-                       srcPtr,
-                       dstPtr,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.height,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
-                       x,
-                       roiWidth,
-                       y,
-                       roiHeight,
-                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
-                       handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
-                       tensor_info._in_channels,
-                       handle.GetInitHandle()->mem.mgpu.inc,
-                       handle.GetInitHandle()->mem.mgpu.dstInc,
-                       padding,
-                       type,
-                       in_plnpkdind,
-                       out_plnpkdind);
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    {
+        hipLaunchKernelGGL(resize_nn_crop_batch_u8_fp32,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
+    else
+    {
+        hipLaunchKernelGGL(resize_crop_batch_u8_fp32,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
 
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1359,38 +1664,69 @@ RppStatus hip_exec_resize_crop_batch_u8_int8(Rpp8u *srcPtr, Rpp8s *dstPtr, rpp::
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-
-    hipLaunchKernelGGL(resize_crop_batch_u8_int8,
-                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
-                       dim3(localThreads_x, localThreads_y, localThreads_z),
-                       0,
-                       handle.GetStream(),
-                       srcPtr,
-                       dstPtr,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.height,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
-                       x,
-                       roiWidth,
-                       y,
-                       roiHeight,
-                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
-                       handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
-                       tensor_info._in_channels,
-                       handle.GetInitHandle()->mem.mgpu.inc,
-                       handle.GetInitHandle()->mem.mgpu.dstInc,
-                       padding,
-                       type,
-                       in_plnpkdind,
-                       out_plnpkdind);
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    {
+        hipLaunchKernelGGL(resize_nn_crop_batch_u8_int8,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
+    else
+    {
+        hipLaunchKernelGGL(resize_crop_batch_u8_int8,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
 
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     // int localThreads_x = 16;
     // int localThreads_y = 16;
@@ -1445,7 +1781,7 @@ RppStatus hip_exec_resize_crop_batch_fp16(Rpp16f *srcPtr, Rpp16f *dstPtr, rpp::H
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1469,38 +1805,69 @@ RppStatus hip_exec_resize_crop_batch_fp32(Rpp32f *srcPtr, Rpp32f *dstPtr, rpp::H
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-
-    hipLaunchKernelGGL(resize_crop_batch_fp32,
-                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
-                       dim3(localThreads_x, localThreads_y, localThreads_z),
-                       0,
-                       handle.GetStream(),
-                       srcPtr,
-                       dstPtr,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.height,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
-                       x,
-                       roiWidth,
-                       y,
-                       roiHeight,
-                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
-                       handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
-                       tensor_info._in_channels,
-                       handle.GetInitHandle()->mem.mgpu.inc,
-                       handle.GetInitHandle()->mem.mgpu.dstInc,
-                       padding,
-                       type,
-                       in_plnpkdind,
-                       out_plnpkdind);
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    {
+        hipLaunchKernelGGL(resize_nn_crop_batch_fp32,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
+    else
+    {
+        hipLaunchKernelGGL(resize_crop_batch_fp32,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
 
     return RPP_SUCCESS;
 }
 
-RppStatus hip_exec_resize_crop_batch_int8(Rpp8s *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width)
+RppStatus hip_exec_resize_crop_batch_int8(Rpp8s *srcPtr, Rpp8s *dstPtr, rpp::Handle& handle, RPPTensorFunctionMetaData &tensor_info, Rpp32u padding, Rpp32u type, Rpp32s in_plnpkdind, Rpp32s out_plnpkdind, Rpp32u max_height, Rpp32u max_width, RppiResizeInterpType interpType)
 {
     int localThreads_x = 16;
     int localThreads_y = 16;
@@ -1524,33 +1891,64 @@ RppStatus hip_exec_resize_crop_batch_int8(Rpp8s *srcPtr, Rpp8s *dstPtr, rpp::Han
         y = handle.GetInitHandle()->mem.mgpu.uintArr[2].uintmem;
         roiHeight = handle.GetInitHandle()->mem.mgpu.uintArr[3].uintmem;
     }
-
-    hipLaunchKernelGGL(resize_crop_batch_int8,
-                       dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
-                       dim3(localThreads_x, localThreads_y, localThreads_z),
-                       0,
-                       handle.GetStream(),
-                       srcPtr,
-                       dstPtr,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.height,
-                       handle.GetInitHandle()->mem.mgpu.srcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.height,
-                       handle.GetInitHandle()->mem.mgpu.dstSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
-                       handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
-                       x,
-                       roiWidth,
-                       y,
-                       roiHeight,
-                       handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
-                       handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
-                       tensor_info._in_channels,
-                       handle.GetInitHandle()->mem.mgpu.inc,
-                       handle.GetInitHandle()->mem.mgpu.dstInc,
-                       padding,
-                       type,
-                       in_plnpkdind,
-                       out_plnpkdind);
+    if(interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
+    {
+        hipLaunchKernelGGL(resize_nn_crop_batch_int8,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
+    else
+    {
+        hipLaunchKernelGGL(resize_crop_batch_int8,
+                        dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
+                        dim3(localThreads_x, localThreads_y, localThreads_z),
+                        0,
+                        handle.GetStream(),
+                        srcPtr,
+                        dstPtr,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.height,
+                        handle.GetInitHandle()->mem.mgpu.srcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.height,
+                        handle.GetInitHandle()->mem.mgpu.dstSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxSrcSize.width,
+                        handle.GetInitHandle()->mem.mgpu.maxDstSize.width,
+                        x,
+                        roiWidth,
+                        y,
+                        roiHeight,
+                        handle.GetInitHandle()->mem.mgpu.srcBatchIndex,
+                        handle.GetInitHandle()->mem.mgpu.dstBatchIndex,
+                        tensor_info._in_channels,
+                        handle.GetInitHandle()->mem.mgpu.inc,
+                        handle.GetInitHandle()->mem.mgpu.dstInc,
+                        padding,
+                        type,
+                        in_plnpkdind,
+                        out_plnpkdind);
+    }
 
     return RPP_SUCCESS;
 }

@@ -22,6 +22,17 @@ typedef half Rpp16f;
 
 #define RPPPIXELCHECK(pixel) (pixel < (Rpp32f)0) ? ((Rpp32f)0) : ((pixel < (Rpp32f)255) ? pixel : ((Rpp32f)255))
 
+std::string get_interpolation_type(int val)
+{
+    switch(val)
+    {
+    case 0:
+        return "nearest_neighbor";
+    default:
+        return "linear";
+    }
+}
+
 int main(int argc, char **argv)
 {
     const int MIN_ARG_COUNT = 7;
@@ -32,15 +43,10 @@ int main(int argc, char **argv)
         printf("\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>\n");
         return -1;
     }
-
-    if (atoi(argv[6]) == 1)
+    if (atoi(argv[5]) == 21 && argc < MIN_ARG_COUNT + 1)
     {
-        printf("\nInputs for this test case are:");
-        printf("\nsrc1 = %s", argv[1]);
-        printf("\nsrc2 = %s", argv[2]);
-        printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[3]);
-        printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[4]);
-        printf("\ncase number (1:7) = %s", argv[5]);
+        printf("\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <interp_type = 0:2> <verbosity = 0/1>\n");
+        return -1;
     }
 
     char *src = argv[1];
@@ -48,6 +54,20 @@ int main(int argc, char **argv)
     int ip_bitDepth = atoi(argv[3]);
     unsigned int outputFormatToggle = atoi(argv[4]);
     int test_case = atoi(argv[5]);
+    unsigned int verbosity = (test_case == 21) ? atoi(argv[7]) : atoi(argv[6]);
+    int interpolation_type = (test_case == 21) ? atoi(argv[6]) : 1;
+
+    if (verbosity)
+    {
+        printf("\nInputs for this test case are:");
+        printf("\nsrc1 = %s", argv[1]);
+        printf("\nsrc2 = %s", argv[2]);
+        printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[3]);
+        printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[4]);
+        printf("\ncase number (1:81) = %s", argv[5]);
+        if(test_case == 21)
+            printf("\ninterpolation type (0:2) = %s", get_interpolation_type(interpolation_type).c_str());
+    }
 
     int ip_channel = 3;
 
@@ -410,6 +430,11 @@ int main(int argc, char **argv)
     char func[1000];
     strcpy(func, funcName);
     strcat(func, funcType);
+    if(test_case == 21)
+    {
+        strcat(func, "_");
+        strcat(func, get_interpolation_type(interpolation_type).c_str());
+    }
 
     int missingFuncFlag = 0;
 
@@ -495,15 +520,15 @@ int main(int argc, char **argv)
 
     Rpp16f *inputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
     Rpp16f *inputf16_second = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
-    Rpp16f *outputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
+    Rpp16f *outputf16 = (Rpp16f *)calloc(oBufferSize, sizeof(Rpp16f));
 
     Rpp32f *inputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
     Rpp32f *inputf32_second = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
-    Rpp32f *outputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
+    Rpp32f *outputf32 = (Rpp32f *)calloc(oBufferSize, sizeof(Rpp32f));
 
     Rpp8s *inputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
     Rpp8s *inputi8_second = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
-    Rpp8s *outputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
+    Rpp8s *outputi8 = (Rpp8s *)calloc(oBufferSize, sizeof(Rpp8s));
 
     RppiSize maxSize, maxDstSize;
     maxSize.height = maxHeight;
@@ -1487,19 +1512,19 @@ int main(int argc, char **argv)
             start_omp = omp_get_wtime();
             start = clock();
             if (ip_bitDepth == 0)
-                rppi_resize_u8_pln3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_u8_pln3_batchPD_host(input, srcSize, maxSize, output, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 1)
-                rppi_resize_f16_pln3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_f16_pln3_batchPD_host(inputf16, srcSize, maxSize, outputf16, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 2)
-                rppi_resize_f32_pln3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_f32_pln3_batchPD_host(inputf32, srcSize, maxSize, outputf32, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 3)
-                rppi_resize_u8_f16_pln3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_u8_f16_pln3_batchPD_host(input, srcSize, maxSize, outputf16, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 4)
-                rppi_resize_u8_f32_pln3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_u8_f32_pln3_batchPD_host(input, srcSize, maxSize, outputf32, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 5)
-                rppi_resize_i8_pln3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_i8_pln3_batchPD_host(inputi8, srcSize, maxSize, outputi8, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else if (ip_bitDepth == 6)
-                rppi_resize_u8_i8_pln3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+                rppi_resize_u8_i8_pln3_batchPD_host(input, srcSize, maxSize, outputi8, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
             else
                 missingFuncFlag = 1;
             end = clock();
@@ -3498,13 +3523,13 @@ int main(int argc, char **argv)
             Rpp8u *srcPtr1 = (Rpp8u*) calloc(noOfImages * srcSize1Max.height * srcSize1Max.width * ip_channel, sizeof(Rpp8u));
             Rpp8u *srcPtr2 = (Rpp8u*) calloc(noOfImages * srcSize2Max.height * srcSize2Max.width * ip_channel, sizeof(Rpp8u));
 
-            rppi_resize_u8_pln3_batchPD_host(input, srcSize, srcSize1Max, srcPtr2, srcSizeHalf, srcSize2Max, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_pln3_batchPD_host(input, srcSize, srcSize1Max, srcPtr2, srcSizeHalf, srcSize2Max, interpolation_type, outputFormatToggle, noOfImages, handle);
 
             rppi_laplacian_image_pyramid_u8_pln3_batchPD_host(input, srcSize, maxSize, srcPtr1, stdDev, kernelSize, noOfImages, handle);
             memcpy(input, srcPtr1, ioBufferSize * sizeof(Rpp8u));
             memset(srcPtr1, 0, ioBufferSize * sizeof(Rpp8u));
 
-            rppi_resize_u8_pln3_batchPD_host(input, srcSizeHalf, srcSize1Max, srcPtr1, srcSize, srcSize1Max, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_pln3_batchPD_host(input, srcSizeHalf, srcSize1Max, srcPtr1, srcSize, srcSize1Max, interpolation_type, outputFormatToggle, noOfImages, handle);
 
             start_omp = omp_get_wtime();
             start = clock();

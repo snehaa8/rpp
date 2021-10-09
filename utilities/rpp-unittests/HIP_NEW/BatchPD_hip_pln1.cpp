@@ -35,6 +35,17 @@ void check_hip_error(void)
     }
 }
 
+std::string get_interpolation_type(int val)
+{
+    switch(val)
+    {
+    case 0:
+        return "nearest_neighbor";
+    default:
+        return "linear";
+    }
+}
+
 int main(int argc, char **argv)
 {
     const int MIN_ARG_COUNT = 8;
@@ -51,16 +62,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (atoi(argv[7]) == 1)
-    {
-        printf("\nInputs for this test case are:");
-        printf("\nsrc1 = %s", argv[1]);
-        printf("\nsrc2 = %s", argv[2]);
-        printf("\ndst = %s", argv[3]);
-        printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[4]);
-        printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
-        printf("\ncase number (0:81) = %s", argv[6]);
-    }
 
     char *src = argv[1];
     char *src_second = argv[2];
@@ -68,6 +69,21 @@ int main(int argc, char **argv)
     int ip_bitDepth = atoi(argv[4]);
     unsigned int outputFormatToggle = atoi(argv[5]);
     int test_case = atoi(argv[6]);
+    unsigned int verbosity = (test_case == 21) ? atoi(argv[8]) : atoi(argv[7]);
+    int interpolation_type = (test_case == 21) ? atoi(argv[7]) : 1;
+
+    if (verbosity)
+    {
+        printf("\nInputs for this test case are:");
+        printf("\nsrc1 = %s", argv[1]);
+        printf("\nsrc2 = %s", argv[2]);
+        printf("\ndst = %s", argv[3]);
+        printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[4]);
+        printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
+        printf("\ncase number (1:81) = %s", argv[6]);
+        if(test_case == 21)
+            printf("\ninterpolation type (0:2) = %s", get_interpolation_type(interpolation_type).c_str());
+    }
 
     int ip_channel = 1;
 
@@ -418,6 +434,11 @@ int main(int argc, char **argv)
     char func[1000];
     strcpy(func, funcName);
     strcat(func, funcType);
+    if(test_case == 21)
+    {
+        strcat(func, "_");
+        strcat(func, get_interpolation_type(interpolation_type).c_str());
+    }
     printf("\nRunning %s...", func);
 
     int ip_bitDepth_1_cases[14] = {21, 22, 23, 24, 29, 30, 31, 32, 33, 35, 36, 37, 38, 39};
@@ -1396,19 +1417,19 @@ int main(int argc, char **argv)
         start = clock();
 
         if (ip_bitDepth == 0)
-            rppi_resize_u8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_output, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
         else if (ip_bitDepth == 1)
-            missingFuncFlag = 1; // rppi_resize_f16_pln1_batchPD_gpu(d_inputf16, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            missingFuncFlag = 1; // rppi_resize_f16_pln1_batchPD_gpu(d_inputf16, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 2)
-            rppi_resize_f32_pln1_batchPD_gpu(d_inputf32, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_f32_pln1_batchPD_gpu(d_inputf32, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
         else if (ip_bitDepth == 3)
-            missingFuncFlag = 1; // rppi_resize_u8_f16_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            missingFuncFlag = 1; // rppi_resize_u8_f16_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf16, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle, interpolation_type);
         else if (ip_bitDepth == 4)
-            rppi_resize_u8_f32_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_f32_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputf32, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
         else if (ip_bitDepth == 5)
-            rppi_resize_i8_pln1_batchPD_gpu(d_inputi8, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_i8_pln1_batchPD_gpu(d_inputi8, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
         else if (ip_bitDepth == 6)
-            rppi_resize_u8_i8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, outputFormatToggle, noOfImages, handle);
+            rppi_resize_u8_i8_pln1_batchPD_gpu(d_input, srcSize, maxSize, d_outputi8, dstSize, maxDstSize, interpolation_type, outputFormatToggle, noOfImages, handle);
         else
             missingFuncFlag = 1;
 
@@ -3235,8 +3256,14 @@ int main(int argc, char **argv)
 
     mkdir(dst, 0700);
     strcat(dst, "/");
+    if(test_case == 21)
+    {
+        strcat(dst, get_interpolation_type(interpolation_type).c_str());
+        mkdir(dst, 0700);
+        strcat(dst, "/");
+    }
     count = 0;
-    elementsInRowMax = maxWidth * ip_channel;
+    elementsInRowMax = maxDstWidth * ip_channel;
 
     for (j = 0; j < noOfImages; j++)
     {
@@ -3256,7 +3283,7 @@ int main(int argc, char **argv)
             temp_output_row += elementsInRow;
             output_row += elementsInRowMax;
         }
-        count += maxHeight * maxWidth * ip_channel;
+        count += maxDstHeight * maxDstWidth * ip_channel;
 
         char temp[1000];
         strcpy(temp, dst);

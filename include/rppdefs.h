@@ -176,8 +176,11 @@ typedef enum
     HSV
 } RppiFormat;
 
-
-
+typedef enum 
+{
+    NEAREST_NEIGHBOR,
+    LINEAR
+} RppiResizeInterpType;
 
 
 /******************** RPPT typedefs ********************/
