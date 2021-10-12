@@ -25,6 +25,19 @@ typedef struct d_float24
     d_float8 z;
 } d_float24;
 
+typedef struct d_float32
+{
+    d_float8 x;
+    d_float8 y;
+    d_float8 z;
+    d_float8 w;
+} d_float32;
+
+typedef struct d_float8192
+{
+    d_float32 data[256];
+} d_float8192;
+
 typedef struct d_uint6
 {
     uint2 x;
