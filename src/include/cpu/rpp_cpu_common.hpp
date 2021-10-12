@@ -757,17 +757,19 @@ inline RppStatus normalize_kernel_host(U* dstPtrROI, RppiSize dstSize, Rpp32u ch
 
 template <typename T, typename U>
 inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, RppiSize dstSize,
-                           RppiChnFormat chnFormat, Rpp32u channel)
+                           RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interpType = RppiResizeInterpType::LINEAR)
 {
-    if (chnFormat == RPPI_CHN_PLANAR)
+    if (interpType == RppiResizeInterpType::LINEAR)
     {
-        if (dstSize.height < 0 || dstSize.width < 0)
+        if (dstSize.height <= 0 || dstSize.width <= 0)
         {
             return RPP_ERROR;
         }
 
         Rpp32f hRatio = (((Rpp32f) (dstSize.height - 1)) / ((Rpp32f) (srcSize.height - 1)));
         Rpp32f wRatio = (((Rpp32f) (dstSize.width - 1)) / ((Rpp32f) (srcSize.width - 1)));
+        Rpp32u heightLimit = srcSize.height - 2;
+        Rpp32u widthLimit = srcSize.width - 2;
         Rpp32f srcLocationRow, srcLocationColumn, pixel;
         Rpp32s srcLocationRowFloor, srcLocationColumnFloor;
         T *srcPtrTemp, *srcPtrTopRow, *srcPtrBottomRow;
@@ -775,201 +777,276 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
         srcPtrTemp = srcPtr;
         dstPtrTemp = dstPtr;
 
-        if ((typeid(Rpp16f) == typeid(T)) || (typeid(Rpp16f) == typeid(U)))
+        if (chnFormat == RPPI_CHN_PLANAR)
         {
-            for (int c = 0; c < channel; c++)
+            if ((typeid(Rpp16f) == typeid(T)) || (typeid(Rpp16f) == typeid(U)))
             {
-                for (int i = 0; i < dstSize.height; i++)
+                for (int c = 0; c < channel; c++)
                 {
-                    srcLocationRow = ((Rpp32f) i) / hRatio;
-                    srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
-                    Rpp32f weightedHeight = srcLocationRow - srcLocationRowFloor;
-                    if (srcLocationRowFloor > (srcSize.height - 2))
+                    for (int i = 0; i < dstSize.height; i++)
                     {
-                        srcLocationRowFloor = srcSize.height - 2;
-                    }
+                        srcLocationRow = ((Rpp32f) i) / hRatio;
+                        srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
+                        Rpp32f weightedHeight = srcLocationRow - srcLocationRowFloor;
+                        srcLocationRowFloor = (srcLocationRowFloor > heightLimit) ? heightLimit : srcLocationRowFloor;
+                        srcPtrTopRow = srcPtrTemp + srcLocationRowFloor * srcSize.width;
+                        srcPtrBottomRow  = srcPtrTopRow + srcSize.width;
 
-                    srcPtrTopRow = srcPtrTemp + srcLocationRowFloor * srcSize.width;
-                    srcPtrBottomRow  = srcPtrTopRow + srcSize.width;
-
-                    for (int j = 0; j < dstSize.width; j++)
-                    {
-                        srcLocationColumn = ((Rpp32f) j) / wRatio;
-                        srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
-                        Rpp32f weightedWidth = srcLocationColumn - srcLocationColumnFloor;
-
-                        if (srcLocationColumnFloor > (srcSize.width - 2))
+                        for (int j = 0; j < dstSize.width; j++)
                         {
-                            srcLocationColumnFloor = srcSize.width - 2;
+                            srcLocationColumn = ((Rpp32f) j) / wRatio;
+                            srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
+                            Rpp32f weightedWidth = srcLocationColumn - srcLocationColumnFloor;
+                            srcLocationColumnFloor = (srcLocationColumnFloor > widthLimit) ? widthLimit : srcLocationColumnFloor;
+                            pixel = ((*(srcPtrTopRow + srcLocationColumnFloor)) * (1 - weightedHeight) * (1 - weightedWidth))
+                                    + ((*(srcPtrTopRow + srcLocationColumnFloor + 1)) * (1 - weightedHeight) * (weightedWidth))
+                                    + ((*(srcPtrBottomRow + srcLocationColumnFloor)) * (weightedHeight) * (1 - weightedWidth))
+                                    + ((*(srcPtrBottomRow + srcLocationColumnFloor + 1)) * (weightedHeight) * (weightedWidth));
+                            *dstPtrTemp++ = (U)pixel;
                         }
-                        pixel = ((*(srcPtrTopRow + srcLocationColumnFloor)) * (1 - weightedHeight) * (1 - weightedWidth))
-                                + ((*(srcPtrTopRow + srcLocationColumnFloor + 1)) * (1 - weightedHeight) * (weightedWidth))
-                                + ((*(srcPtrBottomRow + srcLocationColumnFloor)) * (weightedHeight) * (1 - weightedWidth))
-                                + ((*(srcPtrBottomRow + srcLocationColumnFloor + 1)) * (weightedHeight) * (weightedWidth));
-
-                        *dstPtrTemp = (U) pixel;
-                        dstPtrTemp ++;
                     }
+                    srcPtrTemp += srcSize.height * srcSize.width;
                 }
-                srcPtrTemp += srcSize.height * srcSize.width;
+            }
+            else
+            {
+                for (int c = 0; c < channel; c++)
+                {
+                    for (int i = 0; i < dstSize.height; i++)
+                    {
+                        srcLocationRow = ((Rpp32f) i) / hRatio;
+                        srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
+                        Rpp32f weightedHeight = srcLocationRow - srcLocationRowFloor;
+                        srcLocationRowFloor = (srcLocationRowFloor > heightLimit) ? heightLimit : srcLocationRowFloor;
+                        srcPtrTopRow = srcPtrTemp + srcLocationRowFloor * srcSize.width;
+                        srcPtrBottomRow  = srcPtrTopRow + srcSize.width;
+#pragma omp simd
+                        for (int j = 0; j < dstSize.width; j++)
+                        {
+                            srcLocationColumn = ((Rpp32f) j) / wRatio;
+                            srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
+                            Rpp32f weightedWidth = srcLocationColumn - srcLocationColumnFloor;
+                            srcLocationColumnFloor = (srcLocationColumnFloor > widthLimit) ? widthLimit : srcLocationColumnFloor;
+                            pixel = ((*(srcPtrTopRow + srcLocationColumnFloor)) * (1 - weightedHeight) * (1 - weightedWidth))
+                                    + ((*(srcPtrTopRow + srcLocationColumnFloor + 1)) * (1 - weightedHeight) * (weightedWidth))
+                                    + ((*(srcPtrBottomRow + srcLocationColumnFloor)) * (weightedHeight) * (1 - weightedWidth))
+                                    + ((*(srcPtrBottomRow + srcLocationColumnFloor + 1)) * (weightedHeight) * (weightedWidth));
+                            *dstPtrTemp++ = (U)pixel;
+                        }
+                    }
+                    srcPtrTemp += srcSize.height * srcSize.width;
+                }
             }
         }
-        else
+        else if (chnFormat == RPPI_CHN_PACKED)
         {
-            for (int c = 0; c < channel; c++)
+            Rpp32s elementsInRow = srcSize.width * channel;
+            for (int i = 0; i < dstSize.height; i++)
             {
-                for (int i = 0; i < dstSize.height; i++)
+                srcLocationRow = ((Rpp32f) i) / hRatio;
+                srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
+                Rpp32f weightedHeight = srcLocationRow - srcLocationRowFloor;
+                srcLocationRowFloor = (srcLocationRowFloor > heightLimit) ? heightLimit : srcLocationRowFloor;
+                srcPtrTopRow = srcPtrTemp + srcLocationRowFloor * elementsInRow;
+                srcPtrBottomRow  = srcPtrTopRow + elementsInRow;
+
+                Rpp32u bufferLength = dstSize.width;
+                Rpp32u alignedLength = (bufferLength / 4) * 4;
+                Rpp32u srcLocCF[4] = {0};
+                Rpp32f param1[4] = {0};
+                Rpp32f param2[4] = {0};
+                Rpp32f param3[4] = {0};
+                Rpp32f param4[4] = {0};
+
+                __m128 pWRatio = _mm_set1_ps(1.0 / wRatio);
+                __m128 p0, p2, p4, p5, p6, p7, pColFloor;
+                __m128 p1 = _mm_set1_ps(weightedHeight);
+                __m128 p3 = _mm_set1_ps(1 - weightedHeight);
+                __m128 pOne = _mm_set1_ps(1.0);
+                __m128i pxColFloor;
+
+                Rpp64u vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    srcLocationRow = ((Rpp32f) i) / hRatio;
-                    srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
-                    Rpp32f weightedHeight = srcLocationRow - srcLocationRowFloor;
-                    if (srcLocationRowFloor > (srcSize.height - 2))
-                    {
-                        srcLocationRowFloor = srcSize.height - 2;
-                    }
+                    p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
+                    p0 = _mm_mul_ps(p0, pWRatio);
+                    pColFloor = _mm_floor_ps(p0);
+                    pxColFloor = _mm_cvtps_epi32(pColFloor);
+                    p0 = _mm_sub_ps(p0, pColFloor);
+                    p2  = _mm_sub_ps(pOne, p0);
 
-                    srcPtrTopRow = srcPtrTemp + srcLocationRowFloor * srcSize.width;
-                    srcPtrBottomRow  = srcPtrTopRow + srcSize.width;
-#pragma omp simd
-                    for (int j = 0; j < dstSize.width; j++)
-                    {
-                        srcLocationColumn = ((Rpp32f) j) / wRatio;
-                        srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
-                        Rpp32f weightedWidth = srcLocationColumn - srcLocationColumnFloor;
+                    p4 = _mm_mul_ps(p3, p2);
+                    p5 = _mm_mul_ps(p3, p0);
+                    p6 = _mm_mul_ps(p1, p2);
+                    p7 = _mm_mul_ps(p1, p0);
 
-                        if (srcLocationColumnFloor > (srcSize.width - 2))
+                    _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
+                    _mm_storeu_ps(param1, p4);
+                    _mm_storeu_ps(param2, p5);
+                    _mm_storeu_ps(param3, p6);
+                    _mm_storeu_ps(param4, p7);
+
+                    for (int pos = 0; pos < 4; pos++)
+                    {
+                        srcLocCF[pos] = (srcLocCF[pos] > widthLimit) ? widthLimit : srcLocCF[pos];
+                        srcLocCF[pos] *= channel;
+
+                        for (int c = 0; c < channel; c++)
                         {
-                            srcLocationColumnFloor = srcSize.width - 2;
+                            pixel = ((*(srcPtrTopRow + c + srcLocCF[pos])) * param1[pos])
+                                             + ((*(srcPtrTopRow + c + srcLocCF[pos] + channel)) * param2[pos])
+                                             + ((*(srcPtrBottomRow + c + srcLocCF[pos])) * param3[pos])
+                                             + ((*(srcPtrBottomRow + c + srcLocCF[pos] + channel)) * param4[pos]);
+                            *dstPtrTemp++ = (U)pixel;
                         }
-                        pixel = ((*(srcPtrTopRow + srcLocationColumnFloor)) * (1 - weightedHeight) * (1 - weightedWidth))
-                                + ((*(srcPtrTopRow + srcLocationColumnFloor + 1)) * (1 - weightedHeight) * (weightedWidth))
-                                + ((*(srcPtrBottomRow + srcLocationColumnFloor)) * (weightedHeight) * (1 - weightedWidth))
-                                + ((*(srcPtrBottomRow + srcLocationColumnFloor + 1)) * (weightedHeight) * (weightedWidth));
-
-                        *dstPtrTemp = (U) pixel;
-                        dstPtrTemp ++;
                     }
                 }
-                srcPtrTemp += srcSize.height * srcSize.width;
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    srcLocationColumn = ((Rpp32f) vectorLoopCount) / wRatio;
+                    srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
+                    Rpp32f weightedWidth = srcLocationColumn - srcLocationColumnFloor;
+                    srcLocationColumnFloor = (srcLocationColumnFloor > widthLimit) ? widthLimit : srcLocationColumnFloor;
+                    Rpp32s srcLocColFloorChanneled = channel * srcLocationColumnFloor;
+
+                    for (int c = 0; c < channel; c++)
+                    {
+                        pixel = ((*(srcPtrTopRow + c + srcLocColFloorChanneled)) * (1 - weightedHeight) * (1 - weightedWidth))
+                                + ((*(srcPtrTopRow + c + srcLocColFloorChanneled + channel)) * (1 - weightedHeight) * (weightedWidth))
+                                + ((*(srcPtrBottomRow + c + srcLocColFloorChanneled)) * (weightedHeight) * (1 - weightedWidth))
+                                + ((*(srcPtrBottomRow + c + srcLocColFloorChanneled + channel)) * (weightedHeight) * (weightedWidth));
+                        *dstPtrTemp++ = (U)pixel;
+                    }
+                }
             }
         }
     }
-    else if (chnFormat == RPPI_CHN_PACKED)
+    else if (interpType == RppiResizeInterpType::NEAREST_NEIGHBOR)
     {
-        if (dstSize.height < 0 || dstSize.width < 0)
+        if (dstSize.height <= 0 || dstSize.width <= 0)
         {
             return RPP_ERROR;
         }
 
-        Rpp32f hRatio = (((Rpp32f) (dstSize.height - 1)) / ((Rpp32f) (srcSize.height - 1)));
-        Rpp32f wRatio = (((Rpp32f) (dstSize.width - 1)) / ((Rpp32f) (srcSize.width - 1)));
+        Rpp32f hRatio = (((Rpp32f) (srcSize.height)) / ((Rpp32f) (dstSize.height)));
+        Rpp32f wRatio = (((Rpp32f) (srcSize.width)) / ((Rpp32f) (dstSize.width)));
+        Rpp32f hOffset = hRatio * 0.5f;
+        Rpp32f wOffset = wRatio * 0.5f;
+        Rpp32u heightLimit = srcSize.height - 1;
+        Rpp32u widthLimit = srcSize.width - 1;
         Rpp32f srcLocationRow, srcLocationColumn, pixel;
         Rpp32s srcLocationRowFloor, srcLocationColumnFloor;
-        T *srcPtrTemp;
+        T *srcPtrTemp, *srcRowPtrTemp;
         U *dstPtrTemp;
         srcPtrTemp = srcPtr;
         dstPtrTemp = dstPtr;
 
-        Rpp32u heightLimit = srcSize.height - 2;
-        Rpp32u widthLimit = srcSize.width - 2;
-
-        Rpp32s elementsInRow = srcSize.width * channel;
-        for (int i = 0; i < dstSize.height; i++)
+        if (chnFormat == RPPI_CHN_PLANAR)
         {
-            srcLocationRow = ((Rpp32f) i) / hRatio;
-            srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
-            Rpp32f weightedHeight = srcLocationRow - srcLocationRowFloor;
-
-            if (srcLocationRowFloor > heightLimit)
+            if ((typeid(Rpp16f) == typeid(T)) || (typeid(Rpp16f) == typeid(U)))
             {
-                srcLocationRowFloor = heightLimit;
-            }
-
-            T *srcPtrTopRow, *srcPtrBottomRow;
-            srcPtrTopRow = srcPtrTemp + srcLocationRowFloor * elementsInRow;
-            srcPtrBottomRow  = srcPtrTopRow + elementsInRow;
-
-            Rpp32u bufferLength = dstSize.width;
-            Rpp32u alignedLength = (bufferLength / 4) * 4;
-
-            Rpp32u srcLocCF[4] = {0};
-            Rpp32f param1[4] = {0};
-            Rpp32f param2[4] = {0};
-            Rpp32f param3[4] = {0};
-            Rpp32f param4[4] = {0};
-
-            __m128 pWRatio = _mm_set1_ps(1.0 / wRatio);
-            __m128 p0, p2, p4, p5, p6, p7, pColFloor;
-            __m128 p1 = _mm_set1_ps(weightedHeight);
-            __m128 p3 = _mm_set1_ps(1 - weightedHeight);
-            __m128 pOne = _mm_set1_ps(1.0);
-            __m128i pxColFloor;
-
-            Rpp64u vectorLoopCount = 0;
-            for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
-            {
-                p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
-                p0 = _mm_mul_ps(p0, pWRatio);
-                pColFloor = _mm_floor_ps(p0);
-                pxColFloor = _mm_cvtps_epi32(pColFloor);
-                p0 = _mm_sub_ps(p0, pColFloor);
-                p2  = _mm_sub_ps(pOne, p0);
-
-                p4 = _mm_mul_ps(p3, p2);
-                p5 = _mm_mul_ps(p3, p0);
-                p6 = _mm_mul_ps(p1, p2);
-                p7 = _mm_mul_ps(p1, p0);
-
-                _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
-                _mm_storeu_ps(param1, p4);
-                _mm_storeu_ps(param2, p5);
-                _mm_storeu_ps(param3, p6);
-                _mm_storeu_ps(param4, p7);
-
-                for (int pos = 0; pos < 4; pos++)
+                for (int c = 0; c < channel; c++)
                 {
-                    if (srcLocCF[pos] > widthLimit)
+                    for (int i = 0; i < dstSize.height; i++)
                     {
-                        srcLocCF[pos] = widthLimit;
+                        srcLocationRow = ((Rpp32f) i) * hRatio + hOffset;
+                        srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
+                        srcLocationRowFloor  = (srcLocationRowFloor > heightLimit) ? heightLimit : srcLocationRowFloor;
+                        srcRowPtrTemp = srcPtrTemp + (srcLocationRowFloor * srcSize.width);
+
+                        for (int j = 0; j < dstSize.width; j++)
+                        {
+                            srcLocationColumn = ((Rpp32f) j) * wRatio + wOffset;
+                            srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
+                            srcLocationColumnFloor  = (srcLocationColumnFloor > widthLimit) ? widthLimit : srcLocationColumnFloor;
+                            pixel = *(srcRowPtrTemp + srcLocationColumnFloor);
+                            *dstPtrTemp++ = (U)pixel;
+                        }
                     }
-                    srcLocCF[pos] *= channel;
+                    srcPtrTemp += srcSize.height * srcSize.width;
+                }
+            }
+            else
+            {
+                for (int c = 0; c < channel; c++)
+                {
+                    for (int i = 0; i < dstSize.height; i++)
+                    {
+                        srcLocationRow = ((Rpp32f) i) * hRatio + hOffset;
+                        srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
+                        srcLocationRowFloor  = (srcLocationRowFloor > heightLimit) ? heightLimit : srcLocationRowFloor;
+                        srcRowPtrTemp = srcPtrTemp + (srcLocationRowFloor * srcSize.width);
+#pragma omp simd
+                        for (int j = 0; j < dstSize.width; j++)
+                        {
+                            srcLocationColumn = ((Rpp32f) j) * wRatio + wOffset;
+                            srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
+                            srcLocationColumnFloor  = (srcLocationColumnFloor >  widthLimit) ? widthLimit : srcLocationColumnFloor;
+                            pixel = *(srcRowPtrTemp + srcLocationColumnFloor);
+                            *dstPtrTemp++ = (U)pixel;
+                        }
+                    }
+                    srcPtrTemp += srcSize.height * srcSize.width;
+                }
+            }
+        }
+        else if (chnFormat == RPPI_CHN_PACKED)
+        {
+            Rpp32s elementsInRow = srcSize.width * channel;
+            for (int i = 0; i < dstSize.height; i++)
+            {
+                srcLocationRow = ((Rpp32f) i) * hRatio + hOffset;
+                srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
+                srcLocationRowFloor = (srcLocationRowFloor > heightLimit) ? heightLimit : srcLocationRowFloor;
+                srcRowPtrTemp = srcPtrTemp + (srcLocationRowFloor * elementsInRow);
+
+                Rpp32u bufferLength = dstSize.width;
+                Rpp32u alignedLength = (bufferLength / 4) * 4;
+
+                Rpp32u srcLocCF[4] = {0};
+                __m128 pWRatio = _mm_set1_ps(wRatio);
+                __m128 pWOffset = _mm_set1_ps(wOffset);
+                __m128 p0, pColFloor;
+                __m128i pxColFloor;
+
+                Rpp64u vectorLoopCount = 0;
+                for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
+                {
+                    p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
+                    p0 = _mm_mul_ps(p0, pWRatio);
+                    p0 = _mm_add_ps(p0, pWOffset);
+                    pColFloor = _mm_floor_ps(p0);
+                    pxColFloor = _mm_cvtps_epi32(pColFloor);
+                    _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
+
+                    for (int pos = 0; pos < 4; pos++)
+                    {
+                        srcLocCF[pos] = (srcLocCF[pos] > widthLimit) ? widthLimit : srcLocCF[pos];
+                        srcLocCF[pos] *= channel;
+
+                        for (int c = 0; c < channel; c++)
+                        {
+                            pixel = *(srcRowPtrTemp + srcLocCF[pos] + c);
+                            *dstPtrTemp++ = (U)pixel;
+                        }
+                    }
+                }
+                for (; vectorLoopCount < bufferLength; vectorLoopCount++)
+                {
+                    srcLocationColumn = ((Rpp32f) vectorLoopCount) * wRatio + wOffset;
+                    srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
+                    srcLocationColumnFloor = (srcLocationColumnFloor > widthLimit) ? widthLimit : srcLocationColumnFloor;
+                    Rpp32s srcLocColFloorChanneled = channel * srcLocationColumnFloor;
 
                     for (int c = 0; c < channel; c++)
                     {
-                        *dstPtrTemp++ = (U) ((*(srcPtrTopRow + c + srcLocCF[pos])) * param1[pos])
-                                            + ((*(srcPtrTopRow + c + srcLocCF[pos] + channel)) * param2[pos])
-                                            + ((*(srcPtrBottomRow + c + srcLocCF[pos])) * param3[pos])
-                                            + ((*(srcPtrBottomRow + c + srcLocCF[pos] + channel)) * param4[pos]);
+                        pixel = *(srcRowPtrTemp + srcLocColFloorChanneled + c);
+                        *dstPtrTemp++ = (U)pixel;
                     }
-                }
-            }
-            for (; vectorLoopCount < bufferLength; vectorLoopCount++)
-            {
-                srcLocationColumn = ((Rpp32f) vectorLoopCount) / wRatio;
-                srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
-                Rpp32f weightedWidth = srcLocationColumn - srcLocationColumnFloor;
-
-                if (srcLocationColumnFloor > (srcSize.width - 2))
-                {
-                    srcLocationColumnFloor = srcSize.width - 2;
-                }
-
-                Rpp32s srcLocColFloorChanneled = channel * srcLocationColumnFloor;
-
-                for (int c = 0; c < channel; c++)
-                {
-                    pixel = ((*(srcPtrTopRow + c + srcLocColFloorChanneled)) * (1 - weightedHeight) * (1 - weightedWidth))
-                            + ((*(srcPtrTopRow + c + srcLocColFloorChanneled + channel)) * (1 - weightedHeight) * (weightedWidth))
-                            + ((*(srcPtrBottomRow + c + srcLocColFloorChanneled)) * (weightedHeight) * (1 - weightedWidth))
-                            + ((*(srcPtrBottomRow + c + srcLocColFloorChanneled + channel)) * (weightedHeight) * (weightedWidth));
-
-                    *dstPtrTemp = (U) pixel;
-                    dstPtrTemp ++;
                 }
             }
         }
     }
-
     return RPP_SUCCESS;
 }
 

@@ -2991,7 +2991,7 @@ RppStatus rotate_host(T* srcPtr, RppiSize srcSize, T* dstPtr, RppiSize dstSize,
 template <typename T, typename U>
 RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, U* dstPtr, RppiSize *batch_dstSize, RppiSize *batch_dstSizeMax, 
                             RppiROI *roiPoints, Rpp32u outputFormatToggle, Rpp32u nbatchSize,
-                            RppiChnFormat chnFormat, Rpp32u channel)
+                            RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interpType)
 {
     if(chnFormat == RPPI_CHN_PLANAR)
     {
@@ -3052,7 +3052,7 @@ RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_
             if (outputFormatToggle == 1)
             {
                 U *dstPtrROICopy = (U *)calloc(dstSize.height * dstSize.width * channel, sizeof(U));
-                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROICopy, dstSize, chnFormat, channel);
+                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROICopy, dstSize, chnFormat, channel, interpType);
                 compute_planar_to_packed_host(dstPtrROICopy, dstSize, dstPtrROI, channel);
                 if ((typeid(Rpp8u) == typeid(T)) && (typeid(Rpp8u) != typeid(U)))
                 {
@@ -3063,7 +3063,7 @@ RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_
             }
             else
             {
-                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROI, dstSize, chnFormat, channel);
+                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROI, dstSize, chnFormat, channel, interpType);
                 if ((typeid(Rpp8u) == typeid(T)) && (typeid(Rpp8u) != typeid(U)))
                 {
                     normalize_kernel_host(dstPtrROI, dstSize, channel);
@@ -3133,7 +3133,7 @@ RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_
             if (outputFormatToggle == 1)
             {
                 U *dstPtrROICopy = (U *)calloc(dstSize.height * dstSize.width * channel, sizeof(U));
-                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROICopy, dstSize, chnFormat, channel);
+                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROICopy, dstSize, chnFormat, channel, interpType);
                 compute_packed_to_planar_host(dstPtrROICopy, dstSize, dstPtrROI, channel);
                 if ((typeid(Rpp8u) == typeid(T)) && (typeid(Rpp8u) != typeid(U)))
                 {
@@ -3144,7 +3144,7 @@ RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_
             }
             else
             {
-                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROI, dstSize, chnFormat, channel);
+                resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROI, dstSize, chnFormat, channel, interpType);
                 if ((typeid(Rpp8u) == typeid(T)) && (typeid(Rpp8u) != typeid(U)))
                 {
                     normalize_kernel_host(dstPtrROI, dstSize, channel);
@@ -3163,7 +3163,7 @@ RppStatus resize_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_
 template <typename T, typename U>
 RppStatus resize_u8_i8_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, U* dstPtr, RppiSize *batch_dstSize, RppiSize *batch_dstSizeMax, 
                             RppiROI *roiPoints, Rpp32u outputFormatToggle, Rpp32u nbatchSize,
-                            RppiChnFormat chnFormat, Rpp32u channel)
+                            RppiChnFormat chnFormat, Rpp32u channel, RppiResizeInterpType interpType)
 {
     if(chnFormat == RPPI_CHN_PLANAR)
     {
@@ -3222,7 +3222,7 @@ RppStatus resize_u8_i8_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *
                 }
             }
 
-            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel);
+            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel, interpType);
 
             T *dstPtrROIipTypeTemp;
             dstPtrROIipTypeTemp = dstPtrROIipType;
@@ -3310,7 +3310,7 @@ RppStatus resize_u8_i8_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *
                 srcPtrROITemp += elementsInRowROI;
             }
 
-            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel);
+            resize_kernel_host(srcPtrROI, srcSizeROI, dstPtrROIipType, dstSize, chnFormat, channel, interpType);
 
             T *dstPtrROIipTypeTemp;
             dstPtrROIipTypeTemp = dstPtrROIipType;
