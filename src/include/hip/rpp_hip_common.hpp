@@ -38,6 +38,12 @@ typedef struct d_float8192
     d_float32 data[256];
 } d_float8192;
 
+typedef struct d_float16384
+{
+    d_float8192 x;
+    d_float8192 y;
+} d_float16384;
+
 typedef struct d_uint6
 {
     uint2 x;
