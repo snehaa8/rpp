@@ -94,8 +94,11 @@
 
 __device__ void gamma_correction_hip_compute(uchar *srcPtr, d_float8 *src_f8, d_float8 *dst_f8, d_float32 *gammaLUT)
 {
-    dst_f8->x = make_float4(*(float *)&gammaLUT[(int) src_f8->x.x], *(float *)&gammaLUT[(int) src_f8->x.y], *(float *)&gammaLUT[(int) src_f8->x.z], *(float *)&gammaLUT[(int) src_f8->x.w]) * (float4) 255.0;
-    dst_f8->y = make_float4(*(float *)&gammaLUT[(int) src_f8->y.x], *(float *)&gammaLUT[(int) src_f8->y.y], *(float *)&gammaLUT[(int) src_f8->y.z], *(float *)&gammaLUT[(int) src_f8->y.w]) * (float4) 255.0;
+    dst_f8->x = make_float4(*(float *)&gammaLUT[(int) src_f8->x.x], *(float *)&gammaLUT[(int) src_f8->x.y], *(float *)&gammaLUT[(int) src_f8->x.z], *(float *)&gammaLUT[(int) src_f8->x.w]) * (float4) 255;
+    dst_f8->y = make_float4(*(float *)&gammaLUT[(int) src_f8->y.x], *(float *)&gammaLUT[(int) src_f8->y.y], *(float *)&gammaLUT[(int) src_f8->y.z], *(float *)&gammaLUT[(int) src_f8->y.w]) * (float4) 255;
+
+    // dst_f8->x = make_float4(gammaLUT[(int) src_f8->x.x].x.x.x, gammaLUT[(int) src_f8->x.y].x.x.x, gammaLUT[(int) src_f8->x.z].x.x.x, gammaLUT[(int) src_f8->x.w].x.x.x) * (float4) 255.0;
+    // dst_f8->y = make_float4(gammaLUT[(int) src_f8->y.x].x.x.x, gammaLUT[(int) src_f8->y.y].x.x.x, gammaLUT[(int) src_f8->y.z].x.x.x, gammaLUT[(int) src_f8->y.w].x.x.x) * (float4) 255.0;
 }
 
 __device__ void gamma_correction_hip_compute(float *srcPtr, d_float8 *src_f8, d_float8 *dst_f8, d_float32 *gammaLUT)
@@ -281,63 +284,6 @@ __device__ void gamma_correction_hip_compute(half *srcPtr, d_float8 *src_f8, d_f
 
 // Case3a -> Without pre-processor kernel + With LDS
 
-template <typename T>
-__global__ void gamma_correction_pkd_tensor(T *srcPtr,
-                                            int nStrideSrc,
-                                            int hStrideSrc,
-                                            T *dstPtr,
-                                            int nStrideDst,
-                                            int hStrideDst,
-                                            float *gamma,
-                                            RpptROIPtr roiTensorPtrSrc)
-{
-    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
-    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
-    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
-
-    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth * 3))
-    {
-        return;
-    }
-
-    __shared__ d_float8192 gammaLUT_shared;
-    int threadIdx = (16 * hipThreadIdx_y) + hipThreadIdx_x;
-    // int gammaLutIdx = (256 * id_z) + threadIdx;
-    d_float8 gammaLUT_8val;
-    gammaLUT_8val.x = (float4) powf(threadIdx * 0.0039216f, gamma[id_z]); // gammaLUT[gammaLutIdx];
-    gammaLUT_8val.y = gammaLUT_8val.x; // (float4) gammaLUT[gammaLutIdx];
-
-    d_float32 gammaLUT_32val;
-    gammaLUT_32val.x = gammaLUT_8val;
-    gammaLUT_32val.y = gammaLUT_8val;
-    gammaLUT_32val.z = gammaLUT_8val;
-    gammaLUT_32val.w = gammaLUT_8val;
-
-    gammaLUT_shared.data[threadIdx] = gammaLUT_32val;
-
-    __syncthreads();
-
-    uint srcIdx = (id_z * nStrideSrc) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * hStrideSrc) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
-    uint dstIdx = (id_z * nStrideDst) + (id_y * hStrideDst) + id_x;
-
-    d_float8 src_f8, dst_f8;
-
-    rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &src_f8);
-    gamma_correction_hip_compute(srcPtr, &src_f8, &dst_f8, (d_float32 *)(((float *)&gammaLUT_shared) + ((hipThreadIdx_y % 2) * 16) + hipThreadIdx_x));
-    rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &dst_f8);
-}
-
-
-
-
-
-
-
-
-
-
-// Case3b -> Without pre-processor kernel + With LDS
-
 // template <typename T>
 // __global__ void gamma_correction_pkd_tensor(T *srcPtr,
 //                                             int nStrideSrc,
@@ -352,12 +298,12 @@ __global__ void gamma_correction_pkd_tensor(T *srcPtr,
 //     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
 //     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-//     if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth * 3))
+//     if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x > roiTensorPtrSrc[id_z].xywhROI.roiWidth * 3))
 //     {
 //         return;
 //     }
 
-//     __shared__ d_float16384 gammaLUT_shared;
+//     __shared__ d_float8192 gammaLUT_shared;
 //     int threadIdx = (16 * hipThreadIdx_y) + hipThreadIdx_x;
 //     // int gammaLutIdx = (256 * id_z) + threadIdx;
 //     d_float8 gammaLUT_8val;
@@ -370,8 +316,7 @@ __global__ void gamma_correction_pkd_tensor(T *srcPtr,
 //     gammaLUT_32val.z = gammaLUT_8val;
 //     gammaLUT_32val.w = gammaLUT_8val;
 
-//     gammaLUT_shared.x.data[threadIdx] = gammaLUT_32val;
-//     gammaLUT_shared.y.data[threadIdx] = gammaLUT_32val;
+//     gammaLUT_shared.data[threadIdx] = gammaLUT_32val;
 
 //     __syncthreads();
 
@@ -380,15 +325,71 @@ __global__ void gamma_correction_pkd_tensor(T *srcPtr,
 
 //     d_float8 src_f8, dst_f8;
 
-//     int tId_mod4 = hipThreadIdx_y % 4;
-//     int tId_mod2 = hipThreadIdx_y % 2;
-//     int tIdPrev_mod4 = (hipThreadIdx_y - 1) % 4;
-//     int tIdPrev_mod2 = (hipThreadIdx_y - 1) % 2;
-
 //     rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &src_f8);
-//     gamma_correction_hip_compute(srcPtr, &src_f8, &dst_f8, (d_float32 *)(((float *)&gammaLUT_shared) + (((tId_mod4 | tId_mod2) & (tIdPrev_mod4 | tIdPrev_mod2)) * 8192) + (tId_mod2 * 16) + hipThreadIdx_x));
+//     gamma_correction_hip_compute(srcPtr, &src_f8, &dst_f8, (d_float32 *)(((float *)&gammaLUT_shared) + ((hipThreadIdx_y % 2) * 16) + hipThreadIdx_x));
 //     rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &dst_f8);
 // }
+
+
+
+
+
+
+
+
+
+
+// Case3b -> Without pre-processor kernel + With LDS
+
+template <typename T>
+__global__ void gamma_correction_pkd_tensor(T *srcPtr,
+                                            int nStrideSrc,
+                                            int hStrideSrc,
+                                            T *dstPtr,
+                                            int nStrideDst,
+                                            int hStrideDst,
+                                            float *gamma,
+                                            RpptROIPtr roiTensorPtrSrc)
+{
+    int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;
+    int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
+
+    if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x > roiTensorPtrSrc[id_z].xywhROI.roiWidth * 3))
+    {
+        return;
+    }
+
+    __shared__ d_float8192 gammaLUT_shared;
+    int threadIdx = (16 * hipThreadIdx_y) + hipThreadIdx_x;
+    // int gammaLutIdx = (256 * id_z) + threadIdx;
+    d_float8 gammaLUT_8val;
+    gammaLUT_8val.x = (float4) powf(threadIdx * 0.0039216f, gamma[id_z]); // gammaLUT[gammaLutIdx];
+    gammaLUT_8val.y = gammaLUT_8val.x; // (float4) gammaLUT[gammaLutIdx];
+
+    // d_float32 gammaLUT_32val;
+    // gammaLUT_32val.x = gammaLUT_8val;
+    // gammaLUT_32val.y = gammaLUT_8val;
+    // gammaLUT_32val.z = gammaLUT_8val;
+    // gammaLUT_32val.w = gammaLUT_8val;
+
+    d_float16 gammaLUT_16val;
+    gammaLUT_16val.x = gammaLUT_8val;
+    gammaLUT_16val.y = gammaLUT_8val;
+
+    *(d_float16 *)&gammaLUT_shared.data[threadIdx] = gammaLUT_16val;
+
+    __syncthreads();
+
+    uint srcIdx = (id_z * nStrideSrc) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * hStrideSrc) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x * 3);
+    uint dstIdx = (id_z * nStrideDst) + (id_y * hStrideDst) + id_x;
+
+    d_float8 src_f8, dst_f8;
+
+    rpp_hip_load8_and_unpack_to_float8(srcPtr, srcIdx, &src_f8);
+    gamma_correction_hip_compute(srcPtr, &src_f8, &dst_f8, (d_float32 *)(((float *)&gammaLUT_shared) + hipThreadIdx_x));
+    rpp_hip_pack_float8_and_store8(dstPtr, dstIdx, &dst_f8);
+}
 
 
 
@@ -726,6 +727,8 @@ RppStatus hip_exec_gamma_correction_tensor(T *srcPtr,
                                roiTensorPtrSrc);
         }
     }
+
+    hipDeviceSynchronize();
 
     return RPP_SUCCESS;
 }

@@ -18,6 +18,12 @@ typedef struct d_float8
     float4 y;
 } d_float8;
 
+typedef struct d_float16
+{
+    d_float8 x;
+    d_float8 y;
+} d_float16;
+
 typedef struct d_float24
 {
     d_float8 x;
