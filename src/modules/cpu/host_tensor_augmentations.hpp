@@ -2890,7 +2890,7 @@ RppStatus color_jitter_u8_u8_host_tensor(Rpp8u *srcPtr,
 
         Rpp32u bufferLength = roiPtr->xywhROI.roiWidth * layoutParams.bufferMultiplier;
 
-        alignas(64) Rpp32f ctm[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+        alignas(64) Rpp32f ctm[16];
         compute_color_jitter_ctm_host(brightnessParam, contrastParam, hueParam, saturationParam, ctm);
 
         __m128 pCtm[12];
@@ -3178,7 +3178,7 @@ RppStatus color_jitter_f32_f32_host_tensor(Rpp32f *srcPtr,
 
         Rpp32u bufferLength = roiPtr->xywhROI.roiWidth * layoutParams.bufferMultiplier;
 
-        alignas(64) Rpp32f ctm[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+        alignas(64) Rpp32f ctm[16];
         compute_color_jitter_ctm_host(brightnessParam, contrastParam, hueParam, saturationParam, ctm);
 
         __m128 pCtm[12];
@@ -3466,7 +3466,7 @@ RppStatus color_jitter_f16_f16_host_tensor(Rpp16f *srcPtr,
 
         Rpp32u bufferLength = roiPtr->xywhROI.roiWidth * layoutParams.bufferMultiplier;
 
-        alignas(64) Rpp32f ctm[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+        alignas(64) Rpp32f ctm[16];
         compute_color_jitter_ctm_host(brightnessParam, contrastParam, hueParam, saturationParam, ctm);
 
         __m128 pCtm[12];
@@ -3810,7 +3810,7 @@ RppStatus color_jitter_i8_i8_host_tensor(Rpp8s *srcPtr,
 
         Rpp32u bufferLength = roiPtr->xywhROI.roiWidth * layoutParams.bufferMultiplier;
 
-        alignas(64) Rpp32f ctm[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+        alignas(64) Rpp32f ctm[16];
         compute_color_jitter_ctm_host(brightnessParam, contrastParam, hueParam, saturationParam, ctm);
 
         __m128 pCtm[12];
