@@ -30,11 +30,11 @@ if profilingOption == "NO":
 
     log_file_list = [
         "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pkd3_hip_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pln3_hip_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pln1_hip_raw_performance_log.txt",
+        # "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pln3_hip_raw_performance_log.txt",
+        # "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/BatchPD_hip_pln1_hip_raw_performance_log.txt",
         "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/Tensor_hip_pkd3_hip_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/Tensor_hip_pln3_hip_raw_performance_log.txt",
-        "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/Tensor_hip_pln1_hip_raw_performance_log.txt"
+        # "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/Tensor_hip_pln3_hip_raw_performance_log.txt",
+        # "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW/Tensor_hip_pln1_hip_raw_performance_log.txt"
         ]
 
     functionality_group_list = [
@@ -141,18 +141,21 @@ elif profilingOption == "YES":
     RESULTS_DIR = "../OUTPUT_PERFORMANCE_LOGS_HIP_NEW"
     print("RESULTS_DIR = " + RESULTS_DIR)
     CONSOLIDATED_FILE_BATCHPD_PKD3 = RESULTS_DIR + "/consolidated_results_BatchPD_PKD3.stats.csv"
-    CONSOLIDATED_FILE_BATCHPD_PLN1 = RESULTS_DIR + "/consolidated_results_BatchPD_PLN1.stats.csv"
-    CONSOLIDATED_FILE_BATCHPD_PLN3 = RESULTS_DIR + "/consolidated_results_BatchPD_PLN3.stats.csv"
+    # CONSOLIDATED_FILE_BATCHPD_PLN1 = RESULTS_DIR + "/consolidated_results_BatchPD_PLN1.stats.csv"
+    # CONSOLIDATED_FILE_BATCHPD_PLN3 = RESULTS_DIR + "/consolidated_results_BatchPD_PLN3.stats.csv"
     CONSOLIDATED_FILE_TENSOR_PKD3 = RESULTS_DIR + "/consolidated_results_Tensor_PKD3.stats.csv"
-    CONSOLIDATED_FILE_TENSOR_PLN1 = RESULTS_DIR + "/consolidated_results_Tensor_PLN1.stats.csv"
-    CONSOLIDATED_FILE_TENSOR_PLN3 = RESULTS_DIR + "/consolidated_results_Tensor_PLN3.stats.csv"
+    # CONSOLIDATED_FILE_TENSOR_PLN1 = RESULTS_DIR + "/consolidated_results_Tensor_PLN1.stats.csv"
+    # CONSOLIDATED_FILE_TENSOR_PLN3 = RESULTS_DIR + "/consolidated_results_Tensor_PLN3.stats.csv"
 
-    TYPE_LIST = ["BatchPD_PKD3", "BatchPD_PLN1", "BatchPD_PLN3", "Tensor_PKD3", "Tensor_PLN1", "Tensor_PLN3"]
-    BATCHPD_TYPE_LIST = ["BatchPD_PKD3", "BatchPD_PLN1", "BatchPD_PLN3"]
-    TENSOR_TYPE_LIST = ["Tensor_PKD3", "Tensor_PLN1", "Tensor_PLN3"]
+    # TYPE_LIST = ["BatchPD_PKD3", "BatchPD_PLN1", "BatchPD_PLN3", "Tensor_PKD3", "Tensor_PLN1", "Tensor_PLN3"]
+    # BATCHPD_TYPE_LIST = ["BatchPD_PKD3", "BatchPD_PLN1", "BatchPD_PLN3"]
+    # TENSOR_TYPE_LIST = ["Tensor_PKD3", "Tensor_PLN1", "Tensor_PLN3"]
+    TYPE_LIST = ["BatchPD_PKD3", "Tensor_PKD3"]
+    BATCHPD_TYPE_LIST = ["BatchPD_PKD3"]
+    TENSOR_TYPE_LIST = ["Tensor_PKD3"]
     CASE_NUM_LIST = range(int(caseStart), int(caseEnd) + 1, 1)
-    BIT_DEPTH_LIST = range(0, 7, 1)
-    OFT_LIST = range(0, 2, 1)
+    BIT_DEPTH_LIST = range(0, 1, 1)
+    OFT_LIST = range(0, 1, 1)
     d_counter = {"BatchPD_PKD3":0, "BatchPD_PLN1":0, "BatchPD_PLN3":0, "Tensor_PKD3":0, "Tensor_PLN1":0, "Tensor_PLN3":0}
 
     for TYPE in TYPE_LIST:
