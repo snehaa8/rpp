@@ -6,7 +6,7 @@
 
 template <typename T>
 RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr, 
-                          Rpp32u *batch_flipAxis, RppiROI *roiPoints,
+                          Rpp32u *batch_flipHorizontal, Rpp32u *batch_flipVertical, RppiROI *roiPoints,
                           Rpp32u nbatchSize,
                           RppiChnFormat chnFormat, Rpp32u channel)
 {
@@ -35,7 +35,8 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
 
             Rpp32u remainingElementsAfterROI = (batch_srcSize[batchCount].width - (roiPoints[batchCount].x + roiPoints[batchCount].roiWidth));
 
-            Rpp32u flipAxis = batch_flipAxis[batchCount];
+            Rpp32u flipHorizontal = batch_flipHorizontal[batchCount];
+            Rpp32u flipVertical = batch_flipVertical[batchCount];
             
             T *srcPtrImage, *dstPtrImage;
             Rpp32u loc = 0;
@@ -43,7 +44,7 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
             srcPtrImage = srcPtr + loc;
             dstPtrImage = dstPtr + loc;
 
-            if (flipAxis == RPPI_HORIZONTAL_AXIS)
+            if ((flipHorizontal == 0) && (flipVertical == 1))
             {
                 for(int c = 0; c < channel; c++)
                 {
@@ -84,7 +85,7 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
                     }
                 }
             }
-            else if (flipAxis == RPPI_VERTICAL_AXIS)
+            else if ((flipHorizontal == 1) && (flipVertical == 0))
             {
                 Rpp32u bufferLength = roiPoints[batchCount].roiWidth;
                 Rpp32u alignedLength = (bufferLength / 16) * 16;
@@ -145,7 +146,7 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
                     }
                 }
             }
-            else if (flipAxis == RPPI_BOTH_AXIS)
+            else if ((flipHorizontal == 1) && (flipVertical == 1))
             {
                 Rpp32u bufferLength = roiPoints[batchCount].roiWidth;
                 Rpp32u alignedLength = (bufferLength / 16) * 16;
@@ -206,6 +207,10 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
                     }
                 }
             }
+            else
+            {
+                memcpy(dstPtrImage, srcPtrImage, imageDimMax * channel * sizeof(T));
+            }
         }
     }
     else if (chnFormat == RPPI_CHN_PACKED)
@@ -234,7 +239,8 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
             Rpp32u elementsBeforeROI = channel * x1;
             Rpp32u remainingElementsAfterROI = channel * (batch_srcSize[batchCount].width - (roiPoints[batchCount].x + roiPoints[batchCount].roiWidth));
 
-            Rpp32u flipAxis = batch_flipAxis[batchCount];
+            Rpp32u flipHorizontal = batch_flipHorizontal[batchCount];
+            Rpp32u flipVertical = batch_flipVertical[batchCount];
             
             T *srcPtrImage, *dstPtrImage;
             Rpp32u loc = 0;
@@ -246,7 +252,7 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
             Rpp32u elementsInRowMax = channel * batch_srcSizeMax[batchCount].width;
             Rpp32u elementsInRowROI = channel * roiPoints[batchCount].roiWidth;
             
-            if (flipAxis == RPPI_HORIZONTAL_AXIS)
+            if ((flipHorizontal == 0) && (flipVertical == 1))
             {
                 T  *srcPtrROI;
                 srcPtrROI = srcPtrImage + (y2 * elementsInRowMax) + (x1 * channel);
@@ -282,7 +288,7 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
                     }
                 }
             }
-            else if (flipAxis == RPPI_VERTICAL_AXIS)
+            else if ((flipHorizontal == 1) && (flipVertical == 0))
             {
                 T  *srcPtrROI;
                 srcPtrROI = srcPtrImage + (y1 * elementsInRowMax) + ((x2 - 1) * channel);
@@ -341,7 +347,7 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
                     }
                 }
             }
-            else if (flipAxis == RPPI_BOTH_AXIS)
+            else if ((flipHorizontal == 1) && (flipVertical == 1))
             {
                 T  *srcPtrROI;
                 srcPtrROI = srcPtrImage + (y2 * elementsInRowMax) + ((x2 - 1) * channel);
@@ -399,6 +405,10 @@ RppStatus flip_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_sr
                         dstPtrTemp += remainingElementsAfterROI;
                     }
                 }
+            }
+            else
+            {
+                memcpy(dstPtrImage, srcPtrImage, imageDimMax * channel * sizeof(T));
             }
         }
     }
