@@ -1438,16 +1438,18 @@ int main(int argc, char **argv)
     {
         test_case_name = "flip";
 
-        Rpp32u flipAxis[images];
+        Rpp32u flipHorizontal[images];
+        Rpp32u flipVertical[images];
         for (i = 0; i < images; i++)
         {
-            flipAxis[i] = 1;
+            flipHorizontal[i] = 1;
+            flipVertical[i] = 1;
         }
 
         start_omp = omp_get_wtime();
         start = clock();
         if (ip_bitDepth == 0)
-            rppi_flip_u8_pln3_batchPD_host(input, srcSize, maxSize, output, flipAxis, noOfImages, handle);
+            rppi_flip_u8_pln3_batchPD_host(input, srcSize, maxSize, output, flipHorizontal, flipVertical, noOfImages, handle);
         else if (ip_bitDepth == 1)
             missingFuncFlag = 1;
         else if (ip_bitDepth == 2)
