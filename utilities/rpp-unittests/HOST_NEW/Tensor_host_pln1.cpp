@@ -43,7 +43,18 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (atoi(argv[7]) == 1)
+    char *src = argv[1];
+    char *src_second = argv[2];
+    char *dst = argv[3];
+    int ip_bitDepth = atoi(argv[4]);
+    unsigned int outputFormatToggle = atoi(argv[5]);
+    int test_case = atoi(argv[6]);
+    unsigned int verbosity = (test_case == 49) ? atoi(argv[8]) : atoi(argv[7]);
+    unsigned int additionalParam = (test_case == 49) ? atoi(argv[7]) : 1;
+    char additionalParam_char[2];
+    std::sprintf(additionalParam_char, "%u", additionalParam);
+
+    if (verbosity == 1)
     {
         printf("\nInputs for this test case are:");
         printf("\nsrc1 = %s", argv[1]);
@@ -53,13 +64,6 @@ int main(int argc, char **argv)
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[5]);
         printf("\ncase number (0:81) = %s", argv[6]);
     }
-
-    char *src = argv[1];
-    char *src_second = argv[2];
-    char *dst = argv[3];
-    int ip_bitDepth = atoi(argv[4]);
-    unsigned int outputFormatToggle = atoi(argv[5]);
-    int test_case = atoi(argv[6]);
 
     int ip_channel = 1;
 
@@ -81,6 +85,9 @@ int main(int argc, char **argv)
         break;
     case 31:
         strcpy(funcName, "color_cast");
+        break;
+    case 49:
+        strcpy(funcName, "box_filter");
         break;
     case 81:
         strcpy(funcName, "color_jitter");
@@ -161,22 +168,28 @@ int main(int argc, char **argv)
 
     // String ops on function name
 
-    char func[1000];
-    strcpy(func, funcName);
-    strcat(func, funcType);
-    printf("\nRunning %s...", func);
-
     char src1[1000];
     strcpy(src1, src);
     strcat(src1, "/");
-
     char src1_second[1000];
     strcpy(src1_second, src_second);
     strcat(src1_second, "/");
 
+    char func[1000];
+    strcpy(func, funcName);
+    strcat(func, funcType);
     strcat(funcName, funcType);
     strcat(dst, "/");
     strcat(dst, funcName);
+    if (test_case == 49)
+    {
+        strcat(func, "_kSize");
+        strcat(func, additionalParam_char);
+        strcat(dst, "_kSize");
+        strcat(dst, additionalParam_char);
+    }
+
+    printf("\nRunning %s...", func);
 
     // Get number of images
 
@@ -237,13 +250,10 @@ int main(int argc, char **argv)
     }
     closedir(dr1);
 
-    // Set numDims, offset, n/c/h/w values for src/dst
+    // Set numDims, n/c/h/w values for src/dst
 
     srcDescPtr->numDims = 4;
     dstDescPtr->numDims = 4;
-
-    srcDescPtr->offsetInBytes = 0;
-    dstDescPtr->offsetInBytes = 0;
 
     srcDescPtr->n = noOfImages;
     srcDescPtr->c = ip_channel;
@@ -255,10 +265,15 @@ int main(int argc, char **argv)
     dstDescPtr->h = maxDstHeight;
     dstDescPtr->w = maxDstWidth;
 
-    // Optionally set w stride as a multiple of 8 for src/dst
+    // Optionally change w stride to a multiple of 8 for src/dst
 
     srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
     dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+
+    // Set offsetInBytes for src/dst
+
+    srcDescPtr->offsetInBytes = (test_case == 49) ? ((additionalParam / 2) * (srcDescPtr->w + 1) * 12) : 0;
+    dstDescPtr->offsetInBytes = 0;
 
     // Set n/c/h/w strides for src/dst
 
@@ -282,28 +297,27 @@ int main(int argc, char **argv)
         dstDescPtr->strides.wStride = 1;
     }
 
-    // Set buffer sizes for src/dst
+    // Set buffer sizes in pixels for src/dst
 
     ioBufferSize = (unsigned long long)srcDescPtr->h * (unsigned long long)srcDescPtr->w * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
     oBufferSize = (unsigned long long)dstDescPtr->h * (unsigned long long)dstDescPtr->w * (unsigned long long)ip_channel * (unsigned long long)noOfImages;
 
-    // Initialize host buffers for src/dst
+    // Set buffer sizes in bytes for src/dst (including offsets)
 
-    Rpp8u *input = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
-    Rpp8u *input_second = (Rpp8u *)calloc(ioBufferSize, sizeof(Rpp8u));
-    Rpp8u *output = (Rpp8u *)calloc(oBufferSize, sizeof(Rpp8u));
+    unsigned long long ioBufferSizeInBytes_u8 = ioBufferSize + (2 * srcDescPtr->offsetInBytes);
+    unsigned long long oBufferSizeInBytes_u8 = oBufferSize + (2 * dstDescPtr->offsetInBytes);
+    unsigned long long ioBufferSizeInBytes_f16 = (ioBufferSize * 2) + (2 * srcDescPtr->offsetInBytes);
+    unsigned long long oBufferSizeInBytes_f16 = (oBufferSize * 2) + (2 * dstDescPtr->offsetInBytes);
+    unsigned long long ioBufferSizeInBytes_f32 = (ioBufferSize * 4) + (2 * srcDescPtr->offsetInBytes);
+    unsigned long long oBufferSizeInBytes_f32 = (oBufferSize * 4) + (2 * dstDescPtr->offsetInBytes);
+    unsigned long long ioBufferSizeInBytes_i8 = ioBufferSize + (2 * srcDescPtr->offsetInBytes);
+    unsigned long long oBufferSizeInBytes_i8 = oBufferSize + (2 * dstDescPtr->offsetInBytes);
 
-    Rpp16f *inputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
-    Rpp16f *inputf16_second = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
-    Rpp16f *outputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
+    // Initialize 8u host buffers for src/dst
 
-    Rpp32f *inputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
-    Rpp32f *inputf32_second = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
-    Rpp32f *outputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
-
-    Rpp8s *inputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
-    Rpp8s *inputi8_second = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
-    Rpp8s *outputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
+    Rpp8u *input = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, 1);
+    Rpp8u *input_second = (Rpp8u *)calloc(ioBufferSizeInBytes_u8, 1);
+    Rpp8u *output = (Rpp8u *)calloc(oBufferSizeInBytes_u8, 1);
 
     // Set 8u host buffers for src/dst
 
@@ -312,13 +326,17 @@ int main(int argc, char **argv)
     count = 0;
     i = 0;
 
+    Rpp8u *offsetted_input, *offsetted_input_second;
+    offsetted_input = input + srcDescPtr->offsetInBytes;
+    offsetted_input_second = input_second + srcDescPtr->offsetInBytes;
+
     Rpp32u elementsInRowMax = srcDescPtr->w * ip_channel;
 
     while ((de = readdir(dr2)) != NULL)
     {
         Rpp8u *input_temp, *input_second_temp;
-        input_temp = input + (i * srcDescPtr->strides.nStride);
-        input_second_temp = input_second + (i * srcDescPtr->strides.nStride);
+        input_temp = offsetted_input + (i * srcDescPtr->strides.nStride);
+        input_second_temp = offsetted_input_second + (i * srcDescPtr->strides.nStride);
 
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
             continue;
@@ -355,16 +373,24 @@ int main(int argc, char **argv)
 
     // Convert inputs to test various other bit depths
 
+    Rpp16f *inputf16, *inputf16_second, *outputf16;
+    Rpp32f *inputf32, *inputf32_second, *outputf32;
+    Rpp8s *inputi8, *inputi8_second, *outputi8;
+
     if (ip_bitDepth == 1)
     {
+        inputf16 = (Rpp16f *)calloc(ioBufferSizeInBytes_f16, 1);
+        inputf16_second = (Rpp16f *)calloc(ioBufferSizeInBytes_f16, 1);
+        outputf16 = (Rpp16f *)calloc(oBufferSizeInBytes_f16, 1);
+
         Rpp8u *inputTemp, *input_secondTemp;
         Rpp16f *inputf16Temp, *inputf16_secondTemp;
 
-        inputTemp = input;
-        input_secondTemp = input_second;
+        inputTemp = input + srcDescPtr->offsetInBytes;
+        input_secondTemp = input_second + srcDescPtr->offsetInBytes;
 
-        inputf16Temp = inputf16;
-        inputf16_secondTemp = inputf16_second;
+        inputf16Temp = (Rpp16f *)((Rpp8u *)inputf16 + srcDescPtr->offsetInBytes);
+        inputf16_secondTemp = (Rpp16f *)((Rpp8u *)inputf16_second + srcDescPtr->offsetInBytes);
 
         for (int i = 0; i < ioBufferSize; i++)
         {
@@ -378,14 +404,18 @@ int main(int argc, char **argv)
     }
     else if (ip_bitDepth == 2)
     {
+        inputf32 = (Rpp32f *)calloc(ioBufferSizeInBytes_f32, 1);
+        inputf32_second = (Rpp32f *)calloc(ioBufferSizeInBytes_f32, 1);
+        outputf32 = (Rpp32f *)calloc(oBufferSizeInBytes_f32, 1);
+
         Rpp8u *inputTemp, *input_secondTemp;
         Rpp32f *inputf32Temp, *inputf32_secondTemp;
 
-        inputTemp = input;
-        input_secondTemp = input_second;
+        inputTemp = input + srcDescPtr->offsetInBytes;
+        input_secondTemp = input_second + srcDescPtr->offsetInBytes;
 
-        inputf32Temp = inputf32;
-        inputf32_secondTemp = inputf32_second;
+        inputf32Temp = (Rpp32f *)((Rpp8u *)inputf32 + srcDescPtr->offsetInBytes);
+        inputf32_secondTemp = (Rpp32f *)((Rpp8u *)inputf32_second + srcDescPtr->offsetInBytes);
 
         for (int i = 0; i < ioBufferSize; i++)
         {
@@ -399,14 +429,18 @@ int main(int argc, char **argv)
     }
     else if (ip_bitDepth == 5)
     {
+        inputi8 = (Rpp8s *)calloc(ioBufferSizeInBytes_i8, 1);
+        inputi8_second = (Rpp8s *)calloc(ioBufferSizeInBytes_i8, 1);
+        outputi8 = (Rpp8s *)calloc(oBufferSizeInBytes_i8, 1);
+
         Rpp8u *inputTemp, *input_secondTemp;
         Rpp8s *inputi8Temp, *inputi8_secondTemp;
 
-        inputTemp = input;
-        input_secondTemp = input_second;
+        inputTemp = input + srcDescPtr->offsetInBytes;
+        input_secondTemp = input_second + srcDescPtr->offsetInBytes;
 
-        inputi8Temp = inputi8;
-        inputi8_secondTemp = inputi8_second;
+        inputi8Temp = inputi8 + srcDescPtr->offsetInBytes;
+        inputi8_secondTemp = inputi8_second + srcDescPtr->offsetInBytes;
 
         for (int i = 0; i < ioBufferSize; i++)
         {
@@ -580,6 +614,53 @@ int main(int argc, char **argv)
 
         break;
     }
+    case 49:
+    {
+        test_case_name = "box_filter";
+
+        Rpp32u kernelSize = additionalParam;
+        for (i = 0; i < images; i++)
+        {
+            // xywhROI override sample
+            // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+            // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            // roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+            // roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+
+            // ltrbROI override sample
+            // roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+            // roiTensorPtrSrc[i].ltrbROI.lt.y = 50;
+            // roiTensorPtrSrc[i].ltrbROI.rb.x = 199;
+            // roiTensorPtrSrc[i].ltrbROI.rb.y = 149;
+        }
+
+        // Change RpptRoiType for ltrbROI override sample
+        // roiTypeSrc = RpptRoiType::LTRB;
+        // roiTypeDst = RpptRoiType::LTRB;
+
+        start_omp = omp_get_wtime();
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_box_filter_host(input, srcDescPtr, ioBufferSizeInBytes_u8, output, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 1)
+            rppt_box_filter_host(inputf16, srcDescPtr, ioBufferSizeInBytes_f16, outputf16, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 2)
+            rppt_box_filter_host(inputf32, srcDescPtr, ioBufferSizeInBytes_f32, outputf32, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            rppt_box_filter_host(inputi8, srcDescPtr, ioBufferSizeInBytes_i8, outputi8, dstDescPtr, kernelSize, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+        end = clock();
+        end_omp = omp_get_wtime();
+
+        break;
+    }
     default:
         missingFuncFlag = 1;
         break;
@@ -595,8 +676,8 @@ int main(int argc, char **argv)
 
     cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
     omp_time_used = end_omp - start_omp;
-    cout << "\nCPU Time - BatchPD : " << cpu_time_used;
-    cout << "\nOMP Time - BatchPD : " << omp_time_used;
+    cout << "\nCPU Time - BatchPD : " << cpu_time_used << "s";
+    cout << "\nOMP Time - BatchPD : " << omp_time_used << "s";
     printf("\n");
 
     // Reconvert other bit depths to 8u for output display purposes
@@ -607,7 +688,7 @@ int main(int argc, char **argv)
     if (ip_bitDepth == 0)
     {
         Rpp8u *outputTemp;
-        outputTemp = output;
+        outputTemp = output + dstDescPtr->offsetInBytes;
 
         if (outputFile.is_open())
         {
@@ -625,9 +706,9 @@ int main(int argc, char **argv)
     else if ((ip_bitDepth == 1) || (ip_bitDepth == 3))
     {
         Rpp8u *outputTemp;
-        outputTemp = output;
+        outputTemp = output + dstDescPtr->offsetInBytes;
         Rpp16f *outputf16Temp;
-        outputf16Temp = outputf16;
+        outputf16Temp = (Rpp16f *)((Rpp8u *)outputf16 + dstDescPtr->offsetInBytes);
 
         if (outputFile.is_open())
         {
@@ -647,9 +728,9 @@ int main(int argc, char **argv)
     else if ((ip_bitDepth == 2) || (ip_bitDepth == 4))
     {
         Rpp8u *outputTemp;
-        outputTemp = output;
+        outputTemp = output + dstDescPtr->offsetInBytes;
         Rpp32f *outputf32Temp;
-        outputf32Temp = outputf32;
+        outputf32Temp = (Rpp32f *)((Rpp8u *)outputf32 + dstDescPtr->offsetInBytes);
 
         if (outputFile.is_open())
         {
@@ -668,9 +749,9 @@ int main(int argc, char **argv)
     else if ((ip_bitDepth == 5) || (ip_bitDepth == 6))
     {
         Rpp8u *outputTemp;
-        outputTemp = output;
+        outputTemp = output + dstDescPtr->offsetInBytes;
         Rpp8s *outputi8Temp;
-        outputi8Temp = outputi8;
+        outputi8Temp = outputi8 + dstDescPtr->offsetInBytes;
 
         if (outputFile.is_open())
         {
@@ -730,6 +811,8 @@ int main(int argc, char **argv)
     count = 0;
     elementsInRowMax = dstDescPtr->w * ip_channel;
 
+    Rpp8u *offsetted_output;
+    offsetted_output = output + dstDescPtr->offsetInBytes;
     for (j = 0; j < dstDescPtr->n; j++)
     {
         int height = roiTensorPtrSrc[j].xywhROI.roiHeight;
@@ -740,7 +823,7 @@ int main(int argc, char **argv)
         Rpp8u *temp_output_row;
         temp_output_row = temp_output;
         Rpp32u elementsInRow = width * ip_channel;
-        Rpp8u *output_row = output + count;
+        Rpp8u *output_row = offsetted_output + count;
 
         for (int k = 0; k < height; k++)
         {
@@ -768,15 +851,25 @@ int main(int argc, char **argv)
     free(input);
     free(input_second);
     free(output);
-    free(inputf16);
-    free(inputf16_second);
-    free(outputf16);
-    free(inputf32);
-    free(inputf32_second);
-    free(outputf32);
-    free(inputi8);
-    free(inputi8_second);
-    free(outputi8);
+
+    if (ip_bitDepth == 1)
+    {
+        free(inputf16);
+        free(inputf16_second);
+        free(outputf16);
+    }
+    else if (ip_bitDepth == 2)
+    {
+        free(inputf32);
+        free(inputf32_second);
+        free(outputf32);
+    }
+    else if (ip_bitDepth == 5)
+    {
+        free(inputi8);
+        free(inputi8_second);
+        free(outputi8);
+    }
 
     return 0;
 }

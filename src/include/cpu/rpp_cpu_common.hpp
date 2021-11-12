@@ -36,23 +36,28 @@ static uint16_t wyhash16_x;
 alignas(64) const Rpp32f sch_mat[16] = {0.701f, -0.299f, -0.300f, 0.0f, -0.587f, 0.413f, -0.588f, 0.0f, -0.114f, -0.114f, 0.886f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 alignas(64) const Rpp32f ssh_mat[16] = {0.168f, -0.328f, 1.250f, 0.0f, 0.330f, 0.035f, -1.050f, 0.0f, -0.497f, 0.292f, -0.203f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
-inline uint32_t hash16(uint32_t input, uint32_t key) {
-  uint32_t hash = input * key;
-  return ((hash >> 16) ^ hash) & 0xFFFF;
+inline uint32_t hash16(uint32_t input, uint32_t key)
+{
+    uint32_t hash = input * key;
+    return ((hash >> 16) ^ hash) & 0xFFFF;
 }
 
-inline uint16_t wyhash16() {
-  wyhash16_x += 0xfc15;
-  return hash16(wyhash16_x, 0x2ab);
+inline uint16_t wyhash16()
+{
+    wyhash16_x += 0xfc15;
+    return hash16(wyhash16_x, 0x2ab);
 }
 
-inline uint16_t rand_range16(const uint16_t s) {
+inline uint16_t rand_range16(const uint16_t s)
+{
     uint16_t x = wyhash16();
     uint32_t m = (uint32_t)x * (uint32_t)s;
     uint16_t l = (uint16_t)m;
-    if (l < s) {
+    if (l < s)
+    {
         uint16_t t = -s % s;
-        while (l < t) {
+        while (l < t)
+        {
             x = wyhash16();
             m = (uint32_t)x * (uint32_t)s;
             l = (uint16_t)m;
@@ -63,15 +68,15 @@ inline uint16_t rand_range16(const uint16_t s) {
 
 static unsigned int g_seed;
 
-inline void fast_srand( int seed )
+inline void fast_srand(int seed)
 {
     g_seed = seed;
 }
 
 inline int fastrand()
 {
-    g_seed = (214013*g_seed+2531011);
-    return (g_seed>>16)&0x7FFF;
+    g_seed = (214013 * g_seed + 2531011);
+    return (g_seed >> 16) & 0x7FFF;
 }
 
 inline int power_function(int a, int b)

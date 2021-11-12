@@ -472,6 +472,11 @@ inline RppStatus rpp_store16_f32_to_i8(Rpp8s *dstPtr, __m128 *p)
     return RPP_SUCCESS;
 }
 
+// inline RppStatus rpp_load16_u8pkd3_to_f32pln3(Rpp8u *srcPtr, __m128 *p)
+// {
+
+// }
+
 template <typename FuncType, typename... ArgTypes>
 inline RppStatus rpp_simd_load(FuncType &&rpp_simd_load_routine, ArgTypes&&... args)
 {

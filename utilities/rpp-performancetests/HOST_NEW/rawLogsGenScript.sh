@@ -8,9 +8,33 @@
 
 cwd=$(pwd)
 
+# SINGLE IMAGE IN BATCH
+
 # Input Images - Single image (224 x 224)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_224x224_src1"
 # DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/single_image_224x224_src2"
+
+# Input Images - Single image (256 x 256)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_256x256_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/single_image_256x256_src1"
+
+# Input Images - Single image (300 x 300)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_300x300_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/single_image_300x300_src1"
+
+# Input Images - Single image (1024 x 768)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_1024x768_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/single_image_1024x768_src1"
+
+# Input Images - Single image (1920 x 1080)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_1920x1080_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/single_image_1920x1080_src1"
+
+# Input Images - Single image (3840 x 2160)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/single_image_3840x2160_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/single_image_3840x2160_src1"
+
+# MULTIPLE IMAGES IN BATCH
 
 # Input Images - Two images (224 x 224)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/two_images_224x224_src1"
@@ -21,8 +45,12 @@ cwd=$(pwd)
 # DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/three_images_224x224_src2"
 
 # Input Images - Eight images (224 x 224)
-DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/eight_images_224x224_src1"
-DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/eight_images_224x224_src2"
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/eight_images_224x224_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/eight_images_224x224_src2"
+
+# Input Images - Eight images (3840 x 2160)
+DEFAULT_SRC_FOLDER_1="/media/abishek/rppTestImages/3840x2160_0008_images_src1"
+DEFAULT_SRC_FOLDER_2="/media/abishek/rppTestImages/3840x2160_0008_images_src1"
 
 # Input Images - Two images (mixed size)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/two_images_mixed_src1"
@@ -128,41 +156,68 @@ rm -rvf ./*
 cmake ..
 make -j16
 
-printf "\n\n\n\n\n"
-echo "##########################################################################################"
-echo "Running all PKD3 Inputs..."
-echo "##########################################################################################"
+# printf "\n\n\n\n\n"
+# echo "##########################################################################################"
+# echo "Running all PKD3 Inputs..."
+# echo "##########################################################################################"
 
-printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
+# printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
 
-for ((case=$CASE_START;case<=$CASE_END;case++))
-do
-    group_name_generator "$case"
-    printf "\n\n$FUNCTIONALITY_GROUP\n\n" | tee -a "$DST_FOLDER/BatchPD_host_pkd3_host_raw_performance_log.txt"
+# for ((case=$CASE_START;case<=$CASE_END;case++))
+# do
+#     group_name_generator "$case"
+#     printf "\n\n$FUNCTIONALITY_GROUP\n\n" | tee -a "$DST_FOLDER/BatchPD_host_pkd3_host_raw_performance_log.txt"
 
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
-    do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
-        do
+#     printf "\n\n\n\n"
+#     echo "--------------------------------"
+#     printf "Running a New Functionality...\n"
+#     echo "--------------------------------"
+#     for ((bitDepth=0;bitDepth<7;bitDepth++))
+#     do
+#         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
+#         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+#         do
 
-            SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-            SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
+#             SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
+#             SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
 
-            printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/BatchPD_host_pkd3_host_raw_performance_log.txt"
+#             printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+#             ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/BatchPD_host_pkd3_host_raw_performance_log.txt"
 
-            printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+#             if [[ "$PROFILING_OPTION" -eq 0 ]]
+#             then
+#                 if [ "$case" -eq 49 ]
+#                 then
+#                     for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+#                     do
+#                         printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+#                         ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+#                     done
+#                 else
+#                     printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+#                     ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+#                 fi
+#             elif [[ "$PROFILING_OPTION" -eq 1 ]]
+#             then
+#                 if [ "$case" -eq 49 ]
+#                 then
+#                     for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+#                     do
+#                         mkdir "$DST_FOLDER/Tensor_PKD3/case_$case"
+#                         printf "\nrocprof --basenames on --timestamp on --stats -o $DST_FOLDER/Tensor_PKD3/case_$case/output_case$case" "_bitDepth$bitDepth" "_oft$outputFormatToggle" "_kSize$kernelSize.csv" "./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+#                         rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/Tensor_PKD3/case_$case""/output_case""$case""_bitDepth""$bitDepth""_oft""$outputFormatToggle""_kSize""$kernelSize"".csv" ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+#                     done
+#                 else
+#                     mkdir "$DST_FOLDER/Tensor_PKD3/case_$case"
+#                     printf "\nrocprof --basenames on --timestamp on --stats -o $DST_FOLDER/Tensor_PKD3/case_$case/output_case$case" "_bitDepth$bitDepth" "_oft$outputFormatToggle.csv" "./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+#                     rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/Tensor_PKD3/case_$case""/output_case""$case""_bitDepth""$bitDepth""_oft""$outputFormatToggle"".csv" ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pkd3_host_raw_performance_log.txt"
+#                 fi
+#             fi
 
-            echo "------------------------------------------------------------------------------------------"
-        done
-    done
-done
+#             echo "------------------------------------------------------------------------------------------"
+#         done
+#     done
+# done
 
 
 
@@ -184,7 +239,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
@@ -196,8 +251,35 @@ do
             printf "\n./BatchPD_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
             ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/BatchPD_host_pln1_host_raw_performance_log.txt"
 
-            printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
+            if [[ "$PROFILING_OPTION" -eq 0 ]]
+            then
+                if [ "$case" -eq 49 ]
+                then
+                    for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                    do
+                        printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                        ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
+                    done
+                else
+                    printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+                    ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
+                fi
+            elif [[ "$PROFILING_OPTION" -eq 1 ]]
+            then
+                if [ "$case" -eq 49 ]
+                then
+                    for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                    do
+                        mkdir "$DST_FOLDER/Tensor_PLN1/case_$case"
+                        printf "\nrocprof --basenames on --timestamp on --stats -o $DST_FOLDER/Tensor_PLN1/case_$case/output_case$case" "_bitDepth$bitDepth" "_oft$outputFormatToggle" "_kSize$kernelSize.csv" "./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                        rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/Tensor_PLN1/case_$case""/output_case""$case""_bitDepth""$bitDepth""_oft""$outputFormatToggle""_kSize""$kernelSize"".csv" ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
+                    done
+                else
+                    mkdir "$DST_FOLDER/Tensor_PLN1/case_$case"
+                    printf "\nrocprof --basenames on --timestamp on --stats -o $DST_FOLDER/Tensor_PLN1/case_$case/output_case$case" "_bitDepth$bitDepth" "_oft$outputFormatToggle.csv" "./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+                    rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/Tensor_PLN1/case_$case""/output_case""$case""_bitDepth""$bitDepth""_oft""$outputFormatToggle"".csv" ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln1_host_raw_performance_log.txt"
+                fi
+            fi
 
             echo "------------------------------------------------------------------------------------------"
         done
@@ -208,40 +290,67 @@ done
 
 
 
-printf "\n\n\n\n\n"
-echo "##########################################################################################"
-echo "Running all PLN3 Inputs..."
-echo "##########################################################################################"
+# printf "\n\n\n\n\n"
+# echo "##########################################################################################"
+# echo "Running all PLN3 Inputs..."
+# echo "##########################################################################################"
 
-printf "\n\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
+# printf "\n\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
 
-for ((case=$CASE_START;case<=$CASE_END;case++))
-do
-    group_name_generator "$case"
-    printf "\n\n$FUNCTIONALITY_GROUP\n\n" | tee -a "$DST_FOLDER/BatchPD_host_pln3_host_raw_performance_log.txt"
+# for ((case=$CASE_START;case<=$CASE_END;case++))
+# do
+#     group_name_generator "$case"
+#     printf "\n\n$FUNCTIONALITY_GROUP\n\n" | tee -a "$DST_FOLDER/BatchPD_host_pln3_host_raw_performance_log.txt"
 
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
-    do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
-        do
+#     printf "\n\n\n\n"
+#     echo "--------------------------------"
+#     printf "Running a New Functionality...\n"
+#     echo "--------------------------------"
+#     for ((bitDepth=0;bitDepth<7;bitDepth++))
+#     do
+#         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
+#         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+#         do
 
-            SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-            SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
+#             SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
+#             SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
 
-            printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/BatchPD_host_pln3_host_raw_performance_log.txt"
+#             printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+#             ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/BatchPD_host_pln3_host_raw_performance_log.txt"
 
-            printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+#             if [[ "$PROFILING_OPTION" -eq 0 ]]
+#             then
+#                 if [ "$case" -eq 49 ]
+#                 then
+#                     for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+#                     do
+#                         printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+#                         ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+#                     done
+#                 else
+#                     printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+#                     ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+#                 fi
+#             elif [[ "$PROFILING_OPTION" -eq 1 ]]
+#             then
+#                 if [ "$case" -eq 49 ]
+#                 then
+#                     for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+#                     do
+#                         mkdir "$DST_FOLDER/Tensor_PLN3/case_$case"
+#                         printf "\nrocprof --basenames on --timestamp on --stats -o $DST_FOLDER/Tensor_PLN3/case_$case/output_case$case" "_bitDepth$bitDepth" "_oft$outputFormatToggle" "_kSize$kernelSize.csv" "./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+#                         rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/Tensor_PLN3/case_$case""/output_case""$case""_bitDepth""$bitDepth""_oft""$outputFormatToggle""_kSize""$kernelSize"".csv" ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+#                     done
+#                 else
+#                     mkdir "$DST_FOLDER/Tensor_PLN3/case_$case"
+#                     printf "\nrocprof --basenames on --timestamp on --stats -o $DST_FOLDER/Tensor_PLN3/case_$case/output_case$case" "_bitDepth$bitDepth" "_oft$outputFormatToggle.csv" "./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $bitDepth $outputFormatToggle $case 0"
+#                     rocprof --basenames on --timestamp on --stats -o "$DST_FOLDER/Tensor_PLN3/case_$case""/output_case""$case""_bitDepth""$bitDepth""_oft""$outputFormatToggle"".csv" ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0" | tee -a "$DST_FOLDER/Tensor_host_pln3_host_raw_performance_log.txt"
+#                 fi
+#             fi
 
-            echo "------------------------------------------------------------------------------------------"
-        done
-    done
-done
+#             echo "------------------------------------------------------------------------------------------"
+#         done
+#     done
+# done
 
 # <<<<<<<<<<<<<< EXECUTION OF ALL FUNCTIONALITIES (NEED NOT CHANGE) >>>>>>>>>>>>>>

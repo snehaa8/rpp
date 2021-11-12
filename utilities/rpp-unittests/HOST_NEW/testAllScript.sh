@@ -20,9 +20,17 @@ cwd=$(pwd)
 DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/three_images_224x224_src1"
 DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/three_images_224x224_src2"
 
+# Input Images - Three images (256 x 256)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/three_images_256x256_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/three_images_256x256_src1"
+
 # Input Images - Two images (mixed size)
 # DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/two_images_mixed_src1"
 # DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/two_images_mixed_src2"
+
+# Input Images - Six images (mixed size)
+# DEFAULT_SRC_FOLDER_1="$cwd/../TEST_IMAGES/six_images_mixed_src1"
+# DEFAULT_SRC_FOLDER_2="$cwd/../TEST_IMAGES/six_images_mixed_src1"
 
 # Output Images
 mkdir "$cwd/../OUTPUT_IMAGES_HOST_NEW"
@@ -154,62 +162,71 @@ rm -rvf ./*
 cmake ..
 make -j16
 
-printf "\n\n\n\n\n"
-echo "##########################################################################################"
-echo "Running all PKD3 Inputs..."
-echo "##########################################################################################"
+# printf "\n\n\n\n\n"
+# echo "##########################################################################################"
+# echo "Running all PKD3 Inputs..."
+# echo "##########################################################################################"
 
-printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
+# printf "\n\nUsage: ./BatchPD_host_pkd3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
 
-for ((case=$CASE_START;case<=$CASE_END;case++))
-do
-    directory_name_generator "host" "pkd3" "$case"
-    mkdir $DST_FOLDER_TEMP
+# for ((case=$CASE_START;case<=$CASE_END;case++))
+# do
+#     directory_name_generator "host" "pkd3" "$case"
+#     mkdir $DST_FOLDER_TEMP
 
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
-    do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
-        do
+#     printf "\n\n\n\n"
+#     echo "--------------------------------"
+#     printf "Running a New Functionality...\n"
+#     echo "--------------------------------"
+#     for ((bitDepth=0;bitDepth<7;bitDepth++))
+#     do
+#         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
+#         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+#         do
 
-            if [[ "$case" -eq 74 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 75 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 77 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-            elif [[ "$case" -eq 78 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
-            else
-                SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-                SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
-            fi
+#             if [[ "$case" -eq 74 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
+#             elif [[ "$case" -eq 75 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
+#             elif [[ "$case" -eq 77 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
+#             elif [[ "$case" -eq 78 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
+#             else
+#                 SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
+#                 SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
+#             fi
 
-            printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+#             printf "\n./BatchPD_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+#             ./BatchPD_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
 
-            printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+#             if [ "$case" -eq 49 ]
+#             then
+#                 for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+#                 do
+#                     printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+#                     ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
+#                 done
+#             else
+#                 printf "\n./Tensor_host_pkd3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+#                 ./Tensor_host_pkd3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+#             fi
 
-            echo "------------------------------------------------------------------------------------------"
-        done
-    done
-done
+#             echo "------------------------------------------------------------------------------------------"
+#         done
+#     done
+# done
 
-mkdir "$DST_FOLDER/PKD3"
-mv "$DST_FOLDER/"!(PKD3) "$DST_FOLDER/PKD3"
+# mkdir "$DST_FOLDER/PKD3"
+# mv "$DST_FOLDER/"!(PKD3) "$DST_FOLDER/PKD3"
 
 
 
@@ -230,7 +247,7 @@ do
     echo "--------------------------------"
     printf "Running a New Functionality...\n"
     echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
+    for ((bitDepth=0;bitDepth<1;bitDepth++))
     do
         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
         for ((outputFormatToggle=0;outputFormatToggle<1;outputFormatToggle++))
@@ -260,8 +277,17 @@ do
             printf "\n./BatchPD_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
             ./BatchPD_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
 
-            printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            if [ "$case" -eq 49 ]
+            then
+                for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+                do
+                    printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+                    ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
+                done
+            else
+                printf "\n./Tensor_host_pln1 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+                ./Tensor_host_pln1 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+            fi
 
             echo "------------------------------------------------------------------------------------------"
         done
@@ -274,62 +300,71 @@ mv "$DST_FOLDER/"!(PKD3|PLN1) "$DST_FOLDER/PLN1"
 
 
 
-printf "\n\n\n\n\n"
-echo "##########################################################################################"
-echo "Running all PLN3 Inputs..."
-echo "##########################################################################################"
+# printf "\n\n\n\n\n"
+# echo "##########################################################################################"
+# echo "Running all PLN3 Inputs..."
+# echo "##########################################################################################"
 
-printf "\n\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
+# printf "\n\nUsage: ./BatchPD_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <dst folder> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:81> <verbosity = 0/1>"
 
-for ((case=$CASE_START;case<=$CASE_END;case++))
-do
-    directory_name_generator "host" "pln3" "$case"
-    mkdir $DST_FOLDER_TEMP
+# for ((case=$CASE_START;case<=$CASE_END;case++))
+# do
+#     directory_name_generator "host" "pln3" "$case"
+#     mkdir $DST_FOLDER_TEMP
 
-    printf "\n\n\n\n"
-    echo "--------------------------------"
-    printf "Running a New Functionality...\n"
-    echo "--------------------------------"
-    for ((bitDepth=0;bitDepth<7;bitDepth++))
-    do
-        printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
-        for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
-        do
+#     printf "\n\n\n\n"
+#     echo "--------------------------------"
+#     printf "Running a New Functionality...\n"
+#     echo "--------------------------------"
+#     for ((bitDepth=0;bitDepth<7;bitDepth++))
+#     do
+#         printf "\n\n\nRunning New Bit Depth...\n-------------------------\n\n"
+#         for ((outputFormatToggle=0;outputFormatToggle<2;outputFormatToggle++))
+#         do
 
-            if [[ "$case" -eq 74 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 75 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
-            elif [[ "$case" -eq 77 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
-            elif [[ "$case" -eq 78 ]]
-            then
-                SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
-                SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
-            else
-                SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
-                SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
-            fi
+#             if [[ "$case" -eq 74 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_HARRIS_CORNER_DETECTOR_IMAGES"
+#             elif [[ "$case" -eq 75 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_FAST_CORNER_DETECTOR_IMAGES"
+#             elif [[ "$case" -eq 77 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_HOUGH_LINES_IMAGES"
+#             elif [[ "$case" -eq 78 ]]
+#             then
+#                 SRC_FOLDER_1_TEMP="$DEFAULT_HOG_IMAGES"
+#                 SRC_FOLDER_2_TEMP="$DEFAULT_HOG_IMAGES"
+#             else
+#                 SRC_FOLDER_1_TEMP="$SRC_FOLDER_1"
+#                 SRC_FOLDER_2_TEMP="$SRC_FOLDER_2"
+#             fi
 
-            printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+#             printf "\n./BatchPD_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+#             ./BatchPD_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
 
-            printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
-            ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+#             if [ "$case" -eq 49 ]
+#             then
+#                 for ((kernelSize=3;kernelSize<=9;kernelSize+=2))
+#                 do
+#                     printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case $kernelSize 0"
+#                     ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "$kernelSize" "0"
+#                 done
+#             else
+#                 printf "\n./Tensor_host_pln3 $SRC_FOLDER_1_TEMP $SRC_FOLDER_2_TEMP $DST_FOLDER_TEMP $bitDepth $outputFormatToggle $case 0"
+#                 ./Tensor_host_pln3 "$SRC_FOLDER_1_TEMP" "$SRC_FOLDER_2_TEMP" "$DST_FOLDER_TEMP" "$bitDepth" "$outputFormatToggle" "$case" "0"
+#             fi
 
-            echo "------------------------------------------------------------------------------------------"
-        done
-    done
-done
+#             echo "------------------------------------------------------------------------------------------"
+#         done
+#     done
+# done
 
-mkdir "$DST_FOLDER/PLN3"
-mv "$DST_FOLDER/"!(PKD3|PLN1|PLN3) "$DST_FOLDER/PLN3"
+# mkdir "$DST_FOLDER/PLN3"
+# mv "$DST_FOLDER/"!(PKD3|PLN1|PLN3) "$DST_FOLDER/PLN3"
 
 
 

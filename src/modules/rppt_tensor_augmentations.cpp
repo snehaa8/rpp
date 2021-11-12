@@ -636,7 +636,7 @@ rppt_color_cast_gpu(RppPtr_t srcPtr,
 {
     if (srcDescPtr->c != 3)
     {
-        return RPP_INVALID_ARGUMENTS;
+        return RPP_ERROR_INVALID_ARGUMENTS;
     }
 
 #ifdef OCL_COMPILE
@@ -718,7 +718,7 @@ rppt_color_cast_host(RppPtr_t srcPtr,
 {
     if (srcDescPtr->c != 3)
     {
-        return RPP_INVALID_ARGUMENTS;
+        return RPP_ERROR_INVALID_ARGUMENTS;
     }
 
     RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
@@ -774,3 +774,159 @@ rppt_color_cast_host(RppPtr_t srcPtr,
 
     return RPP_SUCCESS;
 }
+
+/******************** box_filter ********************/
+
+// Case 1 - Traverse by rows - with multiple loads and stores
+RppStatus
+rppt_box_filter_host(RppPtr_t srcPtr,
+                     RpptDescPtr srcDescPtr,
+                     Rpp64u allocatedSrcBufferSizeInBytes,
+                     RppPtr_t dstPtr,
+                     RpptDescPtr dstDescPtr,
+                     Rpp32u kernelSize,
+                     RpptROIPtr roiTensorPtrSrc,
+                     RpptRoiType roiType,
+                     rppHandle_t rppHandle)
+{
+    if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
+        return RPP_ERROR_INVALID_ARGUMENTS;
+    if (srcDescPtr->offsetInBytes < (kernelSize / 2) * (srcDescPtr->w + 1) * 12)
+        return RPP_ERROR_LOW_OFFSET;
+
+    RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp8u))))
+            return RPP_ERROR_INSUFFICIENT_PADDING;
+        Rpp16u *scratchBuffer = (Rpp16u *)calloc(dstDescPtr->n * kernelSize * dstDescPtr->w, sizeof(Rpp16u));
+        box_filter_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                     srcDescPtr,
+                                     static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                     dstDescPtr,
+                                     kernelSize,
+                                     scratchBuffer,
+                                     roiTensorPtrSrc,
+                                     roiType,
+                                     layoutParams);
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
+    {
+        if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp16f))))
+            return RPP_ERROR_INSUFFICIENT_PADDING;
+        // box_filter_f16_f16_host_tensor((Rpp16f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+        //                                srcDescPtr,
+        //                                (Rpp16f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+        //                                dstDescPtr,
+        //                                kernelSize,
+        //                                roiTensorPtrSrc,
+        //                                roiType,
+        //                                layoutParams);
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
+    {
+        if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp32f))))
+            return RPP_ERROR_INSUFFICIENT_PADDING;
+        // box_filter_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+        //                                srcDescPtr,
+        //                                (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+        //                                dstDescPtr,
+        //                                kernelSize,
+        //                                roiTensorPtrSrc,
+        //                                roiType,
+        //                                layoutParams);
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+    {
+        if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp8s))))
+            return RPP_ERROR_INSUFFICIENT_PADDING;
+        // box_filter_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+        //                              srcDescPtr,
+        //                              static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+        //                              dstDescPtr,
+        //                              kernelSize,
+        //                              roiTensorPtrSrc,
+        //                              roiType,
+        //                              layoutParams);
+    }
+
+    return RPP_SUCCESS;
+}
+
+// Case 2 - Traverse by cols - without multiple loads and stores
+// RppStatus
+// rppt_box_filter_host(RppPtr_t srcPtr,
+//                      RpptDescPtr srcDescPtr,
+//                      Rpp64u allocatedSrcBufferSizeInBytes,
+//                      RppPtr_t dstPtr,
+//                      RpptDescPtr dstDescPtr,
+//                      Rpp32u kernelSize,
+//                      RpptROIPtr roiTensorPtrSrc,
+//                      RpptRoiType roiType,
+//                      rppHandle_t rppHandle)
+// {
+//     if ((kernelSize != 3) && (kernelSize != 5) && (kernelSize != 7) && (kernelSize != 9))
+//         return RPP_ERROR_INVALID_ARGUMENTS;
+//     if (srcDescPtr->offsetInBytes < (kernelSize / 2) * (srcDescPtr->w + 1) * 12)
+//         return RPP_ERROR_LOW_OFFSET;
+
+//     RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+
+//     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+//     {
+//         if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp8u))))
+//             return RPP_ERROR_INSUFFICIENT_PADDING;
+//         // Rpp16u *scratchBuffer = (Rpp16u *)calloc(dstDescPtr->n * kernelSize * dstDescPtr->w, sizeof(Rpp16u));
+//         box_filter_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+//                                      srcDescPtr,
+//                                      static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+//                                      dstDescPtr,
+//                                      kernelSize,
+//                                     //  scratchBuffer,
+//                                      roiTensorPtrSrc,
+//                                      roiType,
+//                                      layoutParams);
+//     }
+//     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
+//     {
+//         if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp16f))))
+//             return RPP_ERROR_INSUFFICIENT_PADDING;
+//         // box_filter_f16_f16_host_tensor((Rpp16f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+//         //                                srcDescPtr,
+//         //                                (Rpp16f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+//         //                                dstDescPtr,
+//         //                                kernelSize,
+//         //                                roiTensorPtrSrc,
+//         //                                roiType,
+//         //                                layoutParams);
+//     }
+//     else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
+//     {
+//         if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp32f))))
+//             return RPP_ERROR_INSUFFICIENT_PADDING;
+//         // box_filter_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+//         //                                srcDescPtr,
+//         //                                (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+//         //                                dstDescPtr,
+//         //                                kernelSize,
+//         //                                roiTensorPtrSrc,
+//         //                                roiType,
+//         //                                layoutParams);
+//     }
+//     else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+//     {
+//         if (allocatedSrcBufferSizeInBytes < ((srcDescPtr->offsetInBytes * 2) + (srcDescPtr->n * srcDescPtr->c * srcDescPtr->h * srcDescPtr->w * sizeof(Rpp8s))))
+//             return RPP_ERROR_INSUFFICIENT_PADDING;
+//         // box_filter_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+//         //                              srcDescPtr,
+//         //                              static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+//         //                              dstDescPtr,
+//         //                              kernelSize,
+//         //                              roiTensorPtrSrc,
+//         //                              roiType,
+//         //                              layoutParams);
+//     }
+
+//     return RPP_SUCCESS;
+// }
