@@ -73,6 +73,9 @@ int main(int argc, char **argv)
     case 2:
         strcpy(funcName, "blend");
         break;
+    case 21:
+        strcpy(funcName, "resize");
+        break;
     case 31:
         strcpy(funcName, "color_cast");
         break;
@@ -580,6 +583,53 @@ int main(int argc, char **argv)
         end = clock();
         end_omp = omp_get_wtime();
 
+        break;
+    }
+    case 21:
+    {
+        test_case_name = "resize";
+
+        for (i = 0; i < images; i++)
+        {
+            dstDescPtr[i].h = srcDescPtr[i].h / 3;
+            dstDescPtr[i].h = srcDescPtr[i].h / 1.5;
+            // xywhROI override sample
+            // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+            // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            // roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+            // roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+
+            // ltrbROI override sample
+            // roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+            // roiTensorPtrSrc[i].ltrbROI.lt.y = 50;
+            // roiTensorPtrSrc[i].ltrbROI.rb.x = 199;
+            // roiTensorPtrSrc[i].ltrbROI.rb.y = 149;
+        }
+
+        // Change RpptRoiType for ltrbROI override sample
+        // roiTypeSrc = RpptRoiType::LTRB;
+        // roiTypeDst = RpptRoiType::LTRB;
+
+        start_omp = omp_get_wtime();
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_resize_host(input, srcDescPtr, output, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 1)
+            rppt_resize_host(inputf16, srcDescPtr, outputf16, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 2)
+            rppt_resize_host(inputf32, srcDescPtr, outputf32, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            rppt_resize_host(inputi8, srcDescPtr, outputi8, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+        end = clock();
+        end_omp = omp_get_wtime();
         break;
     }
     case 31:
