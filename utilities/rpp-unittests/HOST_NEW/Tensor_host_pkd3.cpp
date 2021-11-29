@@ -232,8 +232,8 @@ int main(int argc, char **argv)
 
         roiTensorPtrDst[count].xywhROI.xy.x = 0;
         roiTensorPtrDst[count].xywhROI.xy.y = 0;
-        roiTensorPtrDst[count].xywhROI.roiWidth = image.cols;
-        roiTensorPtrDst[count].xywhROI.roiHeight = image.rows;
+        roiTensorPtrDst[count].xywhROI.roiWidth = image.cols / 2;
+        roiTensorPtrDst[count].xywhROI.roiHeight = image.rows / 2;
 
         maxHeight = RPPMAX2(maxHeight, roiTensorPtrSrc[count].xywhROI.roiHeight);
         maxWidth = RPPMAX2(maxWidth, roiTensorPtrSrc[count].xywhROI.roiWidth);
@@ -264,8 +264,8 @@ int main(int argc, char **argv)
 
     // Optionally set w stride as a multiple of 8 for src/dst
 
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    // srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
+    // dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
 
@@ -302,15 +302,15 @@ int main(int argc, char **argv)
 
     Rpp16f *inputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
     Rpp16f *inputf16_second = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
-    Rpp16f *outputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
+    Rpp16f *outputf16 = (Rpp16f *)calloc(oBufferSize, sizeof(Rpp16f));
 
     Rpp32f *inputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
     Rpp32f *inputf32_second = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
-    Rpp32f *outputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
+    Rpp32f *outputf32 = (Rpp32f *)calloc(oBufferSize, sizeof(Rpp32f));
 
     Rpp8s *inputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
     Rpp8s *inputi8_second = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
-    Rpp8s *outputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
+    Rpp8s *outputi8 = (Rpp8s *)calloc(oBufferSize, sizeof(Rpp8s));
 
     // Set 8u host buffers for src/dst
 
@@ -591,8 +591,8 @@ int main(int argc, char **argv)
 
         for (i = 0; i < images; i++)
         {
-            dstDescPtr[i].h = srcDescPtr[i].h / 3;
-            dstDescPtr[i].h = srcDescPtr[i].h / 1.5;
+            // dstDescPtr[i].h = srcDescPtr[i].h * 2;
+            // dstDescPtr[i].h = srcDescPtr[i].h;
             // xywhROI override sample
             // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
             // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
@@ -932,8 +932,8 @@ int main(int argc, char **argv)
 
     for (j = 0; j < dstDescPtr->n; j++)
     {
-        int height = roiTensorPtrSrc[j].xywhROI.roiHeight;
-        int width = roiTensorPtrSrc[j].xywhROI.roiWidth;
+        int height = roiTensorPtrDst[j].xywhROI.roiHeight;
+        int width = roiTensorPtrDst[j].xywhROI.roiWidth;
 
         int op_size = height * width * ip_channel;
         Rpp8u *temp_output = (Rpp8u *)calloc(op_size, sizeof(Rpp8u));
@@ -946,12 +946,12 @@ int main(int argc, char **argv)
         {
             memcpy(temp_output_row, (output_row), elementsInRow * sizeof (Rpp8u));
             temp_output_row += elementsInRow;
-            output_row += srcDescPtr->strides.hStride;
+            output_row += dstDescPtr->strides.hStride;
         }
         count += dstDescPtr->strides.nStride;
 
         char temp[1000];
-        strcpy(temp, dst);
+        strcpy(temp, "dst_ten_pkd_");
         strcat(temp, imageNames[j]);
 
         Mat mat_op_image;
