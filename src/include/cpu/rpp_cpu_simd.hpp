@@ -943,4 +943,14 @@ inline RppStatus rpp_resize_store12_f32pln3_to_u8pkd3(Rpp8u* dstPtr, __m128* p)
     return RPP_SUCCESS;
 }
 
+inline RppStatus rpp_resize_store12_f32pln3_to_u8pln3(Rpp8u* dstRPtr, Rpp8u* dstGPtr, Rpp8u* dstBPtr, __m128* p)
+{
+    __m128i px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[0]), pxZero), pxZero);
+    _mm_storeu_si128((__m128i *)(dstRPtr), px1);
+    px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[1]), pxZero), pxZero);
+    _mm_storeu_si128((__m128i *)(dstGPtr), px1);
+    px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[2]), pxZero), pxZero);
+    _mm_storeu_si128((__m128i *)(dstBPtr), px1);
+    return RPP_SUCCESS;
+}
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP
