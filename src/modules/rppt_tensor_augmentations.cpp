@@ -860,7 +860,8 @@ rppt_box_filter_gpu(RppPtr_t srcPtr,
 
 RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle)
 {
-    RppLayoutParams layoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+    RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
+    RppLayoutParams dstLayoutParams = get_layout_params(dstDescPtr->layout, dstDescPtr->c);
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
@@ -870,7 +871,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                 dstDescPtr,
                                 roiTensorPtrSrc,
                                 roiType,
-                                layoutParams);
+                                srcLayoutParams,
+                                dstLayoutParams);
     }
     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     {
@@ -880,7 +882,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                    dstDescPtr,
                                    roiTensorPtrSrc,
                                    roiType,
-                                   layoutParams);
+                                   srcLayoutParams);
     }
     else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
     {
@@ -890,7 +892,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                    dstDescPtr,
                                    roiTensorPtrSrc,
                                    roiType,
-                                   layoutParams);
+                                   srcLayoutParams);
     }
     else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
     {
@@ -900,6 +902,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                  dstDescPtr,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 layoutParams);
+                                 srcLayoutParams);
     }
+    return RPP_SUCCESS;
 }
