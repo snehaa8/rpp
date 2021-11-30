@@ -5333,7 +5333,7 @@ omp_set_dynamic(0);
         if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && ((dstDescPtr->layout == RpptLayout::NHWC) || (dstDescPtr->layout == RpptLayout::NCHW)))
         {
             Rpp32u alignedLength = (dstDescPtr->w / 4) * 4;
-            __m128 pWRatio = _mm_set1_ps(1.0 * wRatio);
+            __m128 pWRatio = _mm_set1_ps(wRatio);
             __m128 pOne = _mm_set1_ps(1.0);
             __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
             __m128 pChannel = _mm_set1_ps((float) srcDescPtr->c);
@@ -5635,17 +5635,16 @@ omp_set_dynamic(0);
         dstPtrChannel = dstPtrImage;
         Rpp32f srcLocationRow, srcLocationColumn, pixel;
         Rpp32s srcLocationRowFloor, srcLocationColumnFloor;
+        Rpp32u alignedLength = (dstDescPtr->w / 4) * 4;
 
-        // __m128 pWidthRatio = _mm_set1_ps(wRatio);
+        __m128 pWRatio = _mm_set1_ps(wRatio);
+        __m128 pOne = _mm_set1_ps(1.0);
+        __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
+        __m128 pChannel = _mm_set1_ps((float) srcDescPtr->c);
         // Resize with fused output-layout toggle (NHWC -> NCHW)
         if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && ((dstDescPtr->layout == RpptLayout::NHWC) || (dstDescPtr->layout == RpptLayout::NCHW)))
         {
-            Rpp32u alignedLength = 0; //(dstDescPtr->w / 4) * 4;
-            // __m128 pWRatio = _mm_set1_ps(1.0 * wRatio);
-            // __m128 pOne = _mm_set1_ps(1.0);
-            // __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
-            // __m128 pChannel = _mm_set1_ps((float) srcDescPtr->c);
-            // __m128 p0, p2, p4, p5, p6, p7, pColFloor;
+            __m128 p0, p2, p4, p5, p6, p7, pColFloor;
             Rpp32f *srcPtrRow, *dstPtrRow, *dstRPtrRow, *dstGPtrRow, *dstBPtrRow, *srcPtrTopRow, *srcPtrBottomRow;
             srcPtrRow = srcPtrChannel;
             dstPtrRow = dstPtrChannel;
@@ -5665,6 +5664,47 @@ omp_set_dynamic(0);
                 srcPtrTopRow = srcPtrRow + srcLocationRowFloor * srcBufferLength;
                 srcPtrBottomRow  = srcPtrTopRow + srcBufferLength;
                 int vectorLoopCount = 0;
+                Rpp32u srcLocCF[4] = {0};
+                __m128 p1 = _mm_set1_ps(weightedHeight);
+                __m128 p3 = _mm_set1_ps(1 - weightedHeight);
+                __m128i pxColFloor;
+                __m128 pRow[16];
+                __m128 pPixels[4];
+                for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
+                {
+                    p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
+                    p0 = _mm_mul_ps(p0, pWRatio);
+                    pColFloor = _mm_floor_ps(p0);
+                    p0 = _mm_sub_ps(p0, pColFloor);
+                    p2  = _mm_sub_ps(pOne, p0);
+
+                    p4 = _mm_mul_ps(p3, p2);
+                    p5 = _mm_mul_ps(p3, p0);
+                    p6 = _mm_mul_ps(p1, p2);
+                    p7 = _mm_mul_ps(p1, p0);
+
+                    pColFloor = _mm_min_ps(pColFloor, pWidthLimit);        /* Check if the source location exceeds the widthLimit */
+                    pColFloor = _mm_mul_ps(pColFloor, pChannel);
+                    pxColFloor = _mm_cvtps_epi32(pColFloor);
+                    _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
+
+                    rpp_simd_load(rpp_resize_load12_f32pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    pPixels[0] = _mm_fmadd_ps(pRow[9], p7, _mm_fmadd_ps(pRow[6], p6, _mm_fmadd_ps(pRow[3], p5, _mm_mul_ps(pRow[0], p4))));
+                    pPixels[1] = _mm_fmadd_ps(pRow[10], p7, _mm_fmadd_ps(pRow[7], p6, _mm_fmadd_ps(pRow[4], p5, _mm_mul_ps(pRow[1], p4))));
+                    pPixels[2] = _mm_fmadd_ps(pRow[11], p7, _mm_fmadd_ps(pRow[8], p6, _mm_fmadd_ps(pRow[5], p5, _mm_mul_ps(pRow[2], p4))));
+                    if(dstDescPtr->layout == RpptLayout::NCHW)
+                    {
+                        rpp_simd_store(rpp_resize_store12_f32pln3_to_f32pln3, dstRPtrRow, dstGPtrRow, dstBPtrRow, pPixels);
+                        dstRPtrRow += 4;
+                        dstGPtrRow += 4;
+                        dstBPtrRow += 4;
+                    }
+                    else
+                    {
+                        rpp_simd_store(rpp_resize_store12_f32pln3_to_f32pkd3, dstPtrRow, pPixels);
+                        dstPtrRow += 12;
+                    }
+                }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
                     for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
@@ -5714,11 +5754,7 @@ omp_set_dynamic(0);
         // Resize with fused output-layout toggle (NCHW -> NHWC)
         else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NCHW) && ((dstDescPtr->layout == RpptLayout::NHWC) || (dstDescPtr->layout == RpptLayout::NCHW)))
         {
-            Rpp32u alignedLength = 0; //(dstDescPtr->w / 4) * 4;
-            // __m128 pWRatio = _mm_set1_ps(1.0 * wRatio);
-            // __m128 pOne = _mm_set1_ps(1.0);
-            // __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
-            // __m128 p0, p2, p4, p5, p6, p7, pColFloor;
+            __m128 p0, p2, p4, p5, p6, p7, pColFloor;
             Rpp32f *srcPtrRowR, *srcPtrRowG, *srcPtrRowB, *dstPtrRow, *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
             srcPtrRowR = srcPtrChannel;
             srcPtrRowG = srcPtrRowR + srcDescPtr->strides.cStride;
@@ -5746,6 +5782,48 @@ omp_set_dynamic(0);
                 srcPtrTopRowB = srcPtrRowB + srcLocationRowFloor * srcBufferLength;
                 srcPtrBottomRowB  = srcPtrTopRowB + srcBufferLength;
                 int vectorLoopCount = 0;
+                Rpp32u srcLocCF[4] = {0};
+                __m128 p1 = _mm_set1_ps(weightedHeight);
+                __m128 p3 = _mm_set1_ps(1 - weightedHeight);
+                __m128i pxColFloor;
+                __m128 pRow[16];
+                __m128 pPixels[4];
+                for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
+                {
+                    p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
+                    p0 = _mm_mul_ps(p0, pWRatio);
+                    pColFloor = _mm_floor_ps(p0);
+                    p0 = _mm_sub_ps(p0, pColFloor);
+                    p2  = _mm_sub_ps(pOne, p0);
+
+                    p4 = _mm_mul_ps(p3, p2);
+                    p5 = _mm_mul_ps(p3, p0);
+                    p6 = _mm_mul_ps(p1, p2);
+                    p7 = _mm_mul_ps(p1, p0);
+
+                    pColFloor = _mm_min_ps(pColFloor, pWidthLimit);        /* Check if the source location exceeds the widthLimit */
+                    pxColFloor = _mm_cvtps_epi32(pColFloor);
+                    _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
+
+                    rpp_simd_load(rpp_resize_load12_f32pln3_to_f32pln3, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
+                    pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
+                    rpp_simd_load(rpp_resize_load12_f32pln3_to_f32pln3, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
+                    pPixels[1] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[2], p5, _mm_mul_ps(pRow[0], p4))));
+                    rpp_simd_load(rpp_resize_load12_f32pln3_to_f32pln3, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
+                    pPixels[2] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
+                    if(dstDescPtr->layout == RpptLayout::NCHW)
+                    {
+                        rpp_simd_store(rpp_resize_store12_f32pln3_to_f32pln3, dstPtrRowR, dstPtrRowG, dstPtrRowB, pPixels);
+                        dstPtrRowR += 4;
+                        dstPtrRowG += 4;
+                        dstPtrRowB += 4;
+                    }
+                    else
+                    {
+                        rpp_simd_store(rpp_resize_store12_f32pln3_to_f32pkd3, dstPtrRow, pPixels);
+                        dstPtrRow += 12;
+                    }
+                }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
                     for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
