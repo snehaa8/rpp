@@ -5334,7 +5334,6 @@ omp_set_dynamic(0);
         __m128 pChannel = _mm_set1_ps((float) srcDescPtr->c);
         __m128 p0, p2, p4, p5, p6, p7, pColFloor;
         __m128i pxColFloor;
-        __m128 pRow[16], pPixels[4];
         Rpp32u srcLocCF[4] = {0};
 
         // Resize with fused output-layout toggle (NHWC -> NCHW) or (NHWC -> NHWC)
@@ -5361,6 +5360,7 @@ omp_set_dynamic(0);
                 int vectorLoopCount = 0;
                 __m128 p1 = _mm_set1_ps(weightedHeight);
                 __m128 p3 = _mm_set1_ps(1 - weightedHeight);
+                __m128 pRow[12], pPixels[3];
 
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
@@ -5380,20 +5380,20 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_resize_load4_u8pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels[0] = _mm_fmadd_ps(pRow[9], p7, _mm_fmadd_ps(pRow[6], p6, _mm_fmadd_ps(pRow[3], p5, _mm_mul_ps(pRow[0], p4))));
                     pPixels[1] = _mm_fmadd_ps(pRow[10], p7, _mm_fmadd_ps(pRow[7], p6, _mm_fmadd_ps(pRow[4], p5, _mm_mul_ps(pRow[1], p4))));
                     pPixels[2] = _mm_fmadd_ps(pRow[11], p7, _mm_fmadd_ps(pRow[8], p6, _mm_fmadd_ps(pRow[5], p5, _mm_mul_ps(pRow[2], p4))));
                     if(dstDescPtr->layout == RpptLayout::NCHW)
                     {
-                        rpp_simd_store(rpp_resize_store4_f32pln3_to_u8pln3, dstPtrRowR, dstPtrRowG, dstPtrRowB, pPixels);
+                        rpp_simd_store(rpp_store4_f32pln3_to_u8pln3, dstPtrRowR, dstPtrRowG, dstPtrRowB, pPixels);
                         dstPtrRowR += 4;
                         dstPtrRowG += 4;
                         dstPtrRowB += 4;
                     }
                     else
                     {
-                        rpp_simd_store(rpp_resize_store4_f32pln3_to_u8pkd3, dstPtrRow, pPixels);
+                        rpp_simd_store(rpp_store4_f32pln3_to_u8pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
                 }
@@ -5488,6 +5488,7 @@ omp_set_dynamic(0);
                 int vectorLoopCount = 0;
                 __m128 p1 = _mm_set1_ps(weightedHeight);
                 __m128 p3 = _mm_set1_ps(1 - weightedHeight);
+                __m128 pRow[4], pPixels[3];
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
                     p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
@@ -5505,22 +5506,22 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_resize_load4_u8pln_to_f32pln, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
                     pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_resize_load4_u8pln_to_f32pln, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
                     pPixels[1] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[2], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_resize_load4_u8pln_to_f32pln, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
                     pPixels[2] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     if(dstDescPtr->layout == RpptLayout::NCHW)
                     {
-                        rpp_simd_store(rpp_resize_store4_f32pln3_to_u8pln3, dstPtrRowR, dstPtrRowG, dstPtrRowB, pPixels);
+                        rpp_simd_store(rpp_store4_f32pln3_to_u8pln3, dstPtrRowR, dstPtrRowG, dstPtrRowB, pPixels);
                         dstPtrRowR += 4;
                         dstPtrRowG += 4;
                         dstPtrRowB += 4;
                     }
                     else
                     {
-                        rpp_simd_store(rpp_resize_store4_f32pln3_to_u8pkd3, dstPtrRow, pPixels);
+                        rpp_simd_store(rpp_store4_f32pln3_to_u8pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
                 }
@@ -5597,6 +5598,7 @@ omp_set_dynamic(0);
                 int vectorLoopCount = 0;
                 __m128 p1 = _mm_set1_ps(weightedHeight);
                 __m128 p3 = _mm_set1_ps(1 - weightedHeight);
+                __m128 pRow[4], pPixels;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
                     p0 = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
@@ -5614,9 +5616,9 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_resize_load4_u8pln_to_f32pln, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
-                    pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_store(rpp_resize_store4_f32pln_to_u8pln, dstPtrRow, pPixels);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    pPixels = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
+                    rpp_simd_store(rpp_store4_f32pln_to_u8pln, dstPtrRow, pPixels);
                     dstPtrRow += 4;
                 }
                 for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
@@ -5634,6 +5636,7 @@ omp_set_dynamic(0);
             }
         }
     }
+
     return RPP_SUCCESS;
 }
 
