@@ -989,7 +989,7 @@ inline RppStatus rpp_store4_f32pln_to_u8pln(Rpp8u* dstPtr, __m128 p)
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_load12_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128 pTemp[8];
     pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0]));                /* Load the 1st RGBR pixel from TopRow*/
@@ -1042,7 +1042,7 @@ inline RppStatus rpp_resize_load12_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp3
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_load12_f32pln3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f32pln_to_f32pln(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128 pTemp[8];
     pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0]));
@@ -1064,7 +1064,7 @@ inline RppStatus rpp_resize_load12_f32pln3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp3
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_store12_f32pln3_to_f32pln3(Rpp32f* dstRPtr, Rpp32f* dstGPtr, Rpp32f* dstBPtr, __m128* p)
+inline RppStatus rpp_store4_f32pln3_to_f32pln3(Rpp32f* dstRPtr, Rpp32f* dstGPtr, Rpp32f* dstBPtr, __m128* p)
 {
     _mm_storeu_ps((float *)dstRPtr, p[0]);
     _mm_storeu_ps((float *)dstGPtr, p[1]);
@@ -1072,7 +1072,7 @@ inline RppStatus rpp_resize_store12_f32pln3_to_f32pln3(Rpp32f* dstRPtr, Rpp32f* 
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_store12_f32pln3_to_f32pkd3(Rpp32f* dstPtr, __m128* p)
+inline RppStatus rpp_store4_f32pln3_to_f32pkd3(Rpp32f* dstPtr, __m128* p)
 {
     __m128 pTemp[7];
     pTemp[0] = _mm_unpacklo_ps(p[0], p[1]);
