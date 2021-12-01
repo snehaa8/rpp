@@ -932,7 +932,7 @@ inline RppStatus rpp_resize_load4_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u* 
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_load4_u8pln3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_resize_load4_u8pln_to_f32pln(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128i pxTemp[4];
     pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
@@ -976,6 +976,13 @@ inline RppStatus rpp_resize_store4_f32pln3_to_u8pln3(Rpp8u* dstRPtr, Rpp8u* dstG
     _mm_storeu_si128((__m128i *)(dstGPtr), px1);
     px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[2]), pxZero), pxZero);
     _mm_storeu_si128((__m128i *)(dstBPtr), px1);
+    return RPP_SUCCESS;
+}
+
+inline RppStatus rpp_resize_store4_f32pln_to_u8pln(Rpp8u* dstPtr, __m128* p)
+{
+    __m128i px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[0]), pxZero), pxZero);
+    _mm_storeu_si128((__m128i *)(dstPtr), px1);
     return RPP_SUCCESS;
 }
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP
