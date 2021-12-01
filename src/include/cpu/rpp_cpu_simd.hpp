@@ -49,16 +49,12 @@ typedef union
 #define SIMD_GET_PS(name) (*(const __m128  *)_xmm_const_##name)
 
 const __m128i xmm_converti8  = _mm_set1_epi8((char)128);
-const __m128i xmm_rgb_mask1_bilinear = _mm_setr_epi8(0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80);
-const __m128i xmm_rgb_mask2_bilinear = _mm_setr_epi8(3, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80);
-
 const __m128i maskp1 = _mm_setr_epi8(0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80);
 const __m128i maskp2 = _mm_setr_epi8(4, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80);
 const __m128i maskp3 = _mm_setr_epi8(8, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80);
 const __m128i maskp4 = _mm_setr_epi8(12, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80, 14, 0x80, 0x80, 0x80, 15, 0x80, 0x80, 0x80);
 const __m128i pxZero = _mm_setzero_si128();
-// const __m128i xmm_store_pixels_bilinear = _mm_setr_epi8(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80); // older one
-const __m128i xmm_store_pixels_bilinear = _mm_setr_epi8(0, 1, 8, 2, 3, 9, 4, 5, 10, 6, 7, 11, 0x80, 0x80, 0x80, 0x80);
+const __m128i xmm_store4_pkd_pixels = _mm_setr_epi8(0, 1, 8, 2, 3, 9, 4, 5, 10, 6, 7, 11, 0x80, 0x80, 0x80, 0x80);
 
 inline RppStatus rpp_load48_u8pkd3_to_f32pln3(Rpp8u *srcPtr, __m128 *p)
 {
@@ -897,17 +893,19 @@ static inline void fast_matmul4x4_sse(float *A, float *B, float *C)
     }
 }
 
-inline RppStatus rpp_resize_load12_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+/* Helper functions for Bilinear resize */
+
+inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128i px[4];
-    px[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[1] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[1]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[2] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[2]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[3] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[3]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[0] = _mm_unpacklo_epi8(px[0], px[2]); // R1 R3 G1 G3 B1 B3 R2 R3 G2 G3 B B
-    px[1] = _mm_unpacklo_epi8(px[1], px[3]); // r r g g b b r r g g b b r r g g
-    px[2] = _mm_unpacklo_epi8(px[0], px[1]); // r r r r g g g g b b b b r r r r
-    px[3] = _mm_unpackhi_epi8(px[0], px[1]); // g g g g b b b b r r r r g g g g
+    px[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
+    px[1] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[1]));
+    px[2] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[2]));
+    px[3] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[3]));
+    px[0] = _mm_unpacklo_epi8(px[0], px[2]);
+    px[1] = _mm_unpacklo_epi8(px[1], px[3]);
+    px[2] = _mm_unpacklo_epi8(px[0], px[1]);
+    px[3] = _mm_unpackhi_epi8(px[0], px[1]);
     p[0] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
     p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
     p[2] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
@@ -915,33 +913,34 @@ inline RppStatus rpp_resize_load12_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u*
     p[4] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
     p[5] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
 
-    px[0] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[0]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[1] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[1]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[2] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[2]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[3] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[3]));                /* Load the 1st RGBR pixel from TopRow*/
-    px[0] = _mm_unpacklo_epi8(px[0], px[2]); // R1 R3 G1 G3 B1 B3 R2 R3 G2 G3 B B
-    px[1] = _mm_unpacklo_epi8(px[1], px[3]); // r r g g b b r r g g b b r r g g
-    px[2] = _mm_unpacklo_epi8(px[0], px[1]); // r r r r g g g g b b b b r r r r
-    px[3] = _mm_unpackhi_epi8(px[0], px[1]); // g g g g b b b b r r r r g g g g
+    px[0] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[0]));
+    px[1] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[1]));
+    px[2] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[2]));
+    px[3] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[3]));
+    px[0] = _mm_unpacklo_epi8(px[0], px[2]);
+    px[1] = _mm_unpacklo_epi8(px[1], px[3]);
+    px[2] = _mm_unpacklo_epi8(px[0], px[1]);
+    px[3] = _mm_unpackhi_epi8(px[0], px[1]);
     p[6] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
     p[7] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
     p[8] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
     p[9] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
     p[10] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
     p[11] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
+
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_load12_u8pln3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_u8pln_to_f32pln(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128i pxTemp[4];
     pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
     pxTemp[1] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[1]));
     pxTemp[2] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[2]));
     pxTemp[3] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[3]));
-    pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[2]); // r r r r x x x x x x x x x x x x
-    pxTemp[1] = _mm_unpacklo_epi8(pxTemp[1], pxTemp[3]); // r r r r
-    pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]); // r r r r | r r r r
+    pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[2]);
+    pxTemp[1] = _mm_unpacklo_epi8(pxTemp[1], pxTemp[3]);
+    pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]);
     p[0] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp1)); //
     p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp2));
 
@@ -954,21 +953,23 @@ inline RppStatus rpp_resize_load12_u8pln3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u*
     pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]);
     p[2] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp1));
     p[3] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp2));
+
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_store12_f32pln3_to_u8pkd3(Rpp8u* dstPtr, __m128* p)
+inline RppStatus rpp_store4_f32pln3_to_u8pkd3(Rpp8u* dstPtr, __m128* p)
 {
-    __m128 p1 = _mm_unpacklo_ps(p[0], p[1]); // r g r g
-    __m128 p2 = _mm_unpackhi_ps(p[0], p[1]); // r g r g
+    __m128 p1 = _mm_unpacklo_ps(p[0], p[1]);
+    __m128 p2 = _mm_unpackhi_ps(p[0], p[1]);
     __m128i px1 = _mm_packus_epi32(_mm_cvtps_epi32(p1), _mm_cvtps_epi32(p2));
     __m128i px2 = _mm_packus_epi32(_mm_cvtps_epi32(p[2]), pxZero);
-    px1 = _mm_shuffle_epi8(_mm_packus_epi16(px1, px2), xmm_store_pixels_bilinear);
+    px1 = _mm_shuffle_epi8(_mm_packus_epi16(px1, px2), xmm_store4_pkd_pixels);
     _mm_storeu_si128((__m128i *)(dstPtr), px1);
+
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_resize_store12_f32pln3_to_u8pln3(Rpp8u* dstRPtr, Rpp8u* dstGPtr, Rpp8u* dstBPtr, __m128* p)
+inline RppStatus rpp_store4_f32pln3_to_u8pln3(Rpp8u* dstRPtr, Rpp8u* dstGPtr, Rpp8u* dstBPtr, __m128* p)
 {
     __m128i px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[0]), pxZero), pxZero);
     _mm_storeu_si128((__m128i *)(dstRPtr), px1);
@@ -976,6 +977,15 @@ inline RppStatus rpp_resize_store12_f32pln3_to_u8pln3(Rpp8u* dstRPtr, Rpp8u* dst
     _mm_storeu_si128((__m128i *)(dstGPtr), px1);
     px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p[2]), pxZero), pxZero);
     _mm_storeu_si128((__m128i *)(dstBPtr), px1);
+
+    return RPP_SUCCESS;
+}
+
+inline RppStatus rpp_store4_f32pln_to_u8pln(Rpp8u* dstPtr, __m128 p)
+{
+    __m128i px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p), pxZero), pxZero);
+    _mm_storeu_si128((__m128i *)(dstPtr), px1);
+
     return RPP_SUCCESS;
 }
 
