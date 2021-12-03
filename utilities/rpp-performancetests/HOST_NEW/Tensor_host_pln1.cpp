@@ -265,8 +265,8 @@ int main(int argc, char **argv)
 
     // Optionally set w stride as a multiple of 8 for src/dst
 
-    srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
-    dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
+    // srcDescPtr->w = ((srcDescPtr->w / 8) * 8) + 8;
+    // dstDescPtr->w = ((dstDescPtr->w / 8) * 8) + 8;
 
     // Set n/c/h/w strides for src/dst
 
@@ -594,54 +594,54 @@ int main(int argc, char **argv)
 
             break;
         }
-   case 21:
-    {
-        test_case_name = "resize";
-
-        for (i = 0; i < images; i++)
+        case 21:
         {
-            // xywhROI override sample
-            // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
-            // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
-            // roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
-            // roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            test_case_name = "resize";
 
-            // ltrbROI override sample
-            // roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
-            // roiTensorPtrSrc[i].ltrbROI.lt.y = 50;
-            // roiTensorPtrSrc[i].ltrbROI.rb.x = 199;
-            // roiTensorPtrSrc[i].ltrbROI.rb.y = 149;
+            for (i = 0; i < images; i++)
+            {
+                // xywhROI override sample
+                // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+                // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+                // roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+                // roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
 
-            dstImgSizes[i].width = roiTensorPtrDst[i].xywhROI.roiWidth = roiTensorPtrSrc[i].xywhROI.roiWidth / 2;
-            dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight = roiTensorPtrSrc[i].xywhROI.roiHeight / 2;
+                // ltrbROI override sample
+                // roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+                // roiTensorPtrSrc[i].ltrbROI.lt.y = 50;
+                // roiTensorPtrSrc[i].ltrbROI.rb.x = 199;
+                // roiTensorPtrSrc[i].ltrbROI.rb.y = 149;
+
+                dstImgSizes[i].width = roiTensorPtrDst[i].xywhROI.roiWidth = roiTensorPtrSrc[i].xywhROI.roiWidth / 2;
+                dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight = roiTensorPtrSrc[i].xywhROI.roiHeight / 2;
+            }
+
+            // Change RpptRoiType for ltrbROI override sample
+            // roiTypeSrc = RpptRoiType::LTRB;
+            // roiTypeDst = RpptRoiType::LTRB;
+
+            start_omp = omp_get_wtime();
+            start = clock();
+            if (ip_bitDepth == 0)
+                rppt_resize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 1)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 2)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 3)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 4)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 5)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 6)
+                missingFuncFlag = 1;
+            else
+                missingFuncFlag = 1;
+            end = clock();
+            end_omp = omp_get_wtime();
+            break;
         }
-
-        // Change RpptRoiType for ltrbROI override sample
-        // roiTypeSrc = RpptRoiType::LTRB;
-        // roiTypeDst = RpptRoiType::LTRB;
-
-        start_omp = omp_get_wtime();
-        start = clock();
-        if (ip_bitDepth == 0)
-            rppt_resize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
-        else if (ip_bitDepth == 1)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 2)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 3)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 4)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 5)
-            missingFuncFlag = 1;
-        else if (ip_bitDepth == 6)
-            missingFuncFlag = 1;
-        else
-            missingFuncFlag = 1;
-        end = clock();
-        end_omp = omp_get_wtime();
-        break;
-    }
         default:
             missingFuncFlag = 1;
             break;
