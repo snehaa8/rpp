@@ -988,4 +988,104 @@ inline RppStatus rpp_store4_f32pln_to_u8pln(Rpp8u* dstPtr, __m128 p)
 
     return RPP_SUCCESS;
 }
+
+inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+{
+    __m128 pTemp[8];
+    pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[1] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[1]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[2] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[2]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[3] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[3]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]); // R R G G
+    pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]); // R R G G
+    pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]); // B B R R
+    pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]); // B B R R
+    p[0] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[1] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[2] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+
+    pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[1] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[1] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[2] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[2] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[3] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[3] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]); // R R G G
+    pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]); // R R G G
+    pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]); // B B R R
+    pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]); // B B R R
+    p[3] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[5] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+
+    pTemp[0] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[0]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[1] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[1]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[2] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[2]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[3] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[3]));                /* Load the 1st RGBR pixel from TopRow*/
+    pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]); // R R G G
+    pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]); // R R G G
+    pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]); // B B R R
+    pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]); // B B R R
+    p[6] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+
+    pTemp[0] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[0] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[1] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[1] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[2] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[2] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[3] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[3] + 3));     /* Load the 2nd RGBR pixel from TopRow*/
+    pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]); // R R G G
+    pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]); // R R G G
+    pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]); // B B R R
+    pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]); // B B R R
+    p[9] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[10] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[11] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    return RPP_SUCCESS;
+}
+
+inline RppStatus rpp_bilinear_load4_f32pln_to_f32pln(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+{
+    __m128 pTemp[8];
+    pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0]));
+    pTemp[1] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[1]));
+    pTemp[2] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[2]));
+    pTemp[3] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[3]));
+    pTemp[0] = _mm_unpacklo_ps(pTemp[0], pTemp[2]); //T1 T2 x x T1 T2 x x => T1 T1 T2 T2
+    pTemp[1] = _mm_unpacklo_ps(pTemp[1], pTemp[3]); //T1 T2 x x T1 T2 x x => T1 T1 T2 T2
+    p[0] = _mm_unpacklo_ps(pTemp[0], pTemp[1]); // TopRow // T1 T1 T1 T1
+    p[1] = _mm_unpackhi_ps(pTemp[0], pTemp[1]); // TopRow2 // T2 T2 T2 T2
+    pTemp[0] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[0]));
+    pTemp[1] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[1]));
+    pTemp[2] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[2]));
+    pTemp[3] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[3]));
+    pTemp[0] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
+    pTemp[1] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
+    p[2] = _mm_unpacklo_ps(pTemp[0], pTemp[1]); // TopRow // T1 T1 T1 T1
+    p[3] = _mm_unpackhi_ps(pTemp[0], pTemp[1]); // TopRow2 // T2 T2 T2 T2
+    return RPP_SUCCESS;
+}
+
+inline RppStatus rpp_store4_f32pln3_to_f32pln3(Rpp32f* dstRPtr, Rpp32f* dstGPtr, Rpp32f* dstBPtr, __m128* p)
+{
+    _mm_storeu_ps((float *)dstRPtr, p[0]);
+    _mm_storeu_ps((float *)dstGPtr, p[1]);
+    _mm_storeu_ps((float *)dstBPtr, p[2]);
+    return RPP_SUCCESS;
+}
+
+inline RppStatus rpp_store4_f32pln3_to_f32pkd3(Rpp32f* dstPtr, __m128* p)
+{
+    __m128 pTemp[7];
+    pTemp[0] = _mm_unpacklo_ps(p[0], p[1]);
+    pTemp[1] = _mm_unpackhi_ps(p[0], p[1]);
+    pTemp[2] = _mm_shuffle_ps(pTemp[0], p[2], _MM_SHUFFLE(0, 0, 1, 0));
+    pTemp[3] = _mm_shuffle_ps(pTemp[0], p[2], _MM_SHUFFLE(0, 1, 3, 2));
+    pTemp[4] = _mm_shuffle_ps(pTemp[1], p[2], _MM_SHUFFLE(0, 2, 1, 0));
+    pTemp[5] = _mm_shuffle_ps(pTemp[1], p[2], _MM_SHUFFLE(0, 3, 3, 2));
+    _mm_storeu_ps((float *)dstPtr, pTemp[2]);
+    _mm_storeu_ps((float *)dstPtr+3, pTemp[3]);
+    _mm_storeu_ps((float *)dstPtr+6, pTemp[4]);
+    _mm_storeu_ps((float *)dstPtr+9, pTemp[5]);
+    return RPP_SUCCESS;
+}
+
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP

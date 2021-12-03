@@ -882,7 +882,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                    dstDescPtr,
                                    roiTensorPtrSrc,
                                    roiType,
-                                   srcLayoutParams);
+                                   srcLayoutParams,
+                                   dstLayoutParams);
     }
     else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
     {
@@ -892,7 +893,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                    dstDescPtr,
                                    roiTensorPtrSrc,
                                    roiType,
-                                   srcLayoutParams);
+                                   srcLayoutParams,
+                                   dstLayoutParams);
     }
     else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
     {
@@ -902,7 +904,8 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                  dstDescPtr,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 srcLayoutParams);
+                                 srcLayoutParams,
+                                 dstLayoutParams);
     }
     return RPP_SUCCESS;
 }
