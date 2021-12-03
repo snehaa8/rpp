@@ -5269,6 +5269,7 @@ RppStatus resize_u8_u8_host_tensor(Rpp8u *srcPtr,
                                    RpptDescPtr srcDescPtr,
                                    Rpp8u *dstPtr,
                                    RpptDescPtr dstDescPtr,
+                                   RpptImagePatchPtr dstImgSize,
                                    RpptROIPtr roiTensorPtrSrc,
                                    RpptRoiType roiType,
                                    RppLayoutParams srcLayoutParams,
@@ -5313,12 +5314,12 @@ omp_set_dynamic(0);
             roiPtr = &roi;
             compute_roi_boundary_check_host(roiPtrImage, roiPtr, roiPtrDefault);
         }
-        Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth - 1)) / ((Rpp32f)(dstDescPtr->w - 1));
-        Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight - 1)) / ((Rpp32f)(dstDescPtr->h - 1));
+        Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth - 1)) / ((Rpp32f)(dstImgSize[batchCount].width - 1));
+        Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight - 1)) / ((Rpp32f)(dstImgSize[batchCount].height - 1));
         Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 2;
         Rpp32u widthLimit = roiPtr->xywhROI.roiWidth - 2;
         Rpp32u dstBufferLength = dstDescPtr->w * dstLayoutParams.bufferMultiplier;
-        Rpp32u srcBufferLength = roiPtr->xywhROI.roiWidth * srcLayoutParams.bufferMultiplier;
+        Rpp32u srcBufferLength = srcDescPtr->w * srcLayoutParams.bufferMultiplier;
 
         Rpp8u *srcPtrChannel, *dstPtrChannel, *srcPtrImage, *dstPtrImage;
         srcPtrImage = srcPtr + batchCount * srcDescPtr->strides.nStride;
@@ -5327,7 +5328,7 @@ omp_set_dynamic(0);
         dstPtrChannel = dstPtrImage;
         Rpp32f srcLocationRow, srcLocationColumn, pixel;
         Rpp32s srcLocationRowFloor, srcLocationColumnFloor;
-        Rpp32u alignedLength = (dstDescPtr->w / 4) * 4;
+        Rpp32u alignedLength = (dstImgSize[batchCount].width / 4) * 4;
         __m128 pWRatio = _mm_set1_ps(wRatio);
         __m128 pOne = _mm_set1_ps(1.0);
         __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
@@ -5348,7 +5349,7 @@ omp_set_dynamic(0);
                 dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
                 dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
             }
-            for(int i = 0; i < dstDescPtr->h; i++)
+            for(int i = 0; i < dstImgSize[batchCount].height; i++)
             {
                 Rpp32f srcLocationRow = ((Rpp32f) i) * hRatio;
                 srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
@@ -5399,7 +5400,7 @@ omp_set_dynamic(0);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
-                    for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
+                    for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                     {
                         srcLocationColumn = ((Rpp32f) vectorLoopCount) * wRatio;
                         srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
@@ -5424,10 +5425,13 @@ omp_set_dynamic(0);
                                         + ((*(srcPtrBottomRow + srcLocColFloorChanneled + 2)) * m3)
                                         + ((*(srcPtrBottomRow + srcLocColFloorChanneled + 5)) * m4));
                     }
+                    dstPtrRowR = dstPtrChannel + (i + 1) * dstBufferLength;
+                    dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
+                    dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
                 }
                 else
                 {
-                    for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
+                    for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                     {
                         srcLocationColumn = ((Rpp32f) vectorLoopCount) * wRatio;
                         srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
@@ -5453,6 +5457,7 @@ omp_set_dynamic(0);
                                         + ((*(srcPtrBottomRow + srcLocColFloorChanneled + 5)) * m4));
                     }
                 }
+                dstPtrRow = dstPtrChannel + (i + 1) * dstBufferLength;
             }
         }
 
@@ -5471,7 +5476,7 @@ omp_set_dynamic(0);
                 dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
             }
             Rpp8u *srcPtrTopRowR, *srcPtrBottomRowR, *srcPtrTopRowG, *srcPtrBottomRowG, *srcPtrTopRowB, *srcPtrBottomRowB;
-            for(int i = 0; i < dstDescPtr->h; i++)
+            for(int i = 0; i < dstImgSize[batchCount].height; i++)
             {
                 Rpp32f srcLocationRow = ((Rpp32f) i) * hRatio;
                 srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
@@ -5527,7 +5532,7 @@ omp_set_dynamic(0);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
-                    for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
+                    for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                     {
                         srcLocationColumn = ((Rpp32f) vectorLoopCount) * wRatio;
                         srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
@@ -5551,10 +5556,13 @@ omp_set_dynamic(0);
                                         + ((*(srcPtrBottomRowB + srcLocationColumnFloor)) * m3)
                                         + ((*(srcPtrBottomRowB + srcLocationColumnFloor + 1)) * m4));
                     }
+                    dstPtrRowR = dstPtrChannel + (i + 1) * dstBufferLength;
+                    dstPtrRowG = dstPtrRowR + dstDescPtr->strides.cStride;
+                    dstPtrRowB = dstPtrRowG + dstDescPtr->strides.cStride;
                 }
                 else
                 {
-                    for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
+                    for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                     {
                         srcLocationColumn = ((Rpp32f) vectorLoopCount) * wRatio;
                         srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
@@ -5578,6 +5586,7 @@ omp_set_dynamic(0);
                                         + ((*(srcPtrBottomRowB + srcLocationColumnFloor)) * m3)
                                         + ((*(srcPtrBottomRowB + srcLocationColumnFloor + 1)) * m4));
                     }
+                    dstPtrRow = dstPtrChannel + (i + 1) * dstBufferLength;
                 }
             }
         }
@@ -5586,7 +5595,7 @@ omp_set_dynamic(0);
             Rpp8u *srcPtrRow, *dstPtrRow, *srcPtrTopRow, *srcPtrBottomRow;
             srcPtrRow = srcPtrChannel;
             dstPtrRow = dstPtrChannel;
-            for(int i = 0; i < dstDescPtr->h; i++)
+            for(int i = 0; i < dstImgSize[batchCount].height; i++)
             {
                 Rpp32f srcLocationRow = ((Rpp32f) i) * hRatio;
                 srcLocationRowFloor = (Rpp32s) RPPFLOOR(srcLocationRow);
@@ -5621,7 +5630,7 @@ omp_set_dynamic(0);
                     rpp_simd_store(rpp_store4_f32pln_to_u8pln, dstPtrRow, pPixels);
                     dstPtrRow += 4;
                 }
-                for (; vectorLoopCount < dstDescPtr->w; vectorLoopCount++)
+                for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
                     srcLocationColumn = ((Rpp32f) vectorLoopCount) * wRatio;
                     srcLocationColumnFloor = (Rpp32s) RPPFLOOR(srcLocationColumn);
@@ -5633,9 +5642,11 @@ omp_set_dynamic(0);
                                     + ((*(srcPtrBottomRow + srcLocationColumnFloor)) * weightedHeight * weightedWidth1)
                                     + ((*(srcPtrBottomRow + srcLocationColumnFloor + 1)) * weightedHeight * weightedWidth));
                 }
+                dstPtrRow = dstPtrChannel + (i + 1) * dstBufferLength;
             }
         }
     }
+
 
     return RPP_SUCCESS;
 }
@@ -5644,9 +5655,11 @@ RppStatus resize_f32_f32_host_tensor(Rpp32f *srcPtr,
                                      RpptDescPtr srcDescPtr,
                                      Rpp32f *dstPtr,
                                      RpptDescPtr dstDescPtr,
+                                     RpptImagePatchPtr dstImgSize,
                                      RpptROIPtr roiTensorPtrSrc,
                                      RpptRoiType roiType,
-                                     RppLayoutParams layoutParams)
+                                     RppLayoutParams srcLayoutParams,
+                                     RppLayoutParams dstLayoutParams)
 {
     return RPP_SUCCESS;
 }
@@ -5655,9 +5668,11 @@ RppStatus resize_f16_f16_host_tensor(Rpp16f *srcPtr,
                                     RpptDescPtr srcDescPtr,
                                     Rpp16f *dstPtr,
                                     RpptDescPtr dstDescPtr,
+                                    RpptImagePatchPtr dstImgSize,
                                     RpptROIPtr roiTensorPtrSrc,
                                     RpptRoiType roiType,
-                                    RppLayoutParams layoutParams)
+                                    RppLayoutParams srcLayoutParams,
+                                    RppLayoutParams dstLayoutParams)
 {
     return RPP_SUCCESS;
 }
@@ -5666,9 +5681,11 @@ RppStatus resize_i8_i8_host_tensor(Rpp8s *srcPtr,
                                    RpptDescPtr srcDescPtr,
                                    Rpp8s *dstPtr,
                                    RpptDescPtr dstDescPtr,
+                                   RpptImagePatchPtr dstImgSize,
                                    RpptROIPtr roiTensorPtrSrc,
                                    RpptRoiType roiType,
-                                   RppLayoutParams layoutParams)
+                                   RppLayoutParams srcLayoutParams,
+                                   RppLayoutParams dstLayoutParams)
 {
     return RPP_SUCCESS;
 }

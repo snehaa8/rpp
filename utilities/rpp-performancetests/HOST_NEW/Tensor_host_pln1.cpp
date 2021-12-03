@@ -77,6 +77,9 @@ int main(int argc, char **argv)
     case 2:
         strcpy(funcName, "blend");
         break;
+    case 21:
+        strcpy(funcName, "resize");
+        break;
     case 31:
         strcpy(funcName, "color_cast");
         break;
@@ -190,6 +193,11 @@ int main(int argc, char **argv)
     RpptROI *roiTensorPtrSrc = (RpptROI *) calloc(noOfImages, sizeof(RpptROI));
     RpptROI *roiTensorPtrDst = (RpptROI *) calloc(noOfImages, sizeof(RpptROI));
 
+    // Initialize the ImagePatch for source and destination
+
+    RpptImagePatch *srcImgSizes = (RpptImagePatch *) calloc(noOfImages, sizeof(RpptImagePatch));
+    RpptImagePatch *dstImgSizes = (RpptImagePatch *) calloc(noOfImages, sizeof(RpptImagePatch));
+
     // Set ROI tensors types for src/dst
 
     RpptRoiType roiTypeSrc, roiTypeDst;
@@ -222,6 +230,11 @@ int main(int argc, char **argv)
         roiTensorPtrDst[count].xywhROI.xy.y = 0;
         roiTensorPtrDst[count].xywhROI.roiWidth = image.cols;
         roiTensorPtrDst[count].xywhROI.roiHeight = image.rows;
+
+        srcImgSizes[count].width = roiTensorPtrSrc[count].xywhROI.roiWidth;
+        srcImgSizes[count].height = roiTensorPtrSrc[count].xywhROI.roiHeight;
+        dstImgSizes[count].width = roiTensorPtrDst[count].xywhROI.roiWidth;
+        dstImgSizes[count].height = roiTensorPtrDst[count].xywhROI.roiHeight;
 
         maxHeight = RPPMAX2(maxHeight, roiTensorPtrSrc[count].xywhROI.roiHeight);
         maxWidth = RPPMAX2(maxWidth, roiTensorPtrSrc[count].xywhROI.roiWidth);
@@ -290,15 +303,15 @@ int main(int argc, char **argv)
 
     Rpp16f *inputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
     Rpp16f *inputf16_second = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
-    Rpp16f *outputf16 = (Rpp16f *)calloc(ioBufferSize, sizeof(Rpp16f));
+    Rpp16f *outputf16 = (Rpp16f *)calloc(oBufferSize, sizeof(Rpp16f));
 
     Rpp32f *inputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
     Rpp32f *inputf32_second = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
-    Rpp32f *outputf32 = (Rpp32f *)calloc(ioBufferSize, sizeof(Rpp32f));
+    Rpp32f *outputf32 = (Rpp32f *)calloc(oBufferSize, sizeof(Rpp32f));
 
     Rpp8s *inputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
     Rpp8s *inputi8_second = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
-    Rpp8s *outputi8 = (Rpp8s *)calloc(ioBufferSize, sizeof(Rpp8s));
+    Rpp8s *outputi8 = (Rpp8s *)calloc(oBufferSize, sizeof(Rpp8s));
 
     // Set 8u host buffers for src/dst
 
@@ -581,6 +594,54 @@ int main(int argc, char **argv)
 
             break;
         }
+   case 21:
+    {
+        test_case_name = "resize";
+
+        for (i = 0; i < images; i++)
+        {
+            // xywhROI override sample
+            // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+            // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+            // roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+            // roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+
+            // ltrbROI override sample
+            // roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+            // roiTensorPtrSrc[i].ltrbROI.lt.y = 50;
+            // roiTensorPtrSrc[i].ltrbROI.rb.x = 199;
+            // roiTensorPtrSrc[i].ltrbROI.rb.y = 149;
+
+            dstImgSizes[i].width = roiTensorPtrDst[i].xywhROI.roiWidth = roiTensorPtrSrc[i].xywhROI.roiWidth / 2;
+            dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight = roiTensorPtrSrc[i].xywhROI.roiHeight / 2;
+        }
+
+        // Change RpptRoiType for ltrbROI override sample
+        // roiTypeSrc = RpptRoiType::LTRB;
+        // roiTypeDst = RpptRoiType::LTRB;
+
+        start_omp = omp_get_wtime();
+        start = clock();
+        if (ip_bitDepth == 0)
+            rppt_resize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
+        else if (ip_bitDepth == 1)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 2)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 3)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 4)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 5)
+            missingFuncFlag = 1;
+        else if (ip_bitDepth == 6)
+            missingFuncFlag = 1;
+        else
+            missingFuncFlag = 1;
+        end = clock();
+        end_omp = omp_get_wtime();
+        break;
+    }
         default:
             missingFuncFlag = 1;
             break;
