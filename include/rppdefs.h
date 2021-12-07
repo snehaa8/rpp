@@ -250,7 +250,11 @@ typedef struct
     Rpp8u B;
 } RpptRGB;
 
-
+typedef struct
+{
+    Rpp32u width;
+    Rpp32u height;
+} RpptImagePatch, *RpptImagePatchPtr;
 
 
 

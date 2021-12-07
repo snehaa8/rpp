@@ -193,6 +193,11 @@ int main(int argc, char **argv)
     RpptROI *roiTensorPtrSrc = (RpptROI *) calloc(noOfImages, sizeof(RpptROI));
     RpptROI *roiTensorPtrDst = (RpptROI *) calloc(noOfImages, sizeof(RpptROI));
 
+    // Initialize the ImagePatch for source and destination
+
+    RpptImagePatch *srcImgSizes = (RpptImagePatch *) calloc(noOfImages, sizeof(RpptImagePatch));
+    RpptImagePatch *dstImgSizes = (RpptImagePatch *) calloc(noOfImages, sizeof(RpptImagePatch));
+
     // Set ROI tensors types for src/dst
 
     RpptRoiType roiTypeSrc, roiTypeDst;
@@ -225,6 +230,11 @@ int main(int argc, char **argv)
         roiTensorPtrDst[count].xywhROI.xy.y = 0;
         roiTensorPtrDst[count].xywhROI.roiWidth = image.cols;
         roiTensorPtrDst[count].xywhROI.roiHeight = image.rows;
+
+        srcImgSizes[count].width = roiTensorPtrSrc[count].xywhROI.roiWidth;
+        srcImgSizes[count].height = roiTensorPtrSrc[count].xywhROI.roiHeight;
+        dstImgSizes[count].width = roiTensorPtrDst[count].xywhROI.roiWidth;
+        dstImgSizes[count].height = roiTensorPtrDst[count].xywhROI.roiHeight;
 
         maxHeight = RPPMAX2(maxHeight, roiTensorPtrSrc[count].xywhROI.roiHeight);
         maxWidth = RPPMAX2(maxWidth, roiTensorPtrSrc[count].xywhROI.roiWidth);
@@ -590,9 +600,6 @@ int main(int argc, char **argv)
 
             for (i = 0; i < images; i++)
             {
-                // dstDescPtr[i].h = srcDescPtr[i].h / 3;
-                // dstDescPtr[i].h = srcDescPtr[i].h / 1.5;
-
                 // xywhROI override sample
                 // roiTensorPtrSrc[i].xywhROI.xy.x = 0;
                 // roiTensorPtrSrc[i].xywhROI.xy.y = 0;
@@ -604,6 +611,9 @@ int main(int argc, char **argv)
                 // roiTensorPtrSrc[i].ltrbROI.lt.y = 50;
                 // roiTensorPtrSrc[i].ltrbROI.rb.x = 199;
                 // roiTensorPtrSrc[i].ltrbROI.rb.y = 149;
+
+                dstImgSizes[i].width = roiTensorPtrDst[i].xywhROI.roiWidth = roiTensorPtrSrc[i].xywhROI.roiWidth / 2;
+                dstImgSizes[i].height = roiTensorPtrDst[i].xywhROI.roiHeight = roiTensorPtrSrc[i].xywhROI.roiHeight / 2;
             }
 
             // Change RpptRoiType for ltrbROI override sample
@@ -613,11 +623,11 @@ int main(int argc, char **argv)
             start_omp = omp_get_wtime();
             start = clock();
             if (ip_bitDepth == 0)
-                rppt_resize_host(input, srcDescPtr, output, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_resize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 2)
-                rppt_resize_host(inputf32, srcDescPtr, outputf32, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_resize_host(inputf32, srcDescPtr, outputf32, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 3)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 4)

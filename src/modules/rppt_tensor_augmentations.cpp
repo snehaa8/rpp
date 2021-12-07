@@ -858,7 +858,7 @@ rppt_box_filter_gpu(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
-RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle)
+RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstImgSizes, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle)
 {
     RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
     RppLayoutParams dstLayoutParams = get_layout_params(dstDescPtr->layout, dstDescPtr->c);
@@ -869,6 +869,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                 srcDescPtr,
                                 static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
                                 dstDescPtr,
+                                dstImgSizes,
                                 roiTensorPtrSrc,
                                 roiType,
                                 srcLayoutParams,
@@ -880,6 +881,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                    srcDescPtr,
                                    (Rpp16f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
                                    dstDescPtr,
+                                   dstImgSizes,
                                    roiTensorPtrSrc,
                                    roiType,
                                    srcLayoutParams,
@@ -891,6 +893,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                    srcDescPtr,
                                    (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
                                    dstDescPtr,
+                                   dstImgSizes,
                                    roiTensorPtrSrc,
                                    roiType,
                                    srcLayoutParams,
@@ -902,6 +905,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                  srcDescPtr,
                                  static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
                                  dstDescPtr,
+                                 dstImgSizes,
                                  roiTensorPtrSrc,
                                  roiType,
                                  srcLayoutParams,
