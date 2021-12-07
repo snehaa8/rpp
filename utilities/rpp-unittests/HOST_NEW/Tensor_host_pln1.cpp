@@ -624,7 +624,7 @@ int main(int argc, char **argv)
         if (ip_bitDepth == 0)
             rppt_resize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 1)
-            missingFuncFlag = 1;
+            rppt_resize_host(inputf16, srcDescPtr, outputf16, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 2)
             rppt_resize_host(inputf32, srcDescPtr, outputf32, dstDescPtr, dstImgSizes, roiTensorPtrSrc, roiTypeSrc, handle);
         else if (ip_bitDepth == 3)
