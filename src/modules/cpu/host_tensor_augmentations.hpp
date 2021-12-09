@@ -5265,6 +5265,8 @@ RppStatus color_cast_i8_i8_host_tensor(Rpp8s *srcPtr,
     return RPP_SUCCESS;
 }
 
+/************ resize ************/
+
 RppStatus resize_u8_u8_host_tensor(Rpp8u *srcPtr,
                                    RpptDescPtr srcDescPtr,
                                    Rpp8u *dstPtr,
@@ -5511,11 +5513,11 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
                     pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
                     pPixels[1] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[2], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
                     pPixels[2] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     if(dstDescPtr->layout == RpptLayout::NCHW)
                     {
@@ -5625,9 +5627,9 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_u8pln_to_f32pln, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_store(rpp_store4_f32pln_to_u8pln, dstPtrRow, pPixels);
+                    rpp_simd_store(rpp_store4_f32pln1_to_u8pln1, dstPtrRow, pPixels);
                     dstPtrRow += 4;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
@@ -5895,11 +5897,11 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_f32pln_to_f32pln, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
                     pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_f32pln_to_f32pln, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
                     pPixels[1] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[2], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_f32pln_to_f32pln, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
                     pPixels[2] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     if(dstDescPtr->layout == RpptLayout::NCHW)
                     {
@@ -6005,7 +6007,7 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_f32pln_to_f32pln, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     _mm_storeu_ps((float *)dstPtrRow, pPixels);
                     dstPtrRow += 4;
@@ -6275,11 +6277,11 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_f16pln_to_f32pln, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
                     pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_f16pln_to_f32pln, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
                     pPixels[1] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[2], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_f16pln_to_f32pln, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
                     pPixels[2] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     if(dstDescPtr->layout == RpptLayout::NCHW)
                     {
@@ -6385,7 +6387,7 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_f16pln_to_f32pln, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     float temp[4];
                     _mm_storeu_ps((float *)temp, pPixels);
@@ -6657,11 +6659,11 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_i8pln_to_f32pln, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
                     pPixels[0] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_i8pln_to_f32pln, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, srcPtrTopRowG, srcPtrBottomRowG, srcLocCF, pRow);
                     pPixels[1] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[2], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_load(rpp_bilinear_load4_i8pln_to_f32pln, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, srcPtrTopRowB, srcPtrBottomRowB, srcLocCF, pRow);
                     pPixels[2] = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
                     if(dstDescPtr->layout == RpptLayout::NCHW)
                     {
@@ -6771,9 +6773,9 @@ omp_set_dynamic(0);
                     pxColFloor = _mm_cvtps_epi32(pColFloor);
                     _mm_storeu_si128((__m128i*) srcLocCF, pxColFloor);
 
-                    rpp_simd_load(rpp_bilinear_load4_i8pln_to_f32pln, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], p7, _mm_fmadd_ps(pRow[2], p6, _mm_fmadd_ps(pRow[1], p5, _mm_mul_ps(pRow[0], p4))));
-                    rpp_simd_store(rpp_store4_f32pln_to_i8pln, dstPtrRow, pPixels);
+                    rpp_simd_store(rpp_store4_f32pln1_to_i8pln1, dstPtrRow, pPixels);
                     dstPtrRow += 4;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)

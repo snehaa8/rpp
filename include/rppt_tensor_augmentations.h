@@ -144,7 +144,8 @@ RppStatus rppt_box_filter_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDesc source tensor descriptor
 // *param[out] dstPtr destination tensor memory
-// *param[in] dstDesc destination tensor descriptor
+// *param[in] dstDescPtr destination tensor descriptor
+// *param[in] dstImgSizes destination image size
 // *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
 // *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
 // *returns a  RppStatus enumeration.

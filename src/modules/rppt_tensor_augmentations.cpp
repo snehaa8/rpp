@@ -866,14 +866,14 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
         resize_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
-                                srcDescPtr,
-                                static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
-                                dstDescPtr,
-                                dstImgSizes,
-                                roiTensorPtrSrc,
-                                roiType,
-                                srcLayoutParams,
-                                dstLayoutParams);
+                                 srcDescPtr,
+                                 static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                 dstDescPtr,
+                                 dstImgSizes,
+                                 roiTensorPtrSrc,
+                                 roiType,
+                                 srcLayoutParams,
+                                 dstLayoutParams);
     }
     else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     {

@@ -931,7 +931,7 @@ inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_u8pln_to_f32pln(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_u8pln1_to_f32pln1(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128i pxTemp[4];
     pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
@@ -993,7 +993,7 @@ inline RppStatus rpp_bilinear_load4_i8pkd3_to_f32pln3(Rpp8s* srcPtrTopRow, Rpp8s
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_i8pln_to_f32pln(Rpp8s* srcPtrTopRow, Rpp8s* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_i8pln1_to_f32pln1(Rpp8s* srcPtrTopRow, Rpp8s* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128i pxTemp[4];
     pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
@@ -1043,7 +1043,7 @@ inline RppStatus rpp_store4_f32pln3_to_u8pln3(Rpp8u* dstRPtr, Rpp8u* dstGPtr, Rp
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_store4_f32pln_to_u8pln(Rpp8u* dstPtr, __m128 p)
+inline RppStatus rpp_store4_f32pln1_to_u8pln1(Rpp8u* dstPtr, __m128 p)
 {
     __m128i px1 = _mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p), pxZero), pxZero);
     _mm_storeu_si128((__m128i *)(dstPtr), px1);
@@ -1075,7 +1075,7 @@ inline RppStatus rpp_store4_f32pln3_to_i8pln3(Rpp8s* dstRPtr, Rpp8s* dstGPtr, Rp
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_store4_f32pln_to_i8pln(Rpp8s* dstPtr, __m128 p)
+inline RppStatus rpp_store4_f32pln1_to_i8pln1(Rpp8s* dstPtr, __m128 p)
 {
     __m128i px1 = _mm_add_epi8(_mm_packus_epi16(_mm_packus_epi32(_mm_cvtps_epi32(p), pxZero), pxZero), xmm_converti8);
     _mm_storeu_si128((__m128i *)(dstPtr), px1);
@@ -1086,10 +1086,10 @@ inline RppStatus rpp_store4_f32pln_to_i8pln(Rpp8s* dstPtr, __m128 p)
 inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128 pTemp[8];
-    pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[3]));
+    pTemp[0] = _mm_loadu_ps(srcPtrTopRow + loc[0]);
+    pTemp[1] = _mm_loadu_ps(srcPtrTopRow + loc[1]);
+    pTemp[2] = _mm_loadu_ps(srcPtrTopRow + loc[2]);
+    pTemp[3] = _mm_loadu_ps(srcPtrTopRow + loc[3]);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1098,10 +1098,10 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     p[1] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[2] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
-    pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0] + 3));
-    pTemp[1] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[1] + 3));
-    pTemp[2] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[2] + 3));
-    pTemp[3] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[3] + 3));
+    pTemp[0] = _mm_loadu_ps(srcPtrTopRow + loc[0] + 3);
+    pTemp[1] = _mm_loadu_ps(srcPtrTopRow + loc[1] + 3);
+    pTemp[2] = _mm_loadu_ps(srcPtrTopRow + loc[2] + 3);
+    pTemp[3] = _mm_loadu_ps(srcPtrTopRow + loc[3] + 3);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1110,10 +1110,10 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[5] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
-    pTemp[0] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[3]));
+    pTemp[0] = _mm_loadu_ps(srcPtrBottomRow + loc[0]);
+    pTemp[1] = _mm_loadu_ps(srcPtrBottomRow + loc[1]);
+    pTemp[2] = _mm_loadu_ps(srcPtrBottomRow + loc[2]);
+    pTemp[3] = _mm_loadu_ps(srcPtrBottomRow + loc[3]);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1122,10 +1122,10 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
-    pTemp[0] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[0] + 3));
-    pTemp[1] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[1] + 3));
-    pTemp[2] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[2] + 3));
-    pTemp[3] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[3] + 3));
+    pTemp[0] = _mm_loadu_ps(srcPtrBottomRow + loc[0] + 3);
+    pTemp[1] = _mm_loadu_ps(srcPtrBottomRow + loc[1] + 3);
+    pTemp[2] = _mm_loadu_ps(srcPtrBottomRow + loc[2] + 3);
+    pTemp[3] = _mm_loadu_ps(srcPtrBottomRow + loc[3] + 3);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1133,28 +1133,30 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     p[9] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
     p[10] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[11] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_f32pln_to_f32pln(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f32pln1_to_f32pln1(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     __m128 pTemp[8];
-    pTemp[0] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(srcPtrTopRow + loc[3]));
+    pTemp[0] = _mm_loadu_ps(srcPtrTopRow + loc[0]);
+    pTemp[1] = _mm_loadu_ps(srcPtrTopRow + loc[1]);
+    pTemp[2] = _mm_loadu_ps(srcPtrTopRow + loc[2]);
+    pTemp[3] = _mm_loadu_ps(srcPtrTopRow + loc[3]);
     pTemp[0] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[1] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     p[0] = _mm_unpacklo_ps(pTemp[0], pTemp[1]);
     p[1] = _mm_unpackhi_ps(pTemp[0], pTemp[1]);
-    pTemp[0] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(srcPtrBottomRow + loc[3]));
+    pTemp[0] = _mm_loadu_ps(srcPtrBottomRow + loc[0]);
+    pTemp[1] = _mm_loadu_ps(srcPtrBottomRow + loc[1]);
+    pTemp[2] = _mm_loadu_ps(srcPtrBottomRow + loc[2]);
+    pTemp[3] = _mm_loadu_ps(srcPtrBottomRow + loc[3]);
     pTemp[0] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[1] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     p[2] = _mm_unpacklo_ps(pTemp[0], pTemp[1]);
     p[3] = _mm_unpackhi_ps(pTemp[0], pTemp[1]);
+
     return RPP_SUCCESS;
 }
 
@@ -1163,6 +1165,7 @@ inline RppStatus rpp_store4_f32pln3_to_f32pln3(Rpp32f* dstRPtr, Rpp32f* dstGPtr,
     _mm_storeu_ps((float *)dstRPtr, p[0]);
     _mm_storeu_ps((float *)dstGPtr, p[1]);
     _mm_storeu_ps((float *)dstBPtr, p[2]);
+
     return RPP_SUCCESS;
 }
 
@@ -1179,6 +1182,7 @@ inline RppStatus rpp_store4_f32pln3_to_f32pkd3(Rpp32f* dstPtr, __m128* p)
     _mm_storeu_ps((float *)dstPtr+3, pTemp[3]);
     _mm_storeu_ps((float *)dstPtr+6, pTemp[4]);
     _mm_storeu_ps((float *)dstPtr+9, pTemp[5]);
+
     return RPP_SUCCESS;
 }
 
@@ -1206,10 +1210,10 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
         *(B2[3] + cnt) = (Rpp32f) *(srcPtrBottomRow + loc[3] + 3 + cnt);
     }
     __m128 pTemp[8];
-    pTemp[0] = _mm_loadu_ps((float *)(T1[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(T1[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(T1[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(T1[3]));
+    pTemp[0] = _mm_loadu_ps(T1[0]);
+    pTemp[1] = _mm_loadu_ps(T1[1]);
+    pTemp[2] = _mm_loadu_ps(T1[2]);
+    pTemp[3] = _mm_loadu_ps(T1[3]);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1218,10 +1222,10 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     p[1] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[2] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
-    pTemp[0] = _mm_loadu_ps((float *)(T2[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(T2[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(T2[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(T2[3]));
+    pTemp[0] = _mm_loadu_ps(T2[0]);
+    pTemp[1] = _mm_loadu_ps(T2[1]);
+    pTemp[2] = _mm_loadu_ps(T2[2]);
+    pTemp[3] = _mm_loadu_ps(T2[3]);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1230,10 +1234,10 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[5] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
-    pTemp[0] = _mm_loadu_ps((float *)(B1[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(B1[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(B1[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(B1[3]));
+    pTemp[0] = _mm_loadu_ps(B1[0]);
+    pTemp[1] = _mm_loadu_ps(B1[1]);
+    pTemp[2] = _mm_loadu_ps(B1[2]);
+    pTemp[3] = _mm_loadu_ps(B1[3]);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1242,10 +1246,10 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
-    pTemp[0] = _mm_loadu_ps((float *)(B2[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(B2[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(B2[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(B2[3]));
+    pTemp[0] = _mm_loadu_ps(B2[0]);
+    pTemp[1] = _mm_loadu_ps(B2[1]);
+    pTemp[2] = _mm_loadu_ps(B2[2]);
+    pTemp[3] = _mm_loadu_ps(B2[3]);
     pTemp[4] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
@@ -1253,10 +1257,11 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     p[9] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
     p[10] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[11] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_f16pln_to_f32pln(Rpp16f* srcPtrTopRow, Rpp16f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f16pln1_to_f32pln1(Rpp16f* srcPtrTopRow, Rpp16f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
 {
     float T1[4][4], B1[4][4];
     /*Converts float16 pixels to float type for computation*/
@@ -1272,22 +1277,23 @@ inline RppStatus rpp_bilinear_load4_f16pln_to_f32pln(Rpp16f* srcPtrTopRow, Rpp16
         *(B1[3] + cnt) = (Rpp32f) *(srcPtrBottomRow + loc[3] + cnt);
     }
     __m128 pTemp[8];
-    pTemp[0] = _mm_loadu_ps((float *)(T1[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(T1[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(T1[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(T1[3]));
+    pTemp[0] = _mm_loadu_ps(T1[0]);
+    pTemp[1] = _mm_loadu_ps(T1[1]);
+    pTemp[2] = _mm_loadu_ps(T1[2]);
+    pTemp[3] = _mm_loadu_ps(T1[3]);
     pTemp[0] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[1] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     p[0] = _mm_unpacklo_ps(pTemp[0], pTemp[1]);
     p[1] = _mm_unpackhi_ps(pTemp[0], pTemp[1]);
-    pTemp[0] = _mm_loadu_ps((float *)(B1[0]));
-    pTemp[1] = _mm_loadu_ps((float *)(B1[1]));
-    pTemp[2] = _mm_loadu_ps((float *)(B1[2]));
-    pTemp[3] = _mm_loadu_ps((float *)(B1[3]));
+    pTemp[0] = _mm_loadu_ps(B1[0]);
+    pTemp[1] = _mm_loadu_ps(B1[1]);
+    pTemp[2] = _mm_loadu_ps(B1[2]);
+    pTemp[3] = _mm_loadu_ps(B1[3]);
     pTemp[0] = _mm_unpacklo_ps(pTemp[0], pTemp[2]);
     pTemp[1] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     p[2] = _mm_unpacklo_ps(pTemp[0], pTemp[1]);
     p[3] = _mm_unpackhi_ps(pTemp[0], pTemp[1]);
+
     return RPP_SUCCESS;
 }
 
@@ -1304,6 +1310,7 @@ inline RppStatus rpp_store4_f32pln3_to_f16pln3(Rpp16f* dstRPtr, Rpp16f* dstGPtr,
         *(dstGPtr + i) = (Rpp16f)(temp[1][i]);
         *(dstBPtr + i) = (Rpp16f)(temp[2][i]);
     }
+
     return RPP_SUCCESS;
 }
 
@@ -1329,6 +1336,7 @@ inline RppStatus rpp_store4_f32pln3_to_f16pkd3(Rpp16f* dstPtr, __m128* p)
         *(dstPtr + 6 + i) = (Rpp16f)(temp[2][i]);
         *(dstPtr + 9 + i) = (Rpp16f)(temp[3][i]);
     }
+
     return RPP_SUCCESS;
 }
 
