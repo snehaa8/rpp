@@ -1341,7 +1341,7 @@ inline RppStatus rpp_store4_f32pln3_to_f16pkd3(Rpp16f* dstPtr, __m128* p)
     return RPP_SUCCESS;
 }
 
-inline void compute_resize_src_loc_sse(__m128 dstLoc, __m128 scale, __m128 limit, Rpp32u *srcLoc, __m128 &weight, bool hasRGBChannels = false)
+inline void compute_resize_src_loc_sse(__m128 &dstLoc, __m128 &scale, __m128 &limit, Rpp32u *srcLoc, __m128 &weight, bool hasRGBChannels = false)
 {
     __m128 pLoc = _mm_mul_ps(dstLoc, scale);
     __m128 pLocFloor = _mm_floor_ps(pLoc);
@@ -1351,6 +1351,15 @@ inline void compute_resize_src_loc_sse(__m128 dstLoc, __m128 scale, __m128 limit
         pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
     __m128i pxLocFloor = _mm_cvtps_epi32(pLocFloor);
     _mm_storeu_si128((__m128i*) srcLoc, pxLocFloor);
+}
+
+inline void compute_bilinear_coefficients_sse(__m128 &weightedWidth, __m128 &weightedWidth1, __m128 &weightedHeight, __m128 &weightedHeight1,
+                                              __m128 &p0, __m128 &p1, __m128 &p2, __m128 &p3)
+{
+    p0 = _mm_mul_ps(weightedHeight1, weightedWidth1);
+    p1 = _mm_mul_ps(weightedHeight1, weightedWidth);
+    p2 = _mm_mul_ps(weightedHeight, weightedWidth1);
+    p3 = _mm_mul_ps(weightedHeight, weightedWidth);
 }
 
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP
