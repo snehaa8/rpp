@@ -908,11 +908,11 @@ inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u
     px[2] = _mm_unpacklo_epi8(px[0], px[1]);
     px[3] = _mm_unpackhi_epi8(px[0], px[1]);
     p[0] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
-    p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
-    p[2] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
-    p[3] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
-    p[4] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
-    p[5] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
+    p[4] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
+    p[8] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
+    p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
+    p[5] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
+    p[9] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
 
     px[0] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[0]));
     px[1] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[1]));
@@ -922,11 +922,11 @@ inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u* srcPtrTopRow, Rpp8u
     px[1] = _mm_unpacklo_epi8(px[1], px[3]);
     px[2] = _mm_unpacklo_epi8(px[0], px[1]);
     px[3] = _mm_unpackhi_epi8(px[0], px[1]);
-    p[6] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
-    p[7] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
-    p[8] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
-    p[9] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
-    p[10] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
+    p[2] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
+    p[6] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
+    p[10] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
+    p[3] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
+    p[7] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
     p[11] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
 
     return RPP_SUCCESS;
@@ -970,11 +970,11 @@ inline RppStatus rpp_bilinear_load4_i8pkd3_to_f32pln3(Rpp8s* srcPtrTopRow, Rpp8s
     px[2] = _mm_add_epi8(_mm_unpacklo_epi8(px[0], px[1]), xmm_converti8);
     px[3] = _mm_add_epi8(_mm_unpackhi_epi8(px[0], px[1]), xmm_converti8);
     p[0] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
-    p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
-    p[2] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
-    p[3] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
-    p[4] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
-    p[5] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
+    p[4] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
+    p[8] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
+    p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
+    p[5] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
+    p[9] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
 
     px[0] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[0]));
     px[1] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[1]));
@@ -984,11 +984,11 @@ inline RppStatus rpp_bilinear_load4_i8pkd3_to_f32pln3(Rpp8s* srcPtrTopRow, Rpp8s
     px[1] = _mm_unpacklo_epi8(px[1], px[3]);
     px[2] = _mm_add_epi8(_mm_unpacklo_epi8(px[0], px[1]), xmm_converti8);
     px[3] = _mm_add_epi8(_mm_unpackhi_epi8(px[0], px[1]), xmm_converti8);
-    p[6] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
-    p[7] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
-    p[8] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
-    p[9] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
-    p[10] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
+    p[2] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp1));
+    p[6] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp2));
+    p[10] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp3));
+    p[3] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[2], maskp4));
+    p[7] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp1));
     p[11] = _mm_cvtepi32_ps(_mm_shuffle_epi8(px[3], maskp2));
 
     return RPP_SUCCESS;
@@ -1096,8 +1096,8 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
     p[0] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[1] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
-    p[2] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     pTemp[0] = _mm_loadu_ps(srcPtrTopRow + loc[0] + 3);
     pTemp[1] = _mm_loadu_ps(srcPtrTopRow + loc[1] + 3);
@@ -1107,9 +1107,9 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
-    p[3] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
-    p[5] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    p[1] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[5] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[9] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     pTemp[0] = _mm_loadu_ps(srcPtrBottomRow + loc[0]);
     pTemp[1] = _mm_loadu_ps(srcPtrBottomRow + loc[1]);
@@ -1119,9 +1119,9 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
-    p[6] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
-    p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    p[2] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[6] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[10] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     pTemp[0] = _mm_loadu_ps(srcPtrBottomRow + loc[0] + 3);
     pTemp[1] = _mm_loadu_ps(srcPtrBottomRow + loc[1] + 3);
@@ -1131,8 +1131,8 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
-    p[9] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[10] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[3] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[11] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     return RPP_SUCCESS;
@@ -1220,8 +1220,8 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
     p[0] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[1] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
-    p[2] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     pTemp[0] = _mm_loadu_ps(T2[0]);
     pTemp[1] = _mm_loadu_ps(T2[1]);
@@ -1231,9 +1231,9 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
-    p[3] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[4] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
-    p[5] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    p[1] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[5] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[9] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     pTemp[0] = _mm_loadu_ps(B1[0]);
     pTemp[1] = _mm_loadu_ps(B1[1]);
@@ -1243,9 +1243,9 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
-    p[6] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
-    p[8] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
+    p[2] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[6] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[10] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     pTemp[0] = _mm_loadu_ps(B2[0]);
     pTemp[1] = _mm_loadu_ps(B2[1]);
@@ -1255,8 +1255,8 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     pTemp[5] = _mm_unpacklo_ps(pTemp[1], pTemp[3]);
     pTemp[6] = _mm_unpackhi_ps(pTemp[0], pTemp[2]);
     pTemp[7] = _mm_unpackhi_ps(pTemp[1], pTemp[3]);
-    p[9] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
-    p[10] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
+    p[3] = _mm_unpacklo_ps(pTemp[4], pTemp[5]);
+    p[7] = _mm_unpackhi_ps(pTemp[4], pTemp[5]);
     p[11] = _mm_unpacklo_ps(pTemp[6], pTemp[7]);
 
     return RPP_SUCCESS;
@@ -1353,13 +1353,18 @@ inline void compute_resize_src_loc_sse(__m128 &dstLoc, __m128 &scale, __m128 &li
     _mm_storeu_si128((__m128i*) srcLoc, pxLocFloor);
 }
 
-inline void compute_bilinear_coefficients_sse(__m128 &weightedWidth, __m128 &weightedWidth1, __m128 &weightedHeight, __m128 &weightedHeight1,
-                                              __m128 &p0, __m128 &p1, __m128 &p2, __m128 &p3)
+inline void compute_bilinear_coefficients_sse(__m128 &weightedWidth, __m128 &weightedWidth1, __m128 &weightedHeight, __m128 &weightedHeight1, __m128 *coeffs)
 {
-    p0 = _mm_mul_ps(weightedHeight1, weightedWidth1);
-    p1 = _mm_mul_ps(weightedHeight1, weightedWidth);
-    p2 = _mm_mul_ps(weightedHeight, weightedWidth1);
-    p3 = _mm_mul_ps(weightedHeight, weightedWidth);
+    coeffs[0] = _mm_mul_ps(weightedHeight1, weightedWidth1);
+    coeffs[1] = _mm_mul_ps(weightedHeight1, weightedWidth);
+    coeffs[2] = _mm_mul_ps(weightedHeight, weightedWidth1);
+    coeffs[3] = _mm_mul_ps(weightedHeight, weightedWidth);
 }
 
+inline void compute_bilinear_interpolation_sse(__m128 *srcPixels, __m128 *coeffs, __m128 *dstPixels)
+{
+    dstPixels[0] = _mm_fmadd_ps(srcPixels[3], coeffs[3], _mm_fmadd_ps(srcPixels[2], coeffs[2], _mm_fmadd_ps(srcPixels[1], coeffs[1], _mm_mul_ps(srcPixels[0], coeffs[0]))));
+    dstPixels[1] = _mm_fmadd_ps(srcPixels[7], coeffs[3], _mm_fmadd_ps(srcPixels[6], coeffs[2], _mm_fmadd_ps(srcPixels[5], coeffs[1], _mm_mul_ps(srcPixels[4], coeffs[0]))));
+    dstPixels[2] = _mm_fmadd_ps(srcPixels[11], coeffs[3], _mm_fmadd_ps(srcPixels[10], coeffs[2], _mm_fmadd_ps(srcPixels[9], coeffs[1], _mm_mul_ps(srcPixels[8], coeffs[0]))));
+}
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP
