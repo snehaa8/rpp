@@ -3592,7 +3592,7 @@ int main(int argc, char **argv)
         {
             for (int i = 0; i < oBufferSize; i++)
             {
-                outputFile << (Rpp32u) *outputTemp << ",";
+                outputFile << (Rpp32u) *outputTemp << ", ";
                 outputTemp++;
             }
             outputFile.close();

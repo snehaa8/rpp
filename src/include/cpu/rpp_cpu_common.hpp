@@ -2189,7 +2189,8 @@ inline RppStatus compute_color_twist_12_host(__m128 &pVecR, __m128 &pVecG, __m12
     pS = _mm_max_ps(xmm_p0, _mm_min_ps(xmm_p1, pS));                                                                // sat = std::max(0.0f, std::min(1.0f, sat));
 
     // HSV to RGB with brightness/contrast adjustment
-    pIntH = _mm_floor_ps(pH);                                                                                       // Rpp32s hueIntegerPart = (Rpp32s) hue;
+    // pIntH = _mm_floor_ps(pH);                                                                                       // Rpp32s hueIntegerPart = (Rpp32s) hue;
+    pIntH = _mm_round_ps(pH, (_MM_FROUND_TO_ZERO |_MM_FROUND_NO_EXC));
     pxIntH = _mm_cvtps_epi32(pIntH);                                                                                // Convert to epi32
     pH = _mm_sub_ps(pH, pIntH);                                                                                     // Rpp32f hueFractionPart = hue - hueIntegerPart;
     pS = _mm_mul_ps(pV, pS);                                                                                        // Rpp32f vsat = v * sat;
