@@ -1146,11 +1146,19 @@ RppStatus color_twist_host(T* srcPtr, RppiSize srcSize, T* dstPtr,
         Rpp32u vectorIncrement = 48;
         // Rpp32u vectorIncrementPerChannel = 16;
 
+#if __AVX2__
+        __m256 pColorTwistParams[4];
+        pColorTwistParams[0] = _mm256_set1_ps(alpha);
+        pColorTwistParams[1] = _mm256_set1_ps(beta);
+        pColorTwistParams[2] = _mm256_set1_ps(hueShift);
+        pColorTwistParams[3] = _mm256_set1_ps(saturationFactor);
+#else
         __m128 pColorTwistParams[4];
         pColorTwistParams[0] = _mm_set1_ps(alpha);
         pColorTwistParams[1] = _mm_set1_ps(beta);
         pColorTwistParams[2] = _mm_set1_ps(hueShift);
         pColorTwistParams[3] = _mm_set1_ps(saturationFactor);
+#endif
 
         for(int i = 0; i < srcSize.height; i++)
         {
@@ -1161,6 +1169,14 @@ RppStatus color_twist_host(T* srcPtr, RppiSize srcSize, T* dstPtr,
             int vectorLoopCount = 0;
             for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
             {
+#if __AVX2__
+                __m256 p[6];
+                rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3_avx, srcPtrTemp, p);    // simd loads
+                rpp_simd_load(rpp_normalize48_avx, p);    // simd normalize
+                compute_color_twist_24_host(p[0], p[2], p[4], pColorTwistParams);    // color_twist adjustment
+                compute_color_twist_24_host(p[1], p[3], p[5], pColorTwistParams);    // color_twist adjustment
+                rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx, dstPtrTemp, p);    // simd stores
+#else
                 __m128 p[12];
                 rpp_simd_load(rpp_load48_u8pkd3_to_f32pln3, srcPtrTemp, p);    // simd loads
                 rpp_simd_load(rpp_normalize48, p);    // simd normalize
@@ -1169,6 +1185,7 @@ RppStatus color_twist_host(T* srcPtr, RppiSize srcSize, T* dstPtr,
                 compute_color_twist_12_host(p[2], p[6], p[10], pColorTwistParams);    // color_twist adjustment
                 compute_color_twist_12_host(p[3], p[7], p[11], pColorTwistParams);    // color_twist adjustment
                 rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3, dstPtrTemp, p);    // simd stores
+#endif
                 srcPtrTemp += vectorIncrement;
                 dstPtrTemp += vectorIncrement;
             }
