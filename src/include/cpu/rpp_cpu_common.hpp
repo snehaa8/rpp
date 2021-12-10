@@ -82,11 +82,12 @@ inline int power_function(int a, int b)
     return product;
 }
 
-inline void compute_resize_src_loc(Rpp32s dstLocation, Rpp32f scale, Rpp32u limit, Rpp32s &srcLoc, Rpp32f &weight, bool hasRGBChannels=false)
+inline void compute_resize_src_loc(Rpp32s dstLocation, Rpp32f scale, Rpp32u limit, Rpp32s &srcLoc, Rpp32f &weight, Rpp32f &weight1, bool hasRGBChannels=false)
 {
     Rpp32f srcLocation = ((Rpp32f) dstLocation) * scale;
     Rpp32s srcLocationFloor = (Rpp32s) RPPFLOOR(srcLocation);
     weight = srcLocation - srcLocationFloor;
+    weight1 = 1 - weight;
     srcLoc = (srcLocationFloor > limit) ? limit : srcLocationFloor;
     if(hasRGBChannels)
         srcLoc = srcLoc * 3;

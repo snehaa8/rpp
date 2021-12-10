@@ -56,6 +56,7 @@ const __m128i maskp4 = _mm_setr_epi8(12, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80,
 const __m128i pxZero = _mm_setzero_si128();
 const __m128i xmm_store4_pkd_pixels = _mm_setr_epi8(0, 1, 8, 2, 3, 9, 4, 5, 10, 6, 7, 11, 0x80, 0x80, 0x80, 0x80);
 const __m128 pChannel = _mm_set1_ps((float)3);
+const __m128 pOne = _mm_set1_ps((float)1);
 
 inline RppStatus rpp_load48_u8pkd3_to_f32pln3(Rpp8u *srcPtr, __m128 *p)
 {
@@ -1341,11 +1342,12 @@ inline RppStatus rpp_store4_f32pln3_to_f16pkd3(Rpp16f* dstPtr, __m128* p)
     return RPP_SUCCESS;
 }
 
-inline void compute_resize_src_loc_sse(__m128 &dstLoc, __m128 &scale, __m128 &limit, Rpp32u *srcLoc, __m128 &weight, bool hasRGBChannels = false)
+inline void compute_resize_src_loc_sse(__m128 &dstLoc, __m128 &scale, __m128 &limit, Rpp32u *srcLoc, __m128 &weight, __m128 &weight1, bool hasRGBChannels = false)
 {
     __m128 pLoc = _mm_mul_ps(dstLoc, scale);
     __m128 pLocFloor = _mm_floor_ps(pLoc);
     weight = _mm_sub_ps(pLoc, pLocFloor);
+    weight1 = _mm_sub_ps(pOne, weight);
     pLocFloor = _mm_min_ps(pLocFloor, limit);
     if(hasRGBChannels)
         pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
