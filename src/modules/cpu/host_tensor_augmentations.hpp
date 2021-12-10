@@ -7504,6 +7504,8 @@ omp_set_dynamic(0);
         Rpp32u alignedLength = dstImgSize[batchCount].width &~ 3;
         __m128 pWRatio = _mm_set1_ps(wRatio);
         __m128 pOne = _mm_set1_ps(1.0);
+        __m128 pFour = _mm_set1_ps(4);
+        __m128 pDstLocInit = _mm_setr_ps(0, 1, 2, 3);
         __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
         __m128 pWeightedWidth, pWeightedWidth1, pBilinearCoeff[4], pColFloor, pDstLoc;
         __m128i pxColFloor;
@@ -7531,10 +7533,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
-
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1, true);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_u8pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
@@ -7551,6 +7552,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_u8pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -7612,9 +7614,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
@@ -7633,6 +7635,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_u8pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -7680,15 +7683,16 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[4], pPixels;
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], pBilinearCoeff[3], _mm_fmadd_ps(pRow[2], pBilinearCoeff[2], _mm_fmadd_ps(pRow[1], pBilinearCoeff[1], _mm_mul_ps(pRow[0], pBilinearCoeff[0]))));
                     rpp_simd_store(rpp_store4_f32pln1_to_u8pln1, dstPtrRow, pPixels);
                     dstPtrRow += 4;
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
@@ -7772,6 +7776,8 @@ omp_set_dynamic(0);
         Rpp32u alignedLength = dstImgSize[batchCount].width &~ 3;
         __m128 pWRatio = _mm_set1_ps(wRatio);
         __m128 pOne = _mm_set1_ps(1.0);
+        __m128 pFour = _mm_set1_ps(4);
+        __m128 pDstLocInit = _mm_setr_ps(0, 1, 2, 3);
         __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
         __m128 pWeightedWidth, pWeightedWidth1, pBilinearCoeff[4], pColFloor, pDstLoc;
         __m128i pxColFloor;
@@ -7799,9 +7805,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1, true);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_f32pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
@@ -7818,6 +7824,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_f32pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -7878,9 +7885,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
@@ -7899,6 +7906,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_f32pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -7946,15 +7954,16 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[4], pPixels;
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], pBilinearCoeff[3], _mm_fmadd_ps(pRow[2], pBilinearCoeff[2], _mm_fmadd_ps(pRow[1], pBilinearCoeff[1], _mm_mul_ps(pRow[0], pBilinearCoeff[0]))));
                     _mm_storeu_ps((float *)dstPtrRow, pPixels);
                     dstPtrRow += 4;
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
@@ -8038,6 +8047,8 @@ omp_set_dynamic(0);
         Rpp32u alignedLength = dstImgSize[batchCount].width &~ 3;
         __m128 pWRatio = _mm_set1_ps(wRatio);
         __m128 pOne = _mm_set1_ps(1.0);
+        __m128 pFour = _mm_set1_ps(4);
+        __m128 pDstLocInit = _mm_setr_ps(0, 1, 2, 3);
         __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
         __m128 pWeightedWidth, pWeightedWidth1, pBilinearCoeff[4], pColFloor, pDstLoc;
         __m128i pxColFloor;
@@ -8065,9 +8076,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1, true);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_f16pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
@@ -8084,6 +8095,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_f16pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -8144,9 +8156,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
@@ -8165,6 +8177,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_f16pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -8211,9 +8224,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[4], pPixels;
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
@@ -8222,6 +8235,7 @@ omp_set_dynamic(0);
                     _mm_storeu_ps((float *)temp, pPixels);
                     for(int i = 0; i < 4; i++)
                         *dstPtrRow++ = (Rpp16f)(temp[i]);
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
@@ -8304,6 +8318,8 @@ omp_set_dynamic(0);
         Rpp32u alignedLength = dstImgSize[batchCount].width &~ 3;
         __m128 pWRatio = _mm_set1_ps(wRatio);
         __m128 pOne = _mm_set1_ps(1.0);
+        __m128 pFour = _mm_set1_ps(4);
+        __m128 pDstLocInit = _mm_setr_ps(0, 1, 2, 3);
         __m128 pWidthLimit = _mm_set1_ps((float)widthLimit);
         __m128 pWeightedWidth, pWeightedWidth1, pBilinearCoeff[4], pColFloor, pDstLoc;
         __m128i pxColFloor;
@@ -8331,10 +8347,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
-
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1, true);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_i8pkd3_to_f32pln3, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
@@ -8351,6 +8366,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_i8pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -8411,9 +8427,9 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[12], pPixels[3];
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, srcPtrTopRowR, srcPtrBottomRowR, srcLocCF, pRow);
@@ -8432,6 +8448,7 @@ omp_set_dynamic(0);
                         rpp_simd_store(rpp_store4_f32pln3_to_i8pkd3, dstPtrRow, pPixels);
                         dstPtrRow += 12;
                     }
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 if(dstDescPtr->layout == RpptLayout::NCHW)
                 {
@@ -8479,15 +8496,16 @@ omp_set_dynamic(0);
                 __m128 pWeightedHeight = _mm_set1_ps(weightedHeight);
                 __m128 pWeightedHeight1  = _mm_set1_ps(weightedHeight1);
                 __m128 pRow[4], pPixels;
+                pDstLoc = pDstLocInit;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount+=4)
                 {
-                    pDstLoc = _mm_setr_ps(vectorLoopCount, vectorLoopCount + 1, vectorLoopCount + 2, vectorLoopCount + 3);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, pWeightedWidth, pWeightedWidth1);
                     compute_bilinear_coefficients_sse(pWeightedWidth, pWeightedWidth1, pWeightedHeight, pWeightedHeight1, pBilinearCoeff);
                     rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, srcPtrTopRow, srcPtrBottomRow, srcLocCF, pRow);
                     pPixels = _mm_fmadd_ps(pRow[3], pBilinearCoeff[3], _mm_fmadd_ps(pRow[2], pBilinearCoeff[2], _mm_fmadd_ps(pRow[1], pBilinearCoeff[1], _mm_mul_ps(pRow[0], pBilinearCoeff[0]))));
                     rpp_simd_store(rpp_store4_f32pln1_to_i8pln1, dstPtrRow, pPixels);
                     dstPtrRow += 4;
+                    pDstLoc = _mm_add_ps(pDstLoc, pFour);
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
