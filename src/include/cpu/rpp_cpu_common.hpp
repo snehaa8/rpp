@@ -82,17 +82,6 @@ inline int power_function(int a, int b)
     return product;
 }
 
-inline void compute_resize_src_loc(Rpp32s dstLocation, Rpp32f scale, Rpp32u limit, Rpp32s &srcLoc, Rpp32f &weight, Rpp32f &weight1, bool hasRGBChannels=false)
-{
-    Rpp32f srcLocation = ((Rpp32f) dstLocation) * scale;
-    Rpp32s srcLocationFloor = (Rpp32s) RPPFLOOR(srcLocation);
-    weight = srcLocation - srcLocationFloor;
-    weight1 = 1 - weight;
-    srcLoc = (srcLocationFloor > limit) ? limit : srcLocationFloor;
-    if(hasRGBChannels)
-        srcLoc = srcLoc * 3;
-}
-
 template <typename T>
 RppStatus subtract_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
                               RppiROI *roiPoints, Rpp32u nbatchSize,
@@ -3741,6 +3730,89 @@ inline RppStatus compute_packed_to_planar_host(T* srcPtr, RppiSize srcSize, T* d
     }
 
     return RPP_SUCCESS;
+}
+
+
+inline void compute_resize_src_loc(Rpp32s dstLocation, Rpp32f scale, Rpp32u limit, Rpp32s &srcLoc, Rpp32f &weight, Rpp32f &weight1, bool hasRGBChannels=false)
+{
+    Rpp32f srcLocation = ((Rpp32f) dstLocation) * scale;
+    Rpp32s srcLocationFloor = (Rpp32s) RPPFLOOR(srcLocation);
+    weight = srcLocation - srcLocationFloor;
+    weight1 = 1 - weight;
+    srcLoc = (srcLocationFloor > limit) ? limit : srcLocationFloor;
+    if(hasRGBChannels)
+        srcLoc = srcLoc * 3;
+}
+
+inline void compute_bilinear_coefficients(Rpp32f wWidth, Rpp32f wWidth1, Rpp32f wHeight, Rpp32f wHeight1, Rpp32f *coeffs)
+{
+    coeffs[0] = wHeight1 * wWidth1;
+    coeffs[1] = wHeight1 * wWidth;
+    coeffs[2] = wHeight * wWidth1;
+    coeffs[3] = wHeight * wWidth;
+}
+
+template <typename T>
+inline void compute_bilinear_interpolation(T *topRow, T *bottomRow, Rpp32s loc, Rpp32s channels, Rpp32f *coeffs, T **dstPtr)
+{
+    *dstPtr[0] = (T)(((*(topRow + loc)) * coeffs[0])
+                    + ((*(topRow + loc + channels)) * coeffs[1])
+                    + ((*(bottomRow + loc)) * coeffs[2])
+                    + ((*(bottomRow + loc + channels)) * coeffs[3]));
+    *dstPtr[1] = (T)(((*(topRow + loc + 1)) * coeffs[0])
+                    + ((*(topRow + loc + channels + 1)) * coeffs[1])
+                    + ((*(bottomRow + loc + 1)) * coeffs[2])
+                    + ((*(bottomRow + loc + channels + 1)) * coeffs[3]));
+    *dstPtr[2] = (T)(((*(topRow + loc + 2)) * coeffs[0])
+                    + ((*(topRow + loc + channels + 2)) * coeffs[1])
+                    + ((*(bottomRow + loc + 2)) * coeffs[2])
+                    + ((*(bottomRow + loc + channels + 2)) * coeffs[3]));
+}
+
+template <typename T>
+inline void compute_bilinear_interpolation(T *topRowR, T *bottomRowR, T *topRowG, T *bottomRowG, T *topRowB, T *bottomRowB,
+                                           Rpp32s loc, Rpp32f *coeffs, T **dstPtr)
+{
+    *dstPtr[0] = (T)(((*(topRowR + loc)) * coeffs[0])
+                    + ((*(topRowR + loc + 1)) * coeffs[1])
+                    + ((*(bottomRowR + loc)) * coeffs[2])
+                    + ((*(bottomRowR + loc + 1)) * coeffs[3]));
+    *dstPtr[1] = (T)(((*(topRowG + loc)) * coeffs[0])
+                    + ((*(topRowG + loc + 1)) * coeffs[1])
+                    + ((*(bottomRowG + loc)) * coeffs[2])
+                    + ((*(bottomRowG + loc + 1)) * coeffs[3]));
+    *dstPtr[2] = (T)(((*(topRowB + loc)) * coeffs[0])
+                    + ((*(topRowB + loc + 1)) * coeffs[1])
+                    + ((*(bottomRowB + loc)) * coeffs[2])
+                    + ((*(bottomRowB + loc + 1)) * coeffs[3]));
+}
+
+inline void compute_resize_src_loc_sse(__m128 &dstLoc, __m128 &scale, __m128 &limit, Rpp32u *srcLoc, __m128 &weight, __m128 &weight1, bool hasRGBChannels = false)
+{
+    __m128 pLoc = _mm_mul_ps(dstLoc, scale);
+    __m128 pLocFloor = _mm_floor_ps(pLoc);
+    weight = _mm_sub_ps(pLoc, pLocFloor);
+    weight1 = _mm_sub_ps(pOne, weight);
+    pLocFloor = _mm_min_ps(pLocFloor, limit);
+    if(hasRGBChannels)
+        pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
+    __m128i pxLocFloor = _mm_cvtps_epi32(pLocFloor);
+    _mm_storeu_si128((__m128i*) srcLoc, pxLocFloor);
+}
+
+inline void compute_bilinear_coefficients_sse(__m128 &weightedWidth, __m128 &weightedWidth1, __m128 &weightedHeight, __m128 &weightedHeight1, __m128 *coeffs)
+{
+    coeffs[0] = _mm_mul_ps(weightedHeight1, weightedWidth1);
+    coeffs[1] = _mm_mul_ps(weightedHeight1, weightedWidth);
+    coeffs[2] = _mm_mul_ps(weightedHeight, weightedWidth1);
+    coeffs[3] = _mm_mul_ps(weightedHeight, weightedWidth);
+}
+
+inline void compute_bilinear_interpolation_sse(__m128 *srcPixels, __m128 *coeffs, __m128 *dstPixels)
+{
+    dstPixels[0] = _mm_fmadd_ps(srcPixels[3], coeffs[3], _mm_fmadd_ps(srcPixels[2], coeffs[2], _mm_fmadd_ps(srcPixels[1], coeffs[1], _mm_mul_ps(srcPixels[0], coeffs[0]))));
+    dstPixels[1] = _mm_fmadd_ps(srcPixels[7], coeffs[3], _mm_fmadd_ps(srcPixels[6], coeffs[2], _mm_fmadd_ps(srcPixels[5], coeffs[1], _mm_mul_ps(srcPixels[4], coeffs[0]))));
+    dstPixels[2] = _mm_fmadd_ps(srcPixels[11], coeffs[3], _mm_fmadd_ps(srcPixels[10], coeffs[2], _mm_fmadd_ps(srcPixels[9], coeffs[1], _mm_mul_ps(srcPixels[8], coeffs[0]))));
 }
 
 #endif //RPP_CPU_COMMON_H

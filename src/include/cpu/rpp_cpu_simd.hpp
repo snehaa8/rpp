@@ -1342,31 +1342,4 @@ inline RppStatus rpp_store4_f32pln3_to_f16pkd3(Rpp16f* dstPtr, __m128* p)
     return RPP_SUCCESS;
 }
 
-inline void compute_resize_src_loc_sse(__m128 &dstLoc, __m128 &scale, __m128 &limit, Rpp32u *srcLoc, __m128 &weight, __m128 &weight1, bool hasRGBChannels = false)
-{
-    __m128 pLoc = _mm_mul_ps(dstLoc, scale);
-    __m128 pLocFloor = _mm_floor_ps(pLoc);
-    weight = _mm_sub_ps(pLoc, pLocFloor);
-    weight1 = _mm_sub_ps(pOne, weight);
-    pLocFloor = _mm_min_ps(pLocFloor, limit);
-    if(hasRGBChannels)
-        pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
-    __m128i pxLocFloor = _mm_cvtps_epi32(pLocFloor);
-    _mm_storeu_si128((__m128i*) srcLoc, pxLocFloor);
-}
-
-inline void compute_bilinear_coefficients_sse(__m128 &weightedWidth, __m128 &weightedWidth1, __m128 &weightedHeight, __m128 &weightedHeight1, __m128 *coeffs)
-{
-    coeffs[0] = _mm_mul_ps(weightedHeight1, weightedWidth1);
-    coeffs[1] = _mm_mul_ps(weightedHeight1, weightedWidth);
-    coeffs[2] = _mm_mul_ps(weightedHeight, weightedWidth1);
-    coeffs[3] = _mm_mul_ps(weightedHeight, weightedWidth);
-}
-
-inline void compute_bilinear_interpolation_sse(__m128 *srcPixels, __m128 *coeffs, __m128 *dstPixels)
-{
-    dstPixels[0] = _mm_fmadd_ps(srcPixels[3], coeffs[3], _mm_fmadd_ps(srcPixels[2], coeffs[2], _mm_fmadd_ps(srcPixels[1], coeffs[1], _mm_mul_ps(srcPixels[0], coeffs[0]))));
-    dstPixels[1] = _mm_fmadd_ps(srcPixels[7], coeffs[3], _mm_fmadd_ps(srcPixels[6], coeffs[2], _mm_fmadd_ps(srcPixels[5], coeffs[1], _mm_mul_ps(srcPixels[4], coeffs[0]))));
-    dstPixels[2] = _mm_fmadd_ps(srcPixels[11], coeffs[3], _mm_fmadd_ps(srcPixels[10], coeffs[2], _mm_fmadd_ps(srcPixels[9], coeffs[1], _mm_mul_ps(srcPixels[8], coeffs[0]))));
-}
 #endif //AMD_RPP_RPP_CPU_SIMD_HPP
