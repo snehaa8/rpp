@@ -257,9 +257,11 @@ typedef struct
     Rpp32f B;
 } RpptFloatRGB;
 
-
-
-
+typedef struct
+{
+    Rpp32u width;
+    Rpp32u height;
+} RpptImagePatch, *RpptImagePatchPtr;
 
 /******************** HOST memory typedefs ********************/
 
