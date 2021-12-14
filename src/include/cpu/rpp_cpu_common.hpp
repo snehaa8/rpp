@@ -3957,7 +3957,7 @@ inline RppStatus compute_packed_to_planar_host(T* srcPtr, RppiSize srcSize, T* d
     return RPP_SUCCESS;
 }
 
-inline void compute_dst_size_cap_host(RpptImagePatchPtr dstImgSize, RpptDescPtr dstDescPtr)    // TODO: Check usage
+inline void compute_dst_size_cap_host(RpptImagePatchPtr dstImgSize, RpptDescPtr dstDescPtr)
 {
     dstImgSize->width = std::min(dstImgSize->width, dstDescPtr->w);
     dstImgSize->height = std::min(dstImgSize->height, dstDescPtr->h);
@@ -4018,7 +4018,7 @@ inline void compute_resize_src_loc_sse(__m128 &pDstLoc, __m128 &pScale, __m128 &
     pWeight[1] = _mm_sub_ps(xmm_p1, pWeight[0]);
     pLocFloor = _mm_min_ps(pLocFloor, pLimit);
     if(hasRGBChannels)
-        pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
+        pLocFloor = _mm_mul_ps(pLocFloor, xmm_pChannel);
     __m128i pxLocFloor = _mm_cvtps_epi32(pLocFloor);
     _mm_storeu_si128((__m128i*) srcLoc, pxLocFloor);
 }
