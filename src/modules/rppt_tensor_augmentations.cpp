@@ -1028,7 +1028,6 @@ rppt_crop_host(RppPtr_t srcPtr,
 RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dstPtr, RpptDescPtr dstDescPtr, RpptImagePatchPtr dstImgSizes, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle)
 {
     RppLayoutParams srcLayoutParams = get_layout_params(srcDescPtr->layout, srcDescPtr->c);
-    RppLayoutParams dstLayoutParams = get_layout_params(dstDescPtr->layout, dstDescPtr->c);
 
     if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
     {
@@ -1039,8 +1038,7 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
                                  dstImgSizes,
                                  roiTensorPtrSrc,
                                  roiType,
-                                 srcLayoutParams,
-                                 dstLayoutParams);
+                                 srcLayoutParams);
     }
     // else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
     // {

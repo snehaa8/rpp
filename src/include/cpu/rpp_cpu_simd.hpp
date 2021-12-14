@@ -91,8 +91,6 @@ const __m128i maskp4 = _mm_setr_epi8(12, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80,
 const __m128i pxZero = _mm_setzero_si128();
 const __m128i xmm_store4_pkd_pixels = _mm_setr_epi8(0, 1, 8, 2, 3, 9, 4, 5, 10, 6, 7, 11, 0x80, 0x80, 0x80, 0x80);
 const __m128 pChannel = _mm_set1_ps((float)3);
-const __m128 pOne = _mm_set1_ps((float)1);
-const __m128 pFour = _mm_set1_ps((float)4);
 
 // Print helpers
 
@@ -1375,7 +1373,7 @@ static inline void fast_matmul4x4_sse(float *A, float *B, float *C)
 
 /* Helper functions for Bilinear resize */
 
-inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u **srcRowPtrsForInterp, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u **srcRowPtrsForInterp, Rpp32s *loc, __m128* p)
 {
     __m128i px[4];
     px[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[0]));
@@ -1411,7 +1409,7 @@ inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u **srcRowPtrsForInter
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_u8pln1_to_f32pln1(Rpp8u **srcRowPtrsForInterp, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_u8pln1_to_f32pln1(Rpp8u **srcRowPtrsForInterp, Rpp32s *loc, __m128* p)
 {
     __m128i pxTemp[4];
     pxTemp[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[0]));
@@ -1437,7 +1435,7 @@ inline RppStatus rpp_bilinear_load4_u8pln1_to_f32pln1(Rpp8u **srcRowPtrsForInter
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_i8pkd3_to_f32pln3(Rpp8s* srcPtrTopRow, Rpp8s* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_i8pkd3_to_f32pln3(Rpp8s* srcPtrTopRow, Rpp8s* srcPtrBottomRow, Rpp32s *loc, __m128* p)
 {
     __m128i px[4];
     px[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
@@ -1473,7 +1471,7 @@ inline RppStatus rpp_bilinear_load4_i8pkd3_to_f32pln3(Rpp8s* srcPtrTopRow, Rpp8s
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_i8pln1_to_f32pln1(Rpp8s* srcPtrTopRow, Rpp8s* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_i8pln1_to_f32pln1(Rpp8s* srcPtrTopRow, Rpp8s* srcPtrBottomRow, Rpp32s *loc, __m128* p)
 {
     __m128i pxTemp[4];
     pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
@@ -1563,7 +1561,7 @@ inline RppStatus rpp_store4_f32pln1_to_i8pln1(Rpp8s* dstPtr, __m128 p)
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32s *loc, __m128* p)
 {
     __m128 pTemp[8];
     pTemp[0] = _mm_loadu_ps(srcPtrTopRow + loc[0]);
@@ -1617,7 +1615,7 @@ inline RppStatus rpp_bilinear_load4_f32pkd3_to_f32pln3(Rpp32f* srcPtrTopRow, Rpp
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_f32pln1_to_f32pln1(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f32pln1_to_f32pln1(Rpp32f* srcPtrTopRow, Rpp32f* srcPtrBottomRow, Rpp32s *loc, __m128* p)
 {
     __m128 pTemp[8];
     pTemp[0] = _mm_loadu_ps(srcPtrTopRow + loc[0]);
@@ -1666,7 +1664,7 @@ inline RppStatus rpp_store4_f32pln3_to_f32pkd3(Rpp32f* dstPtr, __m128* p)
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp16f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp16f* srcPtrBottomRow, Rpp32s *loc, __m128* p)
 {
     float T1[4][4], T2[4][4], B1[4][4], B2[4][4];
     /*Converts float16 pixels to float type for computation*/
@@ -1741,7 +1739,7 @@ inline RppStatus rpp_bilinear_load4_f16pkd3_to_f32pln3(Rpp16f* srcPtrTopRow, Rpp
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_f16pln1_to_f32pln1(Rpp16f* srcPtrTopRow, Rpp16f* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_f16pln1_to_f32pln1(Rpp16f* srcPtrTopRow, Rpp16f* srcPtrBottomRow, Rpp32s *loc, __m128* p)
 {
     float T1[4][4], B1[4][4];
     /*Converts float16 pixels to float type for computation*/

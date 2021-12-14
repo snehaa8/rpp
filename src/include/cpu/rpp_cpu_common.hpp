@@ -906,7 +906,6 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
             __m128 p0, p2, p4, p5, p6, p7, pColFloor;
             __m128 p1 = _mm_set1_ps(weightedHeight);
             __m128 p3 = _mm_set1_ps(1 - weightedHeight);
-            __m128 pOne = _mm_set1_ps(1.0);
             __m128i pxColFloor;
 
             Rpp64u vectorLoopCount = 0;
@@ -917,7 +916,7 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
                 pColFloor = _mm_floor_ps(p0);
                 pxColFloor = _mm_cvtps_epi32(pColFloor);
                 p0 = _mm_sub_ps(p0, pColFloor);
-                p2  = _mm_sub_ps(pOne, p0);
+                p2  = _mm_sub_ps(xmm_p1, p0);
 
                 p4 = _mm_mul_ps(p3, p2);
                 p5 = _mm_mul_ps(p3, p0);
@@ -3984,8 +3983,9 @@ inline void compute_bilinear_coefficients(Rpp32f *weightParams, Rpp32f *bilinear
 }
 
 template <typename T>
-inline void compute_bilinear_interpolation_3c(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32s channels, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
+inline void compute_bilinear_interpolation_3c(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
 {
+    Rpp32s channels = 3;
     *dstPtrR = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
                    ((*(srcRowPtrsForInterp[0] + loc + channels)) * bilinearCoeffs[1]) +
                    ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
@@ -4009,13 +4009,13 @@ inline void compute_bilinear_interpolation_1c(T **srcRowPtrsForInterp, Rpp32s lo
                   ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[3]));
 }
 
-inline void compute_resize_src_loc_sse(__m128 &pDstLoc, __m128 &pScale, __m128 &pLimit, Rpp32u *srcLoc, __m128 *pWeight, bool hasRGBChannels = false)
+inline void compute_resize_src_loc_sse(__m128 &pDstLoc, __m128 &pScale, __m128 &pLimit, Rpp32s *srcLoc, __m128 *pWeight, bool hasRGBChannels = false)
 {
     __m128 pLoc = _mm_mul_ps(pDstLoc, pScale);
-    pDstLoc = _mm_add_ps(pDstLoc, pFour);
+    pDstLoc = _mm_add_ps(pDstLoc, xmm_p4);
     __m128 pLocFloor = _mm_floor_ps(pLoc);
     pWeight[0] = _mm_sub_ps(pLoc, pLocFloor);
-    pWeight[1] = _mm_sub_ps(pOne, pWeight[0]);
+    pWeight[1] = _mm_sub_ps(xmm_p1, pWeight[0]);
     pLocFloor = _mm_min_ps(pLocFloor, pLimit);
     if(hasRGBChannels)
         pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
