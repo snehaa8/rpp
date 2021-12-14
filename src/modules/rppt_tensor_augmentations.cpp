@@ -1064,17 +1064,16 @@ RppStatus rppt_resize_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t dst
     //                                srcLayoutParams,
     //                                dstLayoutParams);
     // }
-    // else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
-    // {
-    //     resize_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
-    //                              srcDescPtr,
-    //                              static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
-    //                              dstDescPtr,
-    //                              dstImgSizes,
-    //                              roiTensorPtrSrc,
-    //                              roiType,
-    //                              srcLayoutParams,
-    //                              dstLayoutParams);
-    // }
+    else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+    {
+        resize_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                 srcDescPtr,
+                                 static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                 dstDescPtr,
+                                 dstImgSizes,
+                                 roiTensorPtrSrc,
+                                 roiType,
+                                 srcLayoutParams);
+    }
     return RPP_SUCCESS;
 }
