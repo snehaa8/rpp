@@ -1411,23 +1411,23 @@ inline RppStatus rpp_bilinear_load4_u8pkd3_to_f32pln3(Rpp8u **srcRowPtrsForInter
     return RPP_SUCCESS;
 }
 
-inline RppStatus rpp_bilinear_load4_u8pln1_to_f32pln1(Rpp8u* srcPtrTopRow, Rpp8u* srcPtrBottomRow, Rpp32u* loc, __m128* p)
+inline RppStatus rpp_bilinear_load4_u8pln1_to_f32pln1(Rpp8u **srcRowPtrsForInterp, Rpp32u* loc, __m128* p)
 {
     __m128i pxTemp[4];
-    pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[0]));
-    pxTemp[1] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[1]));
-    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[2]));
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcPtrTopRow + loc[3]));
+    pxTemp[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[0]));
+    pxTemp[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[1]));
+    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[2]));
+    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[3]));
     pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[2]);
     pxTemp[1] = _mm_unpacklo_epi8(pxTemp[1], pxTemp[3]);
     pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]);
-    p[0] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp1)); //
+    p[0] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp1));
     p[1] = _mm_cvtepi32_ps(_mm_shuffle_epi8(pxTemp[0], maskp2));
 
-    pxTemp[0] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[0]));
-    pxTemp[1] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[1]));
-    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[2]));
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcPtrBottomRow + loc[3]));
+    pxTemp[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[0]));
+    pxTemp[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[1]));
+    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[2]));
+    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[3]));
     pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[2]);
     pxTemp[1] = _mm_unpacklo_epi8(pxTemp[1], pxTemp[3]);
     pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]);
