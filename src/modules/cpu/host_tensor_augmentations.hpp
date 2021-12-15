@@ -7486,7 +7486,7 @@ omp_set_dynamic(0);
             roiPtr = &roi;
             compute_roi_boundary_check_host(roiPtrImage, roiPtr, roiPtrDefault);
         }
-        // compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);    // TODO: Check if something like this can be introduced
+        compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
         Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth - 1)) / ((Rpp32f)(dstImgSize[batchCount].width - 1));
         Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight - 1)) / ((Rpp32f)(dstImgSize[batchCount].height - 1));
         Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 2;
@@ -7776,7 +7776,7 @@ omp_set_dynamic(0);
             roiPtr = &roi;
             compute_roi_boundary_check_host(roiPtrImage, roiPtr, roiPtrDefault);
         }
-        // compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);    // TODO: Check if something like this can be introduced
+        compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
         Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth - 1)) / ((Rpp32f)(dstImgSize[batchCount].width - 1));
         Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight - 1)) / ((Rpp32f)(dstImgSize[batchCount].height - 1));
         Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 2;
@@ -8066,7 +8066,7 @@ omp_set_dynamic(0);
             roiPtr = &roi;
             compute_roi_boundary_check_host(roiPtrImage, roiPtr, roiPtrDefault);
         }
-        // compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);    // TODO: Check if something like this can be introduced
+        compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
         Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth - 1)) / ((Rpp32f)(dstImgSize[batchCount].width - 1));
         Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight - 1)) / ((Rpp32f)(dstImgSize[batchCount].height - 1));
         Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 2;
@@ -8356,7 +8356,7 @@ omp_set_dynamic(0);
             roiPtr = &roi;
             compute_roi_boundary_check_host(roiPtrImage, roiPtr, roiPtrDefault);
         }
-        // compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);    // TODO: Check if something like this can be introduced
+        compute_dst_size_cap_host(&dstImgSize[batchCount], dstDescPtr);
         Rpp32f wRatio = ((Rpp32f)(roiPtr->xywhROI.roiWidth - 1)) / ((Rpp32f)(dstImgSize[batchCount].width - 1));
         Rpp32f hRatio = ((Rpp32f)(roiPtr->xywhROI.roiHeight - 1)) / ((Rpp32f)(dstImgSize[batchCount].height - 1));
         Rpp32u heightLimit = roiPtr->xywhROI.roiHeight - 2;
