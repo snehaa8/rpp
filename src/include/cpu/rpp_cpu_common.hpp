@@ -3983,21 +3983,38 @@ inline void compute_bilinear_coefficients(Rpp32f *weightParams, Rpp32f *bilinear
 }
 
 template <typename T>
-inline void compute_bilinear_interpolation_3c(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
+inline void compute_bilinear_interpolation_3c_pkd(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
 {
     Rpp32s channels = 3;
     *dstPtrR = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
-                   ((*(srcRowPtrsForInterp[0] + loc + channels)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 3)) * bilinearCoeffs[1]) +
                    ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + channels)) * bilinearCoeffs[3]));
+                   ((*(srcRowPtrsForInterp[1] + loc + 3)) * bilinearCoeffs[3]));
     *dstPtrG = (T)(((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[0]) +
-                   ((*(srcRowPtrsForInterp[0] + loc + channels + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 4)) * bilinearCoeffs[1]) +
                    ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[2]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + channels + 1)) * bilinearCoeffs[3]));
+                   ((*(srcRowPtrsForInterp[1] + loc + 4)) * bilinearCoeffs[3]));
     *dstPtrB = (T)(((*(srcRowPtrsForInterp[0] + loc + 2)) * bilinearCoeffs[0]) +
-                   ((*(srcRowPtrsForInterp[0] + loc + channels + 2)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 5)) * bilinearCoeffs[1]) +
                    ((*(srcRowPtrsForInterp[1] + loc + 2)) * bilinearCoeffs[2]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + channels + 2)) * bilinearCoeffs[3]));
+                   ((*(srcRowPtrsForInterp[1] + loc + 5)) * bilinearCoeffs[3]));
+}
+
+template <typename T>
+inline void compute_bilinear_interpolation_3c_pln(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
+{
+    *dstPtrR = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[3]));
+    *dstPtrG = (T)(((*(srcRowPtrsForInterp[2] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[2] + loc + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[3] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[3] + loc + 1)) * bilinearCoeffs[3]));
+    *dstPtrB = (T)(((*(srcRowPtrsForInterp[4] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[4] + loc + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[5] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[5] + loc + 1)) * bilinearCoeffs[3]));
 }
 
 template <typename T>
