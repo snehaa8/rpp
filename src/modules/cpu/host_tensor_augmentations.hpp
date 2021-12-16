@@ -7539,9 +7539,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_u8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_u8pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_u8pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
 
                     dstPtrTempR += 4;
                     dstPtrTempG += 4;
@@ -7593,11 +7593,11 @@ omp_set_dynamic(0);
                     __m128 pRow[12], pPixels[3];
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2]);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
-                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
-                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
-                    rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_u8pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_u8pkd3, dstPtrTemp, pPixels);
                     dstPtrTemp += 12;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
@@ -7639,9 +7639,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_u8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_u8pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_u8pkd3, dstPtrTemp, pPixels);
 
                     dstPtrTemp += 12;
                 }
@@ -7694,7 +7694,7 @@ omp_set_dynamic(0);
 
                     for (int c = 0; c < dstDescPtr->c; c++)
                     {
-                        rpp_simd_load(rpp_bilinear_load4_u8pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
+                        rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
                         compute_bilinear_interpolation_1c_sse(pRow, pBilinearCoeffs, pPixels);
                         rpp_simd_store(rpp_store4_f32pln1_to_u8pln1, dstPtrTempChn, pPixels);
                         dstPtrTempChn += dstDescPtr->strides.cStride;
@@ -7826,9 +7826,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_f32pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_f32pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_f32pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_f32pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
 
                     dstPtrTempR += 4;
                     dstPtrTempG += 4;
@@ -7877,14 +7877,14 @@ omp_set_dynamic(0);
                 int vectorLoopCount = 0;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount += 4)
                 {
-                    __m128 pRow[12], pPixels[3];
+                    __m128 pRow[12], pPixels[4];
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2]);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
-                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
-                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
-                    rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
+                    rpp_simd_load(rpp_bilinear_load_f32pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_f32pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
+                    rpp_simd_load(rpp_bilinear_load_f32pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_f32pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_f32pkd3, dstPtrTemp, pPixels);
                     dstPtrTemp += 12;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
@@ -7921,14 +7921,14 @@ omp_set_dynamic(0);
                 int vectorLoopCount = 0;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount += 4)
                 {
-                    __m128 pRow[12], pPixels[3];
+                    __m128 pRow[12], pPixels[4];
 
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_f32pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_f32pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_f32pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_f32pkd3, dstPtrTemp, pPixels);
 
                     dstPtrTemp += 12;
                 }
@@ -7981,7 +7981,7 @@ omp_set_dynamic(0);
 
                     for (int c = 0; c < dstDescPtr->c; c++)
                     {
-                        rpp_simd_load(rpp_bilinear_load4_f32pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
+                        rpp_simd_load(rpp_bilinear_load_f32pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
                         compute_bilinear_interpolation_1c_sse(pRow, pBilinearCoeffs, pPixels);
                         rpp_simd_store(rpp_store4_f32pln1_to_f32pln1, dstPtrTempChn, pPixels);
                         dstPtrTempChn += dstDescPtr->strides.cStride;
@@ -8113,9 +8113,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_f16pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_f16pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_f16pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_f16pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
 
                     dstPtrTempR += 4;
                     dstPtrTempG += 4;
@@ -8167,11 +8167,11 @@ omp_set_dynamic(0);
                     __m128 pRow[12], pPixels[3];
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2]);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
-                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
-                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
-                    rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
+                    rpp_simd_load(rpp_bilinear_load_f16pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_f16pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
+                    rpp_simd_load(rpp_bilinear_load_f16pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_f16pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_f16pkd3, dstPtrTemp, pPixels);
                     dstPtrTemp += 12;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
@@ -8213,9 +8213,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_f16pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_f16pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_f16pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_f16pkd3, dstPtrTemp, pPixels);
 
                     dstPtrTemp += 12;
                 }
@@ -8268,7 +8268,7 @@ omp_set_dynamic(0);
 
                     for (int c = 0; c < dstDescPtr->c; c++)
                     {
-                        rpp_simd_load(rpp_bilinear_load4_f16pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
+                        rpp_simd_load(rpp_bilinear_load_f16pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
                         compute_bilinear_interpolation_1c_sse(pRow, pBilinearCoeffs, pPixels);
                         rpp_simd_store(rpp_store4_f32pln1_to_f16pln1, dstPtrTempChn, pPixels);
                         dstPtrTempChn += dstDescPtr->strides.cStride;
@@ -8400,9 +8400,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_i8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_i8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_i8pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_i8pln3, dstPtrTempR, dstPtrTempG, dstPtrTempB, pPixels);
 
                     dstPtrTempR += 4;
                     dstPtrTempG += 4;
@@ -8454,11 +8454,11 @@ omp_set_dynamic(0);
                     __m128 pRow[12], pPixels[3];
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2]);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
-                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
-                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
-                    rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
+                    rpp_simd_load(rpp_bilinear_load_i8pln1_to_f32pln1, &srcRowPtrsForInterp[0], srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_i8pln1_to_f32pln1, &srcRowPtrsForInterp[2], srcLocCF, pRow + 4);
+                    rpp_simd_load(rpp_bilinear_load_i8pln1_to_f32pln1, &srcRowPtrsForInterp[4], srcLocCF, pRow + 8);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_i8pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_i8pkd3, dstPtrTemp, pPixels);
                     dstPtrTemp += 12;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
@@ -8500,9 +8500,9 @@ omp_set_dynamic(0);
                     compute_resize_src_loc_sse(pDstLoc, pWRatio, pWidthLimit, srcLocCF, &pWeightParams[2], true);
                     compute_bilinear_coefficients_sse(pWeightParams, pBilinearCoeffs);
 
-                    rpp_simd_load(rpp_bilinear_load4_i8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
+                    rpp_simd_load(rpp_bilinear_load_i8pkd3_to_f32pln3, srcRowPtrsForInterp, srcLocCF, pRow);
                     compute_bilinear_interpolation_3c_sse(pRow, pBilinearCoeffs, pPixels);
-                    rpp_simd_store(rpp_store4_f32pln3_to_i8pkd3, dstPtrTemp, pPixels);
+                    rpp_simd_store(rpp_store12_f32pln3_to_i8pkd3, dstPtrTemp, pPixels);
 
                     dstPtrTemp += 12;
                 }
@@ -8555,7 +8555,7 @@ omp_set_dynamic(0);
 
                     for (int c = 0; c < dstDescPtr->c; c++)
                     {
-                        rpp_simd_load(rpp_bilinear_load4_i8pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
+                        rpp_simd_load(rpp_bilinear_load_i8pln1_to_f32pln1, &srcRowPtrsForInterp[c * 2], srcLocCF, pRow);
                         compute_bilinear_interpolation_1c_sse(pRow, pBilinearCoeffs, pPixels);
                         rpp_simd_store(rpp_store4_f32pln1_to_i8pln1, dstPtrTempChn, pPixels);
                         dstPtrTempChn += dstDescPtr->strides.cStride;
