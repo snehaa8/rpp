@@ -1618,7 +1618,7 @@ inline RppStatus rpp_store4_f32pln1_to_f32pln1(Rpp32f* dstPtr, __m128 p)
 inline RppStatus rpp_bilinear_load_f16pkd3_to_f32pln3(Rpp16f **srcRowPtrsForInterp, Rpp32s *loc, __m128* p)
 {
     Rpp32f topRow0[4][4], topRow1[4][4], bottomRow0[4][4], bottomRow1[4][4];
-    /* Converts floatopRow06 pixels to float type for computation*/
+    /* Converts float16 pixels to float type for computation*/
     for(int cnt = 0; cnt < 4; cnt++)
     {
         *(topRow0[0] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[0] + cnt);
@@ -1669,7 +1669,7 @@ inline RppStatus rpp_bilinear_load_f16pkd3_to_f32pln3(Rpp16f **srcRowPtrsForInte
 inline RppStatus rpp_bilinear_load_f16pln1_to_f32pln1(Rpp16f **srcRowPtrsForInterp, Rpp32s *loc, __m128* p)
 {
     Rpp32f topRow[4][4], bottomRow[4][4];
-    /*Converts floatopRow6 pixels to float type for computation*/
+    /*Converts float16 pixels to float type for computation*/
     for(int cnt = 0; cnt < 4; cnt++)
     {
         *(topRow[0] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[0] + cnt);
