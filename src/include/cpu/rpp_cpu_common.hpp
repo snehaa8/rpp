@@ -906,7 +906,6 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
             __m128 p0, p2, p4, p5, p6, p7, pColFloor;
             __m128 p1 = _mm_set1_ps(weightedHeight);
             __m128 p3 = _mm_set1_ps(1 - weightedHeight);
-            __m128 pOne = _mm_set1_ps(1.0);
             __m128i pxColFloor;
 
             Rpp64u vectorLoopCount = 0;
@@ -917,7 +916,7 @@ inline RppStatus resize_kernel_host(T* srcPtr, RppiSize srcSize, U* dstPtr, Rppi
                 pColFloor = _mm_floor_ps(p0);
                 pxColFloor = _mm_cvtps_epi32(pColFloor);
                 p0 = _mm_sub_ps(p0, pColFloor);
-                p2  = _mm_sub_ps(pOne, p0);
+                p2  = _mm_sub_ps(xmm_p1, p0);
 
                 p4 = _mm_mul_ps(p3, p2);
                 p5 = _mm_mul_ps(p3, p0);
@@ -3958,7 +3957,7 @@ inline RppStatus compute_packed_to_planar_host(T* srcPtr, RppiSize srcSize, T* d
     return RPP_SUCCESS;
 }
 
-inline void compute_dst_size_cap_host(RpptImagePatchPtr dstImgSize, RpptDescPtr dstDescPtr)    // TODO: Check usage
+inline void compute_dst_size_cap_host(RpptImagePatchPtr dstImgSize, RpptDescPtr dstDescPtr)
 {
     dstImgSize->width = std::min(dstImgSize->width, dstDescPtr->w);
     dstImgSize->height = std::min(dstImgSize->height, dstDescPtr->h);
@@ -3975,60 +3974,69 @@ inline void compute_resize_src_loc(Rpp32s dstLocation, Rpp32f scale, Rpp32u limi
         srcLoc = srcLoc * 3;
 }
 
-inline void compute_bilinear_coefficients(Rpp32f *weightParams, Rpp32f *bilinearCoeffs)
-{
-    bilinearCoeffs[0] = weightParams[1] * weightParams[3];    // (1 - weightedHeight) * (1 - weightedWidth)
-    bilinearCoeffs[1] = weightParams[1] * weightParams[2];    // (1 - weightedHeight) * weightedWidth
-    bilinearCoeffs[2] = weightParams[0] * weightParams[3];    // weightedHeight * (1 - weightedWidth)
-    bilinearCoeffs[3] = weightParams[0] * weightParams[2];    // weightedHeight * weightedWidth
-}
-
-template <typename T>
-inline void compute_bilinear_interpolation_3c(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32s channels, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
-{
-    *dstPtrR = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
-                   ((*(srcRowPtrsForInterp[0] + loc + channels)) * bilinearCoeffs[1]) +
-                   ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + channels)) * bilinearCoeffs[3]));
-    *dstPtrG = (T)(((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[0]) +
-                   ((*(srcRowPtrsForInterp[0] + loc + channels + 1)) * bilinearCoeffs[1]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[2]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + channels + 1)) * bilinearCoeffs[3]));
-    *dstPtrB = (T)(((*(srcRowPtrsForInterp[0] + loc + 2)) * bilinearCoeffs[0]) +
-                   ((*(srcRowPtrsForInterp[0] + loc + channels + 2)) * bilinearCoeffs[1]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + 2)) * bilinearCoeffs[2]) +
-                   ((*(srcRowPtrsForInterp[1] + loc + channels + 2)) * bilinearCoeffs[3]));
-}
-
-template <typename T>
-inline void compute_bilinear_interpolation_1c(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtr)
-{
-    *dstPtr = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
-                  ((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[1]) +
-                  ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
-                  ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[3]));
-}
-
-inline void compute_resize_src_loc_sse(__m128 &pDstLoc, __m128 &pScale, __m128 &pLimit, Rpp32u *srcLoc, __m128 *pWeight, bool hasRGBChannels = false)
+inline void compute_resize_src_loc_sse(__m128 &pDstLoc, __m128 &pScale, __m128 &pLimit, Rpp32s *srcLoc, __m128 *pWeight, bool hasRGBChannels = false)
 {
     __m128 pLoc = _mm_mul_ps(pDstLoc, pScale);
-    pDstLoc = _mm_add_ps(pDstLoc, pFour);
+    pDstLoc = _mm_add_ps(pDstLoc, xmm_p4);
     __m128 pLocFloor = _mm_floor_ps(pLoc);
     pWeight[0] = _mm_sub_ps(pLoc, pLocFloor);
-    pWeight[1] = _mm_sub_ps(pOne, pWeight[0]);
+    pWeight[1] = _mm_sub_ps(xmm_p1, pWeight[0]);
     pLocFloor = _mm_min_ps(pLocFloor, pLimit);
     if(hasRGBChannels)
-        pLocFloor = _mm_mul_ps(pLocFloor, pChannel);
+        pLocFloor = _mm_mul_ps(pLocFloor, xmm_pChannel);
     __m128i pxLocFloor = _mm_cvtps_epi32(pLocFloor);
     _mm_storeu_si128((__m128i*) srcLoc, pxLocFloor);
 }
 
+inline void compute_bilinear_coefficients(Rpp32f *weightParams, Rpp32f *bilinearCoeffs)
+{
+    bilinearCoeffs[0] = weightParams[1] * weightParams[3];    /* (1 - weightedHeight) * (1 - weightedWidth) */
+    bilinearCoeffs[1] = weightParams[1] * weightParams[2];    /* (1 - weightedHeight) * weightedWidth */
+    bilinearCoeffs[2] = weightParams[0] * weightParams[3];    /* weightedHeight * (1 - weightedWidth) */
+    bilinearCoeffs[3] = weightParams[0] * weightParams[2];    /* weightedHeight * weightedWidth */
+}
+
 inline void compute_bilinear_coefficients_sse(__m128 *pWeightParams, __m128 *pBilinearCoeffs)
 {
-    pBilinearCoeffs[0] = _mm_mul_ps(pWeightParams[1], pWeightParams[3]);    // (1 - weightedHeight) * (1 - weightedWidth)
-    pBilinearCoeffs[1] = _mm_mul_ps(pWeightParams[1], pWeightParams[2]);    // (1 - weightedHeight) * weightedWidth
-    pBilinearCoeffs[2] = _mm_mul_ps(pWeightParams[0], pWeightParams[3]);    // weightedHeight * (1 - weightedWidth)
-    pBilinearCoeffs[3] = _mm_mul_ps(pWeightParams[0], pWeightParams[2]);    // weightedHeight * weightedWidth
+    pBilinearCoeffs[0] = _mm_mul_ps(pWeightParams[1], pWeightParams[3]);    /* (1 - weightedHeight) * (1 - weightedWidth) */
+    pBilinearCoeffs[1] = _mm_mul_ps(pWeightParams[1], pWeightParams[2]);    /* (1 - weightedHeight) * weightedWidth */
+    pBilinearCoeffs[2] = _mm_mul_ps(pWeightParams[0], pWeightParams[3]);    /* weightedHeight * (1 - weightedWidth) */
+    pBilinearCoeffs[3] = _mm_mul_ps(pWeightParams[0], pWeightParams[2]);    /* weightedHeight * weightedWidth */
+}
+
+template <typename T>
+inline void compute_bilinear_interpolation_3c_pkd(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
+{
+    Rpp32s channels = 3;
+    *dstPtrR = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 3)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 3)) * bilinearCoeffs[3]));
+    *dstPtrG = (T)(((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 4)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 4)) * bilinearCoeffs[3]));
+    *dstPtrB = (T)(((*(srcRowPtrsForInterp[0] + loc + 2)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 5)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 2)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 5)) * bilinearCoeffs[3]));
+}
+
+template <typename T>
+inline void compute_bilinear_interpolation_3c_pln(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtrR, T *dstPtrG, T *dstPtrB)
+{
+    *dstPtrR = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[3]));
+    *dstPtrG = (T)(((*(srcRowPtrsForInterp[2] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[2] + loc + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[3] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[3] + loc + 1)) * bilinearCoeffs[3]));
+    *dstPtrB = (T)(((*(srcRowPtrsForInterp[4] + loc)) * bilinearCoeffs[0]) +
+                   ((*(srcRowPtrsForInterp[4] + loc + 1)) * bilinearCoeffs[1]) +
+                   ((*(srcRowPtrsForInterp[5] + loc)) * bilinearCoeffs[2]) +
+                   ((*(srcRowPtrsForInterp[5] + loc + 1)) * bilinearCoeffs[3]));
 }
 
 inline void compute_bilinear_interpolation_3c_sse(__m128 *pSrcPixels, __m128 *pBilinearCoeffs, __m128 *pDstPixels)
@@ -4041,6 +4049,15 @@ inline void compute_bilinear_interpolation_3c_sse(__m128 *pSrcPixels, __m128 *pB
 inline void compute_bilinear_interpolation_1c_sse(__m128 *pSrcPixels, __m128 *pBilinearCoeffs, __m128 &pDstPixels)
 {
     pDstPixels = _mm_fmadd_ps(pSrcPixels[3], pBilinearCoeffs[3], _mm_fmadd_ps(pSrcPixels[2], pBilinearCoeffs[2], _mm_fmadd_ps(pSrcPixels[1], pBilinearCoeffs[1], _mm_mul_ps(pSrcPixels[0], pBilinearCoeffs[0]))));
+}
+
+template <typename T>
+inline void compute_bilinear_interpolation_1c(T **srcRowPtrsForInterp, Rpp32s loc, Rpp32f *bilinearCoeffs, T *dstPtr)
+{
+    *dstPtr = (T)(((*(srcRowPtrsForInterp[0] + loc)) * bilinearCoeffs[0]) +
+                  ((*(srcRowPtrsForInterp[0] + loc + 1)) * bilinearCoeffs[1]) +
+                  ((*(srcRowPtrsForInterp[1] + loc)) * bilinearCoeffs[2]) +
+                  ((*(srcRowPtrsForInterp[1] + loc + 1)) * bilinearCoeffs[3]));
 }
 
 #endif //RPP_CPU_COMMON_H
