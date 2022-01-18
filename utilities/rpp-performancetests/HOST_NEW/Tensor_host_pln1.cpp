@@ -25,7 +25,7 @@ typedef half Rpp16f;
 #define RPPMAX2(a,b) ((a > b) ? a : b)
 #define RPPMIN2(a,b) ((a < b) ? a : b)
 
-std::string get_interpolation_type(int val, RpptInterpolationType interpType)
+std::string get_interpolation_type(int val, RpptInterpolationType &interpType)
 {
     switch(val)
     {
