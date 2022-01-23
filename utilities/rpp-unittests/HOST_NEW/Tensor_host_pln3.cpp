@@ -87,12 +87,17 @@ int main(int argc, char **argv)
     int test_case = atoi(argv[6]);
     unsigned int verbosity = (test_case == 21) ? atoi(argv[8]) : atoi(argv[7]);
     // Params specific to case 21 - Resize
-    int interpolation_type = (test_case == 21) ? atoi(argv[7]) : 1;
+    int interpolation_type_num = (test_case == 21) ? atoi(argv[7]) : 1;
     RpptInterpolationType interpolationType = RpptInterpolationType::BILINEAR;
     std::string interpolationTypeName;
     if(test_case == 21)
     {
-        interpolationTypeName = get_interpolation_type(interpolation_type, interpolationType);
+        if(interpolation_type_num != 1)
+        {
+            printf("\nCurrently only bilinear interpolation is supported for resize\n");
+            interpolation_type_num = 1;
+        }
+        interpolationTypeName = get_interpolation_type(interpolation_type_num, interpolationType);
     }
 
     if (verbosity)
