@@ -9199,7 +9199,6 @@ RppStatus ricap_u8_u8_host_tensor(Rpp8u *srcPtr,
                                   RpptDescPtr dstDescPtr,
                                   Rpp32u *permutedIndices,
                                   RpptROIPtr roiPtrInputCropRegion,
-                                  RpptROIPtr roiTensorPtrSrc,
                                   RpptRoiType roiType,
                                   RppLayoutParams layoutParams)
 {
@@ -9644,7 +9643,6 @@ RppStatus ricap_f32_f32_host_tensor(Rpp32f *srcPtr,
                                     RpptDescPtr dstDescPtr,
                                     Rpp32u *permutedIndices,
                                     RpptROIPtr roiPtrInputCropRegion,
-                                    RpptROIPtr roiTensorPtrSrc,
                                     RpptRoiType roiType,
                                     RppLayoutParams layoutParams)
 {
@@ -9707,10 +9705,11 @@ RppStatus ricap_f32_f32_host_tensor(Rpp32f *srcPtr,
         compute_roi_boundary_check_host(roiPtrImage4, roiPtr4, roiPtrDefault);
 
         Rpp32f *srcPtrImage1, *srcPtrImage2, *srcPtrImage3, *srcPtrImage4, *dstPtrImage;
-        srcPtrImage1 = srcPtr + (permutedIndices[batchCount] * srcDescPtr->strides.nStride);
-        srcPtrImage2 = srcPtr + (permutedIndices[batchCount + dstDescPtr->n] * srcDescPtr->strides.nStride);
-        srcPtrImage3 = srcPtr + (permutedIndices[batchCount + (dstDescPtr->n * 2)] * srcDescPtr->strides.nStride);
-        srcPtrImage4 = srcPtr + (permutedIndices[batchCount + (dstDescPtr->n * 3)] * srcDescPtr->strides.nStride);
+        int permutedCount = batchCount * 4;
+        srcPtrImage1 = srcPtr + (permutedIndices[permutedCount] * srcDescPtr->strides.nStride);
+        srcPtrImage2 = srcPtr + (permutedIndices[permutedCount + 1] * srcDescPtr->strides.nStride);
+        srcPtrImage3 = srcPtr + (permutedIndices[permutedCount + 2] * srcDescPtr->strides.nStride);
+        srcPtrImage4 = srcPtr + (permutedIndices[permutedCount + 3] * srcDescPtr->strides.nStride);
         dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         Rpp32u bufferLength1 = roiPtr1->xywhROI.roiWidth * layoutParams.bufferMultiplier;
@@ -10091,7 +10090,6 @@ RppStatus ricap_f16_f16_host_tensor(Rpp16f *srcPtr,
                                     RpptDescPtr dstDescPtr,
                                     Rpp32u *permutedIndices,
                                     RpptROIPtr roiPtrInputCropRegion,
-                                    RpptROIPtr roiTensorPtrSrc,
                                     RpptRoiType roiType,
                                     RppLayoutParams layoutParams)
 {
@@ -10154,10 +10152,11 @@ RppStatus ricap_f16_f16_host_tensor(Rpp16f *srcPtr,
         compute_roi_boundary_check_host(roiPtrImage4, roiPtr4, roiPtrDefault);
 
         Rpp16f *srcPtrImage1, *srcPtrImage2, *srcPtrImage3, *srcPtrImage4, *dstPtrImage;
-        srcPtrImage1 = srcPtr + (permutedIndices[batchCount] * srcDescPtr->strides.nStride);
-        srcPtrImage2 = srcPtr + (permutedIndices[batchCount + dstDescPtr->n] * srcDescPtr->strides.nStride);
-        srcPtrImage3 = srcPtr + (permutedIndices[batchCount + (dstDescPtr->n * 2)] * srcDescPtr->strides.nStride);
-        srcPtrImage4 = srcPtr + (permutedIndices[batchCount + (dstDescPtr->n * 3)] * srcDescPtr->strides.nStride);
+        int permutedCount = batchCount * 4;
+        srcPtrImage1 = srcPtr + (permutedIndices[permutedCount] * srcDescPtr->strides.nStride);
+        srcPtrImage2 = srcPtr + (permutedIndices[permutedCount + 1] * srcDescPtr->strides.nStride);
+        srcPtrImage3 = srcPtr + (permutedIndices[permutedCount + 2] * srcDescPtr->strides.nStride);
+        srcPtrImage4 = srcPtr + (permutedIndices[permutedCount + 3] * srcDescPtr->strides.nStride);
         dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         Rpp32u bufferLength1 = roiPtr1->xywhROI.roiWidth * layoutParams.bufferMultiplier;
@@ -10635,7 +10634,6 @@ RppStatus ricap_i8_i8_host_tensor(Rpp8s *srcPtr,
                                   RpptDescPtr dstDescPtr,
                                   Rpp32u *permutedIndices,
                                   RpptROIPtr roiPtrInputCropRegion,
-                                  RpptROIPtr roiTensorPtrSrc,
                                   RpptRoiType roiType,
                                   RppLayoutParams layoutParams)
 {
@@ -10698,10 +10696,11 @@ RppStatus ricap_i8_i8_host_tensor(Rpp8s *srcPtr,
         compute_roi_boundary_check_host(roiPtrImage4, roiPtr4, roiPtrDefault);
 
         Rpp8s *srcPtrImage1, *srcPtrImage2, *srcPtrImage3, *srcPtrImage4, *dstPtrImage;
-        srcPtrImage1 = srcPtr + (permutedIndices[batchCount] * srcDescPtr->strides.nStride);
-        srcPtrImage2 = srcPtr + (permutedIndices[batchCount + dstDescPtr->n] * srcDescPtr->strides.nStride);
-        srcPtrImage3 = srcPtr + (permutedIndices[batchCount + (dstDescPtr->n * 2)] * srcDescPtr->strides.nStride);
-        srcPtrImage4 = srcPtr + (permutedIndices[batchCount + (dstDescPtr->n * 3)] * srcDescPtr->strides.nStride);
+        int permutedCount = batchCount * 4;
+        srcPtrImage1 = srcPtr + (permutedIndices[permutedCount] * srcDescPtr->strides.nStride);
+        srcPtrImage2 = srcPtr + (permutedIndices[permutedCount + 1] * srcDescPtr->strides.nStride);
+        srcPtrImage3 = srcPtr + (permutedIndices[permutedCount + 2] * srcDescPtr->strides.nStride);
+        srcPtrImage4 = srcPtr + (permutedIndices[permutedCount + 3] * srcDescPtr->strides.nStride);
         dstPtrImage = dstPtr + batchCount * dstDescPtr->strides.nStride;
 
         Rpp32u bufferLength1 = roiPtr1->xywhROI.roiWidth * layoutParams.bufferMultiplier;

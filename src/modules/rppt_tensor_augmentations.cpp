@@ -1190,7 +1190,6 @@ rppt_ricap_host(RppPtr_t srcPtr,
                 RpptDescPtr dstDescPtr,
                 Rpp32u *permutationTensor,
                 RpptROIPtr roiPtrInputCropRegion,
-                RpptROIPtr roiTensorPtrSrc,
                 RpptRoiType roiType,
                 rppHandle_t rppHandle)
 {
@@ -1211,7 +1210,6 @@ rppt_ricap_host(RppPtr_t srcPtr,
                                 dstDescPtr,
                                 permutationTensor,
                                 roiPtrInputCropRegion,
-                                roiTensorPtrSrc,
                                 roiType,
                                 layoutParams);
     }
@@ -1223,7 +1221,6 @@ rppt_ricap_host(RppPtr_t srcPtr,
                                   dstDescPtr,
                                   permutationTensor,
                                   roiPtrInputCropRegion,
-                                  roiTensorPtrSrc,
                                   roiType,
                                   layoutParams);
     }
@@ -1235,7 +1232,6 @@ rppt_ricap_host(RppPtr_t srcPtr,
                                   dstDescPtr,
                                   permutationTensor,
                                   roiPtrInputCropRegion,
-                                  roiTensorPtrSrc,
                                   roiType,
                                   layoutParams);
     }
@@ -1247,7 +1243,6 @@ rppt_ricap_host(RppPtr_t srcPtr,
                                 dstDescPtr,
                                 permutationTensor,
                                 roiPtrInputCropRegion,
-                                roiTensorPtrSrc,
                                 roiType,
                                 layoutParams);
     }
