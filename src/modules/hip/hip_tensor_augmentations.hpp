@@ -10,6 +10,7 @@
 #include "kernel/ricap.hpp"
 #include "kernel/crop.hpp"
 #include "kernel/gridmask.hpp"
+#include "kernel/spatter.hpp"
 #include "kernel/roi_conversion.hpp"
 
 /******************** brightness ********************/
@@ -300,6 +301,68 @@ RppStatus gridmask_hip_tensor(T *srcPtr,
                              translateVector,
                              roiTensorPtrSrc,
                              handle);
+
+    return RPP_SUCCESS;
+}
+
+/******************** spatter ********************/
+
+template <typename T>
+RppStatus spatter_hip_tensor(T *srcPtr,
+                             RpptDescPtr srcDescPtr,
+                             T *dstPtr,
+                             RpptDescPtr dstDescPtr,
+                             RpptRGB spatterColor,
+                             RpptROIPtr roiTensorPtrSrc,
+                             RpptRoiType roiType,
+                             rpp::Handle& handle)
+{
+    if (roiType == RpptRoiType::LTRB)
+    {
+        hip_exec_roi_converison_ltrb_to_xywh(roiTensorPtrSrc,
+                                             handle);
+    }
+
+    hip_exec_spatter_tensor(srcPtr,
+                            srcDescPtr,
+                            dstPtr,
+                            dstDescPtr,
+                            spatterColor,
+                            roiTensorPtrSrc,
+                            handle);
+
+    return RPP_SUCCESS;
+}
+
+/******************** ricap ********************/
+
+template <typename T>
+RppStatus ricap_hip_tensor(T *srcPtr,
+                           RpptDescPtr srcDescPtr,
+                           T *dstPtr,
+                           RpptDescPtr dstDescPtr,
+                           Rpp32u *permutationTensor,
+                           RpptRoiType roiType,
+                           RpptROIPtr roiPtrInputCropRegion,
+                           rpp::Handle& handle)
+{
+    Rpp32u* permutationHipTensor;
+    hipMalloc(&permutationHipTensor, sizeof(Rpp32u)* 4 * handle.GetBatchSize());
+    hipMemcpy(permutationHipTensor,permutationTensor,sizeof(Rpp32u)* 4 * handle.GetBatchSize(),hipMemcpyHostToDevice);
+
+    if (roiType == RpptRoiType::LTRB)
+    {
+        hip_exec_roi_converison_ltrb_to_xywh(roiPtrInputCropRegion,
+                                             handle);
+    }
+
+    hip_exec_ricap_tensor(srcPtr,
+                           srcDescPtr,
+                           dstPtr,
+                           dstDescPtr,
+                           permutationHipTensor,
+                           roiPtrInputCropRegion,
+                           handle);
 
     return RPP_SUCCESS;
 }
