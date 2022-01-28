@@ -1171,10 +1171,6 @@ int main(int argc, char **argv)
             else
                 missingFuncFlag = 1;
 
-            hipDeviceSynchronize();
-
-            end = clock();
-
             break;
         }
         case 83:
