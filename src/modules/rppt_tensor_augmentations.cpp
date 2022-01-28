@@ -1273,6 +1273,7 @@ rppt_spatter_gpu(RppPtr_t srcPtr,
     return RPP_SUCCESS;
 }
 
+RppStatus
 rppt_spatter_host(RppPtr_t srcPtr,
                   RpptDescPtr srcDescPtr,
                   RppPtr_t dstPtr,
