@@ -31,12 +31,13 @@ jobs:
         sudo docker exec abishek_workflows_do_not_use /bin/bash -c "cd /media/abishek/github-workflows/rpp/utilities/rpp-performancetests/HIP_NEW; python3 generatePerformanceLogs.py"
     - name: Compatibility check - HIP
       run: |
-        echo "PR#$PR_NUMBER is being verified."
-        cd ~/dockerMount/abishek/github-workflows
-        git clone https://github.com/GPUOpen-ProfessionalCompute-Libraries/MIVisionX.git
-        cd MIVisionX
-        git log -3
-        sudo docker exec abishek_workflows_do_not_use /bin/bash -c "cd /media/abishek/github-workflows/MIVisionX; mkdir build; cd build; cmake -DBACKEND=HIP ..; sudo make -j20 install"
+        echo "Skipping compatibility check."
+        # echo "PR#$PR_NUMBER is being verified."
+        # cd ~/dockerMount/abishek/github-workflows
+        # git clone https://github.com/GPUOpen-ProfessionalCompute-Libraries/MIVisionX.git
+        # cd MIVisionX
+        # git log -3
+        # sudo docker exec abishek_workflows_do_not_use /bin/bash -c "cd /media/abishek/github-workflows/MIVisionX; mkdir build; cd build; cmake -DBACKEND=HIP ..; sudo make -j20 install"
     - name: Clean up
       run: |
         cd ~/dockerMount/abishek/github-workflows
