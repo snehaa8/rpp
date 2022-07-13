@@ -1,5 +1,23 @@
 /*
-   MulticoreWare Inc.
+Copyright (c) 2019 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 */
 
 #ifndef RPPDEFS_H
@@ -18,9 +36,6 @@ extern "C" {
 #define RPP_MIN_16U     ( 0 )
 #define RPP_MAX_16U     ( 65535 )
 
-
-
-
 /******************** RPP typedefs ********************/
 
 typedef unsigned char       Rpp8u;
@@ -38,12 +53,16 @@ typedef size_t              RppSize_t;
 
 typedef enum
 {
-    RPP_SUCCESS                  = 0,
-    RPP_ERROR                    = -1,
-    RPP_ERROR_INVALID_ARGUMENTS  = -2,
-    RPP_ERROR_LOW_OFFSET         = -3,
-    RPP_ERROR_HIGH_SRC_DIMENSION = -5,
-    RPP_ERROR_NOT_IMPLEMENTED    = -6
+    RPP_SUCCESS                         = 0,
+    RPP_ERROR                           = -1,
+    RPP_ERROR_INVALID_ARGUMENTS         = -2,
+    RPP_ERROR_LOW_OFFSET                = -3,
+    RPP_ERROR_HIGH_SRC_DIMENSION        = -5,
+    RPP_ERROR_NOT_IMPLEMENTED           = -6,
+    RPP_ERROR_INVALID_SRC_CHANNELS      = -7,
+    RPP_ERROR_INVALID_DST_CHANNELS      = -8,
+    RPP_ERROR_INVALID_SRC_LAYOUT        = -9,
+    RPP_ERROR_INVALID_DST_LAYOUT        = -10
 } RppStatus;
 
 typedef enum
@@ -109,10 +128,6 @@ typedef struct
 {
     Rpp32f data[6];
 } Rpp32f6;
-
-
-
-
 
 /******************** RPPI typedefs ********************/
 
@@ -184,10 +199,6 @@ typedef enum
     RGB,
     HSV
 } RppiFormat;
-
-
-
-
 
 /******************** RPPT typedefs ********************/
 
@@ -293,8 +304,8 @@ typedef struct
 } RpptImagePatch, *RpptImagePatchPtr;
 
 typedef struct
-{   uint x[5];
-    uint counter;
+{   Rpp32u x[5];
+    Rpp32u counter;
 } RpptXorwowState;
 
 
@@ -368,10 +379,6 @@ typedef struct {
     Rpp32u *inc;
     Rpp32u *dstInc;
 } memCPU;
-
-
-
-
 
 #ifdef OCL_COMPILE
 
@@ -451,17 +458,6 @@ typedef struct
     memCPU mcpu;
     memGPU mgpu;
 } memMgmt;
-
-typedef struct
-{
-    RppPtr_t cpuHandle;
-    Rpp32u nbatchSize;
-    memMgmt mem;
-} InitHandle;
-
-
-
-
 
 #elif defined(HIP_COMPILE)
 
@@ -548,14 +544,21 @@ typedef struct
     memGPU mgpu;
 } memMgmt;
 
+#else
+
+typedef struct
+{
+    memCPU mcpu;
+} memMgmt;
+
+#endif //BACKEND
+
 typedef struct
 {
     RppPtr_t cpuHandle;
     Rpp32u nbatchSize;
     memMgmt mem;
 } InitHandle;
-
-#endif //BACKEND
 
 #ifdef __cplusplus
 }
