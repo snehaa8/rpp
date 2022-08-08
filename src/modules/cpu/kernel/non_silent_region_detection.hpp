@@ -1,19 +1,19 @@
 #include "rppdefs.h"
 #include <omp.h>
 
-Rpp32f getSquare(Rpp32f &value)
+inline Rpp32f compute_square_host(Rpp32f &value)
 {
     Rpp32f res = value;
+
     return (res * res);
 }
 
-Rpp32f getMax(std::vector<float> &values, int length)
+inline Rpp32f compute_max_in_vector_host(std::vector<float> &values, int length)
 {
     Rpp32f max = values[0];
     for(int i = 1; i < length; i++)
-    {
         max = std::max(max, values[i]);
-    }
+
     return max;
 }
 
@@ -55,19 +55,19 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
         while(windowBegin <= srcSize - windowLength)
         {
             for(int i = windowBegin; i < windowLength; i++)
-                sumOfSquares += getSquare(srcPtrTemp[i]);
+                sumOfSquares += compute_square_host(srcPtrTemp[i]);
             mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
 
             auto interval_endIdx = std::min(windowBegin + resetInterval, srcSize) - windowLength + 1;
             for(windowBegin++; windowBegin < interval_endIdx; windowBegin++)
             {
-                sumOfSquares += getSquare(srcPtrTemp[windowBegin + windowLength - 1]) - getSquare(srcPtrTemp[windowBegin - 1]);
+                sumOfSquares += compute_square_host(srcPtrTemp[windowBegin + windowLength - 1]) - compute_square_host(srcPtrTemp[windowBegin - 1]);
                 mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
             }
         }
 
         // Convert cutOff from DB to magnitude
-        Rpp32f base = (referenceMax) ? getMax(mmsBuffer, mmsBufferSize) : referencePower;
+        Rpp32f base = (referenceMax) ? compute_max_in_vector_host(mmsBuffer, mmsBufferSize) : referencePower;
         Rpp32f cutOffMag = base * std::pow(10.0f, cutOffDB * 0.1f);
 
         // Calculate begining index, length of non silent region from the mms buffer
