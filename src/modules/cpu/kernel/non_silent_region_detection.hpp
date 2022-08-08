@@ -58,8 +58,8 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
                 sumOfSquares += compute_square_host(srcPtrTemp[i]);
             mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
 
-            auto interval_endIdx = std::min(windowBegin + resetInterval, srcSize) - windowLength + 1;
-            for(windowBegin++; windowBegin < interval_endIdx; windowBegin++)
+            auto intervalEndIdx = std::min(windowBegin + resetInterval, srcSize) - windowLength + 1;
+            for(windowBegin++; windowBegin < intervalEndIdx; windowBegin++)
             {
                 sumOfSquares += compute_square_host(srcPtrTemp[windowBegin + windowLength - 1]) - compute_square_host(srcPtrTemp[windowBegin - 1]);
                 mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
