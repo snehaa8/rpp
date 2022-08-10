@@ -230,6 +230,21 @@ inline float rpp_host_rng_xorwow_f32(RpptXorwowState *xorwowState)
     return  outFloat - 1;                                                               // return 0 <= outFloat < 1
 }
 
+inline void commpute_scan_8_avx(__m256 &p)
+{
+    __m256 pTemp[2];
+
+    pTemp[0] = _mm256_permute_ps(p, _MM_SHUFFLE(2, 1, 0, 3));
+    pTemp[1] = _mm256_permute2f128_ps(pTemp[0], pTemp[0], 41);
+    p = _mm256_add_ps(p, _mm256_blend_ps(pTemp[0], pTemp[1], 0x11));
+
+    pTemp[0] = _mm256_permute_ps(p, _MM_SHUFFLE(1, 0, 3, 2));
+    pTemp[1] = _mm256_permute2f128_ps(pTemp[0], pTemp[0], 41);
+    p = _mm256_add_ps(p, _mm256_blend_ps(pTemp[0], pTemp[1], 0x33));
+
+    p = _mm256_add_ps(p, _mm256_permute2f128_ps(p, p, 41));
+}
+
 inline int power_function(int a, int b)
 {
     int product = 1;

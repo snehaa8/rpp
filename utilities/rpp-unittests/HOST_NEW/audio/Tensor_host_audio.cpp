@@ -66,6 +66,8 @@ void verify_output(Rpp32f *dstPtr, int *srcLength, int bs, string test_case, Rpp
         ref_file.close();
         if(matched_indices == srcLength[i])
             file_match++;
+        else
+            std::cerr << "\nFile " << i + 1 << " fails!";
     }
 
     std::cerr<<std::endl<<"Results for Test case: "<<test_case<<std::endl;
@@ -105,6 +107,8 @@ void verify_non_silent_region_detection(int *detectionIndex, int *detectionLengt
 
         if((out_index == ref_index) && (out_length == ref_length))
             file_match += 1;
+        else
+            std::cerr << "\nFile " << i + 1 << " fails!";
         ref_file.close();
     }
     std::cerr<<std::endl<<"Results for Test case: "<<test_case<<std::endl;

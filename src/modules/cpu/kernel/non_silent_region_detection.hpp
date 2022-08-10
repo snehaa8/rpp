@@ -1,5 +1,6 @@
 #include "rppdefs.h"
-#include <omp.h>
+#include "rpp_cpu_common.hpp"
+#include "rpp_cpu_simd.hpp"
 
 inline Rpp32f compute_square_host(Rpp32f &value)
 {
@@ -51,6 +52,9 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
         // Calculate moving mean square of input array and store in mms buffer
         Rpp32f sumOfSquares = 0.0f;
         Rpp32f meanFactor = 1.0f / windowLength;
+        Rpp32s windowLengthMinus1 = windowLength - 1;
+        __m256 pMeanFactor = _mm256_set1_ps(meanFactor);
+
         int windowBegin = 0;
         while(windowBegin <= srcSize - windowLength)
         {
@@ -58,10 +62,32 @@ RppStatus non_silent_region_detection_host_tensor(Rpp32f *srcPtr,
                 sumOfSquares += compute_square_host(srcPtrTemp[i]);
             mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
 
-            auto intervalEndIdx = std::min(windowBegin++ + resetInterval, srcSize) - windowLength + 1;
+            auto intervalEndIdx = std::min(windowBegin++ + resetInterval, srcSize) - windowLengthMinus1;
+            std::cerr << "\nintervalEndIdx for file " << batchCount + 1 << " = " << intervalEndIdx;
+
+            Rpp32u vectorIncrement = 8;
+            Rpp32u alignedLength = (intervalEndIdx / 8) * 8;
+
+            __m256 pSumOfSquares = _mm256_set1_ps(sumOfSquares);
+            for(; windowBegin < alignedLength; windowBegin += vectorIncrement)
+            {
+                __m256 p[2];
+                p[0] = _mm256_loadu_ps(&srcPtrTemp[windowBegin + windowLengthMinus1]);
+                p[0] = _mm256_mul_ps(p[0], p[0]);
+                p[1] = _mm256_loadu_ps(&srcPtrTemp[windowBegin - 1]);
+                p[1] = _mm256_mul_ps(p[1], p[1]);
+                p[0] = _mm256_sub_ps(p[0], p[1]);
+                commpute_scan_8_avx(p[0]);
+                p[0] = _mm256_add_ps(p[0], pSumOfSquares);
+                p[1] = _mm256_mul_ps(p[0], pMeanFactor);
+                _mm256_storeu_ps(&mmsBuffer[windowBegin], p[1]);
+                p[0] = _mm256_permute2f128_ps(p[0], p[0], 0x11);
+                pSumOfSquares = _mm256_permute_ps(p[0], 0xff);
+            }
+            sumOfSquares = _mm256_cvtss_f32(pSumOfSquares);
             for(; windowBegin < intervalEndIdx; windowBegin++)
             {
-                sumOfSquares += compute_square_host(srcPtrTemp[windowBegin + windowLength - 1]) - compute_square_host(srcPtrTemp[windowBegin - 1]);
+                sumOfSquares += compute_square_host(srcPtrTemp[windowBegin + windowLengthMinus1]) - compute_square_host(srcPtrTemp[windowBegin - 1]);
                 mmsBuffer[windowBegin] = sumOfSquares * meanFactor;
             }
         }
