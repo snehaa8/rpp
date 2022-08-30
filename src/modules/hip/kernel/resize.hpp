@@ -189,7 +189,8 @@ __global__ void resize_generic_pkd_tensor(T *srcPtr,
                                           uint2 dstStridesNH,
                                           RpptImagePatchPtr dstImgSize,
                                           RpptROIPtr roiTensorPtrSrc,
-                                          RpptInterpolationType interpolationType)
+                                          RpptInterpolationType interpolationType,
+                                          pFnPtrInterpCoeff interpolateFn)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
@@ -236,14 +237,16 @@ __global__ void resize_generic_pkd_tensor(T *srcPtr,
     {
         rowIndex = fminf(fmaxf((int)(srcLocationRowFloor + j), 0), heightLimit);
         srcRowPtrsForInterp = srcPtrTemp + rowIndex * srcStridesNH.y;
-        rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        // rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        interpolateFn((rowWeight - hRadius + j) * hScale, &rowCoeff);
         rowCoeffSum += rowCoeff;
 
         colCoeffSum = 0;
         for(int k = 0; k < wKernelSize; k++)
         {
             colIndex = fminf(fmaxf((int)(srcLocationColumnFloor + (k * 3)), 0), widthLimit);
-            rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            // rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            interpolateFn((colWeight - wRadius + k) * wScale, &colCoeff);
             colCoeffSum += colCoeff;
             float3 coeff_f3 = (float3)(colCoeff * rowCoeff);
             outPixel_f3 += (make_float3(srcRowPtrsForInterp[colIndex], srcRowPtrsForInterp[colIndex + 1], srcRowPtrsForInterp[colIndex + 2]) * coeff_f3);
@@ -263,7 +266,8 @@ __global__ void resize_generic_pln3_tensor(T *srcPtr,
                                            uint3 dstStridesNCH,
                                            RpptImagePatchPtr dstImgSize,
                                            RpptROIPtr roiTensorPtrSrc,
-                                           RpptInterpolationType interpolationType)
+                                           RpptInterpolationType interpolationType,
+                                           pFnPtrInterpCoeff interpolateFn)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
@@ -314,14 +318,16 @@ __global__ void resize_generic_pln3_tensor(T *srcPtr,
         srcRowPtrsForInterp[0] = srcPtrTemp[0] + rowIndex * srcStridesNCH.z;
         srcRowPtrsForInterp[1] = srcPtrTemp[1] + rowIndex * srcStridesNCH.z;
         srcRowPtrsForInterp[2] = srcPtrTemp[2] + rowIndex * srcStridesNCH.z;
-        rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        // rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        interpolateFn((rowWeight - hRadius + j) * hScale, &rowCoeff);
         rowCoeffSum += rowCoeff;
 
         colCoeffSum = 0;
         for(int k = 0; k < wKernelSize; k++)
         {
             colIndex = fminf(fmaxf((int)(srcLocationColumnFloor + k), 0), widthLimit);
-            rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            // rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            interpolateFn((colWeight - wRadius + k) * wScale, &colCoeff);
             colCoeffSum += colCoeff;
             float3 coeff_f3 = (float3)(colCoeff * rowCoeff);
             outPixel_f3 += (make_float3(srcRowPtrsForInterp[0][colIndex], srcRowPtrsForInterp[1][colIndex], srcRowPtrsForInterp[2][colIndex]) * coeff_f3);
@@ -341,7 +347,8 @@ __global__ void resize_generic_pln1_tensor(T *srcPtr,
                                            uint3 dstStridesNCH,
                                            RpptImagePatchPtr dstImgSize,
                                            RpptROIPtr roiTensorPtrSrc,
-                                           RpptInterpolationType interpolationType)
+                                           RpptInterpolationType interpolationType,
+                                           pFnPtrInterpCoeff interpolateFn)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
@@ -386,14 +393,16 @@ __global__ void resize_generic_pln1_tensor(T *srcPtr,
     {
         rowIndex = fminf(fmaxf((int)(srcLocationRowFloor + j), 0), heightLimit);
         srcRowPtrsForInterp = srcPtrTemp + rowIndex * srcStridesNCH.z;
-        rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        // rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        interpolateFn((rowWeight - hRadius + j) * hScale, &rowCoeff);
         rowCoeffSum += rowCoeff;
 
         colCoeffSum = 0;
         for(int k = 0; k < wKernelSize; k++)
         {
             colIndex = fminf(fmaxf((int)(srcLocationColumnFloor + k), 0), widthLimit);
-            rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            // rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            interpolateFn((colWeight - wRadius + k) * wScale, &colCoeff);
             colCoeffSum += colCoeff;
             float coeff = colCoeff * rowCoeff;
             outPixel += (float) srcRowPtrsForInterp[colIndex] * coeff;
@@ -412,7 +421,8 @@ __global__ void resize_generic_pkd3_pln3_tensor(T *srcPtr,
                                                 uint3 dstStridesNCH,
                                                 RpptImagePatchPtr dstImgSize,
                                                 RpptROIPtr roiTensorPtrSrc,
-                                                RpptInterpolationType interpolationType)
+                                                RpptInterpolationType interpolationType,
+                                                pFnPtrInterpCoeff interpolateFn)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
@@ -458,14 +468,16 @@ __global__ void resize_generic_pkd3_pln3_tensor(T *srcPtr,
     {
         rowIndex = fminf(fmaxf((int)(srcLocationRowFloor + j), 0), heightLimit);
         srcRowPtrsForInterp = srcPtrTemp + rowIndex * srcStridesNH.y;
-        rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        // rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        interpolateFn((rowWeight - hRadius + j) * hScale, &rowCoeff);
         rowCoeffSum += rowCoeff;
 
         colCoeffSum = 0;
         for(int k = 0; k < wKernelSize; k++)
         {
             colIndex = fminf(fmaxf((int)(srcLocationColumnFloor + (k * 3)), 0), widthLimit);
-            rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            // rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            interpolateFn((colWeight - wRadius + k) * wScale, &colCoeff);
             colCoeffSum += colCoeff;
             float3 coeff_f3 = (float3)(colCoeff * rowCoeff);
             outPixel_f3 += (make_float3(srcRowPtrsForInterp[colIndex], srcRowPtrsForInterp[colIndex + 1], srcRowPtrsForInterp[colIndex + 2]) * coeff_f3);
@@ -485,7 +497,8 @@ __global__ void resize_generic_pln3_pkd3_tensor(T *srcPtr,
                                                 uint2 dstStridesNH,
                                                 RpptImagePatchPtr dstImgSize,
                                                 RpptROIPtr roiTensorPtrSrc,
-                                                RpptInterpolationType interpolationType)
+                                                RpptInterpolationType interpolationType,
+                                                pFnPtrInterpCoeff interpolateFn)
 {
     int id_x = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
@@ -536,14 +549,16 @@ __global__ void resize_generic_pln3_pkd3_tensor(T *srcPtr,
         srcRowPtrsForInterp[0] = srcPtrTemp[0] + rowIndex * srcStridesNCH.z;
         srcRowPtrsForInterp[1] = srcPtrTemp[1] + rowIndex * srcStridesNCH.z;
         srcRowPtrsForInterp[2] = srcPtrTemp[2] + rowIndex * srcStridesNCH.z;
-        rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        // rpp_hip_compute_interpolation_weight(interpolationType, rowWeight, j, &rowCoeff, hScale, hRadius);
+        interpolateFn((rowWeight - hRadius + j) * hScale, &rowCoeff);
         rowCoeffSum += rowCoeff;
 
         colCoeffSum = 0;
         for(int k = 0; k < wKernelSize; k++)
         {
             colIndex = fminf(fmaxf((int)(srcLocationColumnFloor + k), 0), widthLimit);
-            rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            // rpp_hip_compute_interpolation_weight(interpolationType, colWeight, k, &colCoeff, wScale, wRadius);
+            interpolateFn((colWeight - wRadius + k) * wScale, &colCoeff);
             colCoeffSum += colCoeff;
             float3 coeff_f3 = (float3)(colCoeff * rowCoeff);
             outPixel_f3 += (make_float3(srcRowPtrsForInterp[0][colIndex], srcRowPtrsForInterp[1][colIndex], srcRowPtrsForInterp[2][colIndex]) * coeff_f3);
@@ -578,9 +593,9 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
     }
     else if (interpolationType == RpptInterpolationType::BILINEAR)
     {
-        int localThreads_x = 16;
-        int localThreads_y = 16;
-        int localThreads_z = 1;
+        int localThreads_x = LOCAL_THREADS_X;
+        int localThreads_y = LOCAL_THREADS_Y;
+        int localThreads_z = LOCAL_THREADS_Z;
         int globalThreads_x = (dstDescPtr->strides.hStride + 7) >> 3;
         int globalThreads_y = dstDescPtr->h;
         int globalThreads_z = handle.GetBatchSize();
@@ -647,6 +662,9 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
     }
     else
     {
+        pFnPtrInterpCoeff pHostFnPtrInterpCoeff;
+        hipMemcpyFromSymbol(&pHostFnPtrInterpCoeff, pDevFnPtrBicubicCoeff, sizeof(pFnPtrInterpCoeff));
+
         int localThreads_x = LOCAL_THREADS_X;
         int localThreads_y = LOCAL_THREADS_Y;
         int localThreads_z = LOCAL_THREADS_Z;
@@ -667,7 +685,8 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                dstImgSize,
                                roiTensorPtrSrc,
-                               interpolationType);
+                               interpolationType,
+                               pHostFnPtrInterpCoeff);
         }
         else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
@@ -684,7 +703,8 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                    make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                    dstImgSize,
                                    roiTensorPtrSrc,
-                                   interpolationType);
+                                   interpolationType,
+                                   pHostFnPtrInterpCoeff);
             }
             else if (srcDescPtr->c == 1)
             {
@@ -699,7 +719,8 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                    make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                    dstImgSize,
                                    roiTensorPtrSrc,
-                                   interpolationType);
+                                   interpolationType,
+                                   pHostFnPtrInterpCoeff);
             }
         }
         else if ((srcDescPtr->c == 3) && (dstDescPtr->c == 3))
@@ -717,7 +738,8 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                    make_uint3(dstDescPtr->strides.nStride, dstDescPtr->strides.cStride, dstDescPtr->strides.hStride),
                                    dstImgSize,
                                    roiTensorPtrSrc,
-                                   interpolationType);
+                                   interpolationType,
+                                   pHostFnPtrInterpCoeff);
             }
             else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
             {
@@ -732,7 +754,8 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
                                    make_uint2(dstDescPtr->strides.nStride, dstDescPtr->strides.hStride),
                                    dstImgSize,
                                    roiTensorPtrSrc,
-                                   interpolationType);
+                                   interpolationType,
+                                   pHostFnPtrInterpCoeff);
             }
         }
     }

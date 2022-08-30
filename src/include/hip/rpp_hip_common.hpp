@@ -1728,6 +1728,8 @@ __device__ __forceinline__ float rpp_hip_rng_1_inverse_transform_sampling_f32(fl
 
 // /******************** DEVICE INTERPOLATION HELPER FUNCTIONS ********************/
 
+typedef void (*pFnPtrInterpCoeff)(float weight, float *coeff);
+
 __device__ __forceinline__ void rpp_hip_compute_bicubic_coefficient(float weight, float *coeff)
 {
     Rpp32f x = fabsf(weight);
@@ -1750,40 +1752,45 @@ __device__ __forceinline__ void rpp_hip_compute_triangular_coefficient(float wei
     *coeff = *coeff < 0 ? 0 : *coeff;
 }
 
-__device__ __forceinline__ void rpp_hip_compute_interpolation_coefficient(RpptInterpolationType interpolationType, float weight, float *coeff)
-{
-    switch (interpolationType)
-    {
-        case RpptInterpolationType::BICUBIC:
-        {
-            rpp_hip_compute_bicubic_coefficient(weight, coeff);
-            break;
-        }
-        case RpptInterpolationType::LANCZOS:
-        {
-            rpp_hip_compute_lanczos3_coefficient(weight, coeff);
-            break;
-        }
-        case RpptInterpolationType::GAUSSIAN:
-        {
-            rpp_hip_compute_gaussian_coefficient(weight, coeff);
-            break;
-        }
-        case RpptInterpolationType::TRIANGULAR:
-        {
-            rpp_hip_compute_triangular_coefficient(weight, coeff);
-            break;
-        }
-        default:
-            break;
-    }
-}
+__device__ pFnPtrInterpCoeff pDevFnPtrBicubicCoeff = rpp_hip_compute_bicubic_coefficient;
+__device__ pFnPtrInterpCoeff pDevFnPtrLanczos3Coeff = rpp_hip_compute_lanczos3_coefficient;
+__device__ pFnPtrInterpCoeff pDevFnPtrGaussianCoeff = rpp_hip_compute_gaussian_coefficient;
+__device__ pFnPtrInterpCoeff pDevFnPtrTriangularCoeff = rpp_hip_compute_triangular_coefficient;
 
-__device__ __forceinline__ void rpp_hip_compute_interpolation_weight(RpptInterpolationType interpolationType, float weight, int k, float *coeff, float scale, float radius)
-{
-    weight -= radius;
-    rpp_hip_compute_interpolation_coefficient(interpolationType, (weight + k) * scale , coeff);
-}
+// __device__ __forceinline__ void rpp_hip_compute_interpolation_coefficient(RpptInterpolationType interpolationType, float weight, float *coeff)
+// {
+//     switch (interpolationType)
+//     {
+//         case RpptInterpolationType::BICUBIC:
+//         {
+//             rpp_hip_compute_bicubic_coefficient(weight, coeff);
+//             break;
+//         }
+//         case RpptInterpolationType::LANCZOS:
+//         {
+//             rpp_hip_compute_lanczos3_coefficient(weight, coeff);
+//             break;
+//         }
+//         case RpptInterpolationType::GAUSSIAN:
+//         {
+//             rpp_hip_compute_gaussian_coefficient(weight, coeff);
+//             break;
+//         }
+//         case RpptInterpolationType::TRIANGULAR:
+//         {
+//             rpp_hip_compute_triangular_coefficient(weight, coeff);
+//             break;
+//         }
+//         default:
+//             break;
+//     }
+// }
+
+// __device__ __forceinline__ void rpp_hip_compute_interpolation_weight(RpptInterpolationType interpolationType, float weight, int k, float *coeff, float scale, float radius)
+// {
+//     weight -= radius;
+//     rpp_hip_compute_interpolation_coefficient(interpolationType, (weight + k) * scale , coeff);
+// }
 
 __device__ void rpp_hip_compute_interpolation_scale_and_radius(RpptInterpolationType interpolationType, uint inSize, uint outSize, float *scale, float *radius, float scaleRatio)
 {
