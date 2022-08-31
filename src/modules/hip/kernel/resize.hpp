@@ -663,7 +663,14 @@ RppStatus hip_exec_resize_tensor(T *srcPtr,
     else
     {
         pFnPtrInterpCoeff pHostFnPtrInterpCoeff;
-        hipMemcpyFromSymbol(&pHostFnPtrInterpCoeff, pDevFnPtrBicubicCoeff, sizeof(pFnPtrInterpCoeff));
+        if (interpolationType == RpptInterpolationType::BICUBIC)
+            hipMemcpyFromSymbol(&pHostFnPtrInterpCoeff, pDevFnPtrBicubicCoeff, sizeof(pFnPtrInterpCoeff));
+        else if (interpolationType == RpptInterpolationType::LANCZOS)
+            hipMemcpyFromSymbol(&pHostFnPtrInterpCoeff, pDevFnPtrLanczos3Coeff, sizeof(pFnPtrInterpCoeff));
+        else if (interpolationType == RpptInterpolationType::TRIANGULAR)
+            hipMemcpyFromSymbol(&pHostFnPtrInterpCoeff, pDevFnPtrTriangularCoeff, sizeof(pFnPtrInterpCoeff));
+        else if (interpolationType == RpptInterpolationType::GAUSSIAN)
+            hipMemcpyFromSymbol(&pHostFnPtrInterpCoeff, pDevFnPtrGaussianCoeff, sizeof(pFnPtrInterpCoeff));
 
         int localThreads_x = LOCAL_THREADS_X;
         int localThreads_y = LOCAL_THREADS_Y;
