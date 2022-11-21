@@ -7,7 +7,7 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
-/************ brightness ************/
+/**************** brightness ****************/
 
 template <typename T>
 RppStatus brightness_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
@@ -296,7 +296,7 @@ RppStatus brightness_host(Rpp8u* srcPtr, RppiSize srcSize, Rpp8u* dstPtr,
     return RPP_SUCCESS;
 }
 
-// /**************** contrast ***************/
+/**************** contrast ***************/
 
 template <typename T>
 RppStatus contrast_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
@@ -708,7 +708,7 @@ RppStatus contrast_host(T* srcPtr, RppiSize srcSize, T* dstPtr,
     return RPP_SUCCESS;
 }
 
-/************ blend ************/
+/**************** blend ****************/
 
 template <typename T>
 RppStatus blend_host_batch(T* srcPtr1, T* srcPtr2, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
@@ -1051,7 +1051,7 @@ RppStatus blend_host(T* srcPtr1, T* srcPtr2, RppiSize srcSize, T* dstPtr,
     return RPP_SUCCESS;
 }
 
-/************ gamma_correction ************/
+/**************** gamma_correction ****************/
 
 template <typename T>
 RppStatus gamma_correction_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,
@@ -1259,7 +1259,7 @@ RppStatus gamma_correction_host(T* srcPtr, RppiSize srcSize, T* dstPtr,
 
 }
 
-/************ exposure ************/
+/**************** exposure ****************/
 
 template <typename T>
 RppStatus exposure_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr,

@@ -5108,7 +5108,7 @@ RppStatus crop_host_u_i_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batc
     return RPP_SUCCESS;
 }
 
-// /**************** resize_crop_mirror ***************/
+/**************** resize_crop_mirror ***************/
 
 template <typename T>
 RppStatus resize_crop_mirror_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr, RppiSize *batch_dstSize, RppiSize *batch_dstSizeMax,

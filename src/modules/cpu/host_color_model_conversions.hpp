@@ -3472,7 +3472,7 @@ RppStatus tensor_look_up_table_host(T* srcPtr, T* dstPtr, T* lutPtr,
 
 }
 
-// /**************** color_convert ***************/
+/**************** color_convert ***************/
 
 template <typename T, typename U>
 RppStatus color_convert_rgb_to_hsv_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, U* dstPtr,

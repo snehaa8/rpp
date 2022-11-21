@@ -2,6 +2,38 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
+// -------------------- exposure host helpers --------------------
+
+inline void compute_exposure_48_host(__m256 *p, __m256 &pExposureParam)
+{
+    p[0] = _mm256_mul_ps(p[0], pExposureParam);    // exposure adjustment
+    p[1] = _mm256_mul_ps(p[1], pExposureParam);    // exposure adjustment
+    p[2] = _mm256_mul_ps(p[2], pExposureParam);    // exposure adjustment
+    p[3] = _mm256_mul_ps(p[3], pExposureParam);    // exposure adjustment
+    p[4] = _mm256_mul_ps(p[4], pExposureParam);    // exposure adjustment
+    p[5] = _mm256_mul_ps(p[5], pExposureParam);    // exposure adjustment
+}
+
+inline void compute_exposure_24_host(__m256 *p, __m256 &pExposureParam)
+{
+    p[0] = _mm256_mul_ps(p[0], pExposureParam);    // exposure adjustment
+    p[1] = _mm256_mul_ps(p[1], pExposureParam);    // exposure adjustment
+    p[2] = _mm256_mul_ps(p[2], pExposureParam);    // exposure adjustment
+}
+
+inline void compute_exposure_16_host(__m256 *p, __m256 &pExposureParam)
+{
+    p[0] = _mm256_mul_ps(p[0], pExposureParam);    // exposure adjustment
+    p[1] = _mm256_mul_ps(p[1], pExposureParam);    // exposure adjustment
+}
+
+inline void compute_exposure_8_host(__m256 *p, __m256 &pExposureParam)
+{
+    p[0] = _mm256_mul_ps(p[0], pExposureParam);    // exposure adjustment
+}
+
+// -------------------- exposure host executors --------------------
+
 RppStatus exposure_u8_u8_host_tensor(Rpp8u *srcPtr,
                                      RpptDescPtr srcDescPtr,
                                      Rpp8u *dstPtr,

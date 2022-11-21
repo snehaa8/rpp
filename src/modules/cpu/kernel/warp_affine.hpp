@@ -2,7 +2,7 @@
 #include "rpp_cpu_simd.hpp"
 #include "rpp_cpu_common.hpp"
 
-/************* warp_affine helpers *************/
+// -------------------- warp_affine host helpers --------------------
 
 inline void compute_warp_affine_src_loc_next_term_sse(__m128 &pSrcY, __m128 &pSrcX, __m128 &pAffineMatrixTerm3Incr, __m128 &pAffineMatrixTerm0Incr)
 {
@@ -30,7 +30,9 @@ inline void compute_warp_affine_src_loc_next_term(Rpp32s dstX, Rpp32f &srcY, Rpp
     srcX += affineMatrix_f6->data[0];   // Computation of next src X locations by adding the delta from previous location
 }
 
-/************* NEAREST NEIGHBOR INTERPOLATION *************/
+// -------------------- warp_affine host executors --------------------
+
+// -------------------- NEAREST NEIGHBOR INTERPOLATION --------------------
 
 RppStatus warp_affine_nn_u8_u8_host_tensor(Rpp8u *srcPtr,
                                            RpptDescPtr srcDescPtr,
@@ -843,7 +845,7 @@ omp_set_dynamic(0);
     return RPP_SUCCESS;
 }
 
-// /************* BILINEAR INTERPOLATION *************/
+// -------------------- BILINEAR INTERPOLATION --------------------
 
 RppStatus warp_affine_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                                                  RpptDescPtr srcDescPtr,

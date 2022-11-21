@@ -1407,7 +1407,7 @@ __device__ __forceinline__ void rpp_hip_layouttoggle24_pln3_to_pkd3(T *pixpln3Pt
     *pixpln3Ptr_T24 = pixpkd3_T24;
 }
 
-// /******************** DEVICE MATH HELPER FUNCTIONS ********************/
+/******************** DEVICE MATH HELPER FUNCTIONS ********************/
 
 // d_float16 floor
 
@@ -1606,7 +1606,7 @@ __device__ __forceinline__ float rpp_hip_math_sinc(float x)
     return (fabsf(x) < 1e-5f) ? (1.0f - x * x * ONE_OVER_6) : sinf(x) / x;
 }
 
-// /******************** DEVICE RANDOMIZATION HELPER FUNCTIONS ********************/
+/******************** DEVICE RANDOMIZATION HELPER FUNCTIONS ********************/
 
 template<typename T>
 __device__ __forceinline__ void rpp_hip_rng_xorwow_state_update(T *xorwowState)
@@ -1724,7 +1724,7 @@ __device__ __forceinline__ float rpp_hip_rng_1_inverse_transform_sampling_f32(fl
     return shotNoiseValue;
 }
 
-// /******************** DEVICE INTERPOLATION HELPER FUNCTIONS ********************/
+/******************** DEVICE INTERPOLATION HELPER FUNCTIONS ********************/
 
 __device__ __forceinline__ void rpp_hip_compute_bicubic_coefficient(float weight, float *coeff)
 {

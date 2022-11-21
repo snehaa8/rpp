@@ -3356,7 +3356,7 @@ RppStatus resize_host(T* srcPtr, RppiSize srcSize, T* dstPtr, RppiSize dstSize,
     return RPP_SUCCESS;
 }
 
-// /**************** resize_crop ***************/
+/**************** resize_crop ***************/
 
 template <typename T>
 RppStatus resize_crop_host_batch(T* srcPtr, RppiSize *batch_srcSize, RppiSize *batch_srcSizeMax, T* dstPtr, RppiSize *batch_dstSize, RppiSize *batch_dstSizeMax,

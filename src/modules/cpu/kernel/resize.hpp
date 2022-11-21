@@ -3,7 +3,7 @@
 #include "rpp_cpu_common.hpp"
 
 
-/************* NEAREST NEIGHBOR INTERPOLATION *************/
+/**************** NEAREST NEIGHBOR INTERPOLATION ****************/
 
 RppStatus resize_nn_u8_u8_host_tensor(Rpp8u *srcPtr,
                                       RpptDescPtr srcDescPtr,
@@ -760,7 +760,7 @@ omp_set_dynamic(0);
     return RPP_SUCCESS;
 }
 
-/************* BILINEAR INTERPOLATION *************/
+/**************** BILINEAR INTERPOLATION ****************/
 
 RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                                             RpptDescPtr srcDescPtr,
