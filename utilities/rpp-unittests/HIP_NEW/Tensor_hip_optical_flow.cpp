@@ -8,34 +8,114 @@
 #include <unordered_map>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
-// #include <opencv2/cudaarithm.hpp>
-// #include <opencv2/cudaimgproc.hpp>
-// #include <opencv2/cudawarping.hpp>
-// #include <opencv2/cudaoptflow.hpp>
 
 using namespace cv;
 using namespace std;
 using namespace std::chrono;
 
+#define FARNEBACK_FRAME_WIDTH 960
+#define FARNEBACK_FRAME_HEIGHT 540
+#define FARNEBACK_OUTPUT_FRAME_SIZE (FARNEBACK_FRAME_WIDTH * FARNEBACK_FRAME_HEIGHT)
+
+const RpptInterpolationType interpolationType = RpptInterpolationType::NEAREST_NEIGHBOR;
+const RpptSubpixelLayout srcSubpixelLayout = RpptSubpixelLayout::BGRtype;
+const RpptRoiType roiType = RpptRoiType::XYWH;
+
+void rpp_tensor_create_strided(Rpp8u *frame_u8, Rpp8u *srcRGB, RpptDescPtr srcDescPtrRGB)
+{
+    Rpp8u *frameTemp_u8 = frame_u8;
+    Rpp8u *srcRGBTemp = srcRGB + srcDescPtrRGB->offsetInBytes;
+    Rpp32u elementsInRow = srcDescPtrRGB->c * srcDescPtrRGB->w;
+    for (int i = 0; i < srcDescPtrRGB->h; i++)
+    {
+        memcpy(srcRGBTemp, frameTemp_u8, elementsInRow);
+        srcRGBTemp += srcDescPtrRGB->strides.hStride;
+        frameTemp_u8 += elementsInRow;
+    }
+}
+
+void rpp_tensor_print(string tensorName, Rpp8u *tensor, RpptDescPtr desc)
+{
+    std::cout << "\n" << tensorName << ":\n";
+    Rpp8u *tensorTemp;
+    tensorTemp = tensor + desc->offsetInBytes;
+    for (int n = 0; n < desc->n; n++)
+    {
+        std::cout << "[ ";
+        for (int h = 0; h < desc->h; h++)
+        {
+            for (int w = 0; w < desc->w; w++)
+            {
+                for (int c = 0; c < desc->c; c++)
+                {
+                    std::cout << (Rpp32u)*tensorTemp << ", ";
+                    tensorTemp++;
+                }
+            }
+            std::cout << ";\n";
+        }
+        std::cout << " ]\n\n";
+    }
+}
+
+void rpp_tensor_write_to_file(string tensorName, Rpp8u *tensor, RpptDescPtr desc)
+{
+    ofstream outputFile (tensorName + ".csv");
+
+    outputFile << "\n" << tensorName << ":\n";
+    Rpp8u *tensorTemp;
+    tensorTemp = tensor + desc->offsetInBytes;
+    for (int n = 0; n < desc->n; n++)
+    {
+        outputFile << "[ ";
+        for (int h = 0; h < desc->h; h++)
+        {
+            for (int w = 0; w < desc->w; w++)
+            {
+                for (int c = 0; c < desc->c; c++)
+                {
+                    outputFile << (Rpp32u)*tensorTemp << ", ";
+                    tensorTemp++;
+                }
+            }
+            outputFile << ";\n";
+        }
+        outputFile << " ]\n\n";
+    }
+}
+
+void rpp_tensor_write_to_images(string tensorName, Rpp8u *tensor, RpptDescPtr desc, RpptImagePatch *imgSizes)
+{
+    Rpp8u outputImage_u8[desc->strides.nStride];
+    Rpp8u *tensorTemp, *outputImageTemp_u8;
+    tensorTemp = tensor + desc->offsetInBytes;
+    outputImageTemp_u8 = outputImage_u8;
+
+    for (int n = 0; n < desc->n; n++)
+    {
+        Rpp32u elementsInRow = desc->c * imgSizes[n].width;
+        for (int i = 0; i < imgSizes[n].height; i++)
+        {
+            memcpy(outputImageTemp_u8, tensorTemp, elementsInRow);
+            tensorTemp += desc->strides.hStride;
+            outputImageTemp_u8 += elementsInRow;
+        }
+
+        Mat outputImage_mat;
+        outputImage_mat = (desc->c == 1) ? Mat(imgSizes[n].height, imgSizes[n].width, CV_8UC1, outputImage_u8) : Mat(imgSizes[n].height, imgSizes[n].width, CV_8UC3, outputImage_u8);
+        imwrite(tensorName + "_" + std::to_string(n) + ".jpg", outputImage_mat);
+    }
+}
+
 void rpp_optical_flow_hip(string inputVideoFileName)
 {
-    // initialize rpp tensor descriptors
-
-    RpptDesc src1Desc, src2Desc;
-    RpptDescPtr src1DescPtr, src2DescPtr;
-    src1DescPtr = &src1Desc;
-    src2DescPtr = &src2Desc;
-    src1DescPtr->layout = RpptLayout::NHWC;
-    src2DescPtr->layout = RpptLayout::NHWC;
-    src1DescPtr->dataType = RpptDataType::U8;
-    src2DescPtr->dataType = RpptDataType::U8;
-
     // initialize map to track time for every stage at each iteration
     unordered_map<string, vector<double>> timers;
 
@@ -55,146 +135,266 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     int frameHeight = int(capture.get(CAP_PROP_FRAME_HEIGHT));  // input video frame height
     int bitRate = int(capture.get(CAP_PROP_BITRATE));           // input video bitrate
 
+    // declare rpp tensor descriptors
+    RpptDesc srcDescRGB, srcResizedDescRGB, src1Desc, src2Desc;
+    RpptDescPtr srcDescPtrRGB, srcResizedDescPtrRGB, src1DescPtr, src2DescPtr;
+
+    // initialize rpp tensor descriptor for srcRGB frames
+    srcDescPtrRGB = &srcDescRGB;
+    srcDescPtrRGB->layout = RpptLayout::NHWC;
+    srcDescPtrRGB->dataType = RpptDataType::U8;
+    srcDescPtrRGB->numDims = 4;
+    srcDescPtrRGB->offsetInBytes = 64;
+    srcDescPtrRGB->n = 1;
+    srcDescPtrRGB->h = frameHeight;
+    srcDescPtrRGB->w = frameWidth; // -------------------- to add the / 8 * 8 + 8?
+    srcDescPtrRGB->c = 3;
+    srcDescPtrRGB->strides.nStride = srcDescPtrRGB->c * srcDescPtrRGB->w * srcDescPtrRGB->h;
+    srcDescPtrRGB->strides.hStride = srcDescPtrRGB->c * srcDescPtrRGB->w;
+    srcDescPtrRGB->strides.wStride = srcDescPtrRGB->c;
+    srcDescPtrRGB->strides.cStride = 1;
+
+    // initialize rpp tensor descriptor for srcResizedRGB frames (same descriptor as srcRGB except farneback width/height and stride changes)
+    srcResizedDescPtrRGB = &srcResizedDescRGB;
+    srcResizedDescRGB = srcDescRGB;
+    srcResizedDescPtrRGB->h = FARNEBACK_FRAME_HEIGHT;
+    srcResizedDescPtrRGB->w = FARNEBACK_FRAME_WIDTH; // -------------------- to add the / 8 * 8 + 8?
+    srcResizedDescPtrRGB->strides.nStride = srcResizedDescPtrRGB->c * srcResizedDescPtrRGB->w * srcResizedDescPtrRGB->h;
+    srcResizedDescPtrRGB->strides.hStride = srcResizedDescPtrRGB->c * srcResizedDescPtrRGB->w;
+
+    // initialize rpp tensor descriptors for src greyscale frames
+    src1DescPtr = &src1Desc;
+    src1DescPtr->layout = RpptLayout::NCHW;
+    src1DescPtr->dataType = RpptDataType::U8;
+    src1DescPtr->numDims = 4;
+    src1DescPtr->offsetInBytes = 64;
+    src1DescPtr->n = srcDescPtrRGB->n;
+    src1DescPtr->c = 1;
+    src1DescPtr->h = FARNEBACK_FRAME_HEIGHT;
+    src1DescPtr->w = FARNEBACK_FRAME_WIDTH; // -------------------- to add the / 8 * 8 + 8?
+    src1DescPtr->strides.nStride = src1DescPtr->c * src1DescPtr->w * src1DescPtr->h;
+    src1DescPtr->strides.cStride = src1DescPtr->w * src1DescPtr->h;
+    src1DescPtr->strides.hStride = src1DescPtr->w;
+    src1DescPtr->strides.wStride = 1;
+    src2DescPtr = &src2Desc;
+    src2Desc = src1Desc;
+
+    // allocate rpp roi and imagePatch buffers on host and hip for resize ops
+    RpptROI *roiTensorPtrSrcRGB = (RpptROI *) calloc(srcDescPtrRGB->n, sizeof(RpptROI));
+    RpptROI *d_roiTensorPtrSrcRGB;
+    hipMalloc(&d_roiTensorPtrSrcRGB, srcDescPtrRGB->n * sizeof(RpptROI));
+    RpptImagePatch *src1ImgSizes = (RpptImagePatch *) calloc(src1DescPtr->n, sizeof(RpptImagePatch));
+    RpptImagePatch *d_src1ImgSizes;
+    hipMalloc(&d_src1ImgSizes, src1DescPtr->n * sizeof(RpptImagePatch));
+
+    // initialize rpp roi and imagePatch buffers on host and hip for resize ops (currently for single image - can be modified for batch)
+    roiTensorPtrSrcRGB[0].xywhROI.xy.x = 0;
+    roiTensorPtrSrcRGB[0].xywhROI.xy.y = 0;
+    roiTensorPtrSrcRGB[0].xywhROI.roiWidth = srcDescPtrRGB->w;
+    roiTensorPtrSrcRGB[0].xywhROI.roiHeight = srcDescPtrRGB->h;
+    src1ImgSizes[0].width = src1DescPtr->w;
+    src1ImgSizes[0].height = src1DescPtr->h;
+    hipMemcpy(d_roiTensorPtrSrcRGB, roiTensorPtrSrcRGB, srcDescPtrRGB->n * sizeof(RpptROI), hipMemcpyHostToDevice);
+    hipMemcpy(d_src1ImgSizes, src1ImgSizes, src1DescPtr->n * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
+
+    // set rpp tensor buffer sizes in bytes for srcRGB, srcResizedRGB, src1 and src2
+    unsigned long long sizeInBytesSrcRGB, sizeInBytesSrcResizedRGB, sizeInBytesSrc1, sizeInBytesSrc2;
+    sizeInBytesSrcRGB = (srcDescPtrRGB->n * srcDescPtrRGB->strides.nStride) + srcDescPtrRGB->offsetInBytes;
+    sizeInBytesSrcResizedRGB = (srcResizedDescPtrRGB->n * srcResizedDescPtrRGB->strides.nStride) + srcResizedDescPtrRGB->offsetInBytes;
+    sizeInBytesSrc1 = (src1DescPtr->n * src1DescPtr->strides.nStride) + src1DescPtr->offsetInBytes;
+    sizeInBytesSrc2 = (src2DescPtr->n * src2DescPtr->strides.nStride) + src2DescPtr->offsetInBytes;
+
+    // allocate rpp 8u host and hip buffers for srcRGB, srcResizedRGB, src1 and src2
+    Rpp8u *srcRGB = (Rpp8u *)calloc(sizeInBytesSrcRGB, 1);
+    Rpp8u *srcResizedRGB = (Rpp8u *)calloc(sizeInBytesSrcResizedRGB, 1);
+    Rpp8u *src1 = (Rpp8u *)calloc(sizeInBytesSrc1, 1);
+    Rpp8u *src2 = (Rpp8u *)calloc(sizeInBytesSrc2, 1);
+    Rpp8u *d_srcRGB, *d_srcResizedRGB, *d_src1, *d_src2;
+    hipMalloc(&d_srcRGB, sizeInBytesSrcRGB);
+    hipMalloc(&d_srcResizedRGB, sizeInBytesSrcResizedRGB);
+    hipMalloc(&d_src1, sizeInBytesSrc1);
+    hipMalloc(&d_src2, sizeInBytesSrc2);
+
     // read the first frame
     cv::Mat frame, previousFrame;
     capture >> frame;
 
+    // copy frame into rpp strided tensor host and hip buffers
+    rpp_tensor_create_strided(frame.data, srcRGB, srcDescPtrRGB);
+    hipMemcpy(d_srcRGB, srcRGB, sizeInBytesSrcRGB, hipMemcpyHostToDevice);
+
+    // create rpp handle for hip with stream and batch size
+    rppHandle_t handle;
+    hipStream_t stream;
+    hipStreamCreate(&stream);
+    rppCreateWithStreamAndBatchSize(&handle, stream, srcDescPtrRGB->n);
+
+    // -------------------- stage output dump check --------------------
+    // rpp_tensor_write_to_file("srcRGB", srcRGB, srcDescPtrRGB);
+    // RpptImagePatch srcRGBImgSizes;
+    // srcRGBImgSizes.height = srcDescPtrRGB->h;
+    // srcRGBImgSizes.width = srcDescPtrRGB->w;
+    // rpp_tensor_write_to_images("srcRGB", srcRGB, srcDescPtrRGB, &srcRGBImgSizes);
+    // -------------------- stage output dump check --------------------
+
     // resize frame
-    cv::resize(frame, frame, Size(960, 540), 0, 0, INTER_LINEAR);
-    // rppt_resize_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_dstImgSizes, interpolationType, d_roiTensorPtrSrc, roiTypeSrc, handle);
+    rppt_resize_gpu(d_srcRGB, srcDescPtrRGB, d_srcResizedRGB, srcResizedDescPtrRGB, d_src1ImgSizes, interpolationType, d_roiTensorPtrSrcRGB, roiType, handle);
+    hipDeviceSynchronize();
+    // -------------------- stage output dump check --------------------
+    // hipMemcpy(srcResizedRGB, d_srcResizedRGB, sizeInBytesSrcResizedRGB, hipMemcpyDeviceToHost);
+    // rpp_tensor_write_to_file("srcResizedRGB", srcResizedRGB, srcResizedDescPtrRGB);
+    // rpp_tensor_write_to_images("srcResizedRGB", srcResizedRGB, srcResizedDescPtrRGB, src1ImgSizes);
+    // -------------------- stage output dump check --------------------
 
     // convert to gray
-    cv::cvtColor(frame, previousFrame, COLOR_BGR2GRAY);
-
-    // upload pre-processed frame to GPU
-    cv::cuda::GpuMat gpuPrevious;
-    gpuPrevious.upload(previousFrame);
+    rppt_color_to_greyscale_gpu(d_srcResizedRGB, srcResizedDescPtrRGB, d_src1, src1DescPtr, srcSubpixelLayout, handle);
+    hipDeviceSynchronize();
+    // -------------------- stage output dump check --------------------
+    hipMemcpy(src1, d_src1, sizeInBytesSrc1, hipMemcpyDeviceToHost);
+    rpp_tensor_write_to_file("src1", src1, src1DescPtr);
+    rpp_tensor_write_to_images("src1", src1, src1DescPtr, src1ImgSizes);
+    // -------------------- stage output dump check --------------------
 
     // declare cpu outputs for optical flow
-    cv::Mat hsv[3], angle, bgr;
+    // cv::Mat hsv[3], angle, bgr;      // ------- revisit
 
     // declare gpu outputs for optical flow
-    cv::cuda::GpuMat gpuMagnitude, gpuNormalizedMagnitude, gpuAngle;
-    cv::cuda::GpuMat gpuHSV[3], gpuMergedHSV, gpuHSV_8u, gpuBGR;
+    // cv::cuda::GpuMat gpuMagnitude, gpuNormalizedMagnitude, gpuAngle;      // ------- revisit
+    // cv::cuda::GpuMat gpuHSV[3], gpuMergedHSV, gpuHSV_8u, gpuBGR;      // ------- revisit
 
     // set saturation to 1
-    hsv[1] = cv::Mat::ones(frame.size(), CV_32F);
-    gpuHSV[1].upload(hsv[1]);
+    // hsv[1] = cv::Mat::ones(frame.size(), CV_32F);      // ------- revisit
+    // gpuHSV[1].upload(hsv[1]);      // ------- revisit
 
-    while (true)
-    {
-        // start full pipeline timer
-        auto start_full_time = high_resolution_clock::now();
+    // while (true)
+    // {
+    //     // start full pipeline timer
+    //     auto start_full_time = high_resolution_clock::now();
 
-        // start reading timer
-        auto start_read_time = high_resolution_clock::now();
+    //     // start reading timer
+    //     auto start_read_time = high_resolution_clock::now();
 
-        // capture frame-by-frame
-        capture >> frame;
+    //     // capture frame-by-frame
+    //     capture >> frame;
 
-        if (frame.empty())
-            break;
+    //     if (frame.empty())
+    //         break;
 
-        // upload frame to GPU
-        cv::cuda::GpuMat gpu_frame;
-        gpu_frame.upload(frame);
+    //     // upload frame to GPU
+    //     cv::cuda::GpuMat gpu_frame;
+    //     gpu_frame.upload(frame);
 
-        // end reading timer
-        auto end_read_time = high_resolution_clock::now();
+    //     // end reading timer
+    //     auto end_read_time = high_resolution_clock::now();
 
-        // add elapsed iteration time
-        timers["reading"].push_back(duration_cast<milliseconds>(end_read_time - start_read_time).count() / 1000.0);
+    //     // add elapsed iteration time
+    //     timers["reading"].push_back(duration_cast<milliseconds>(end_read_time - start_read_time).count() / 1000.0);
 
-        // start pre-process timer
-        auto start_pre_time = high_resolution_clock::now();
+    //     // start pre-process timer
+    //     auto start_pre_time = high_resolution_clock::now();
 
-        // resize frame
-        cv::cuda::resize(gpu_frame, gpu_frame, Size(960, 540), 0, 0, INTER_LINEAR);
+    //     // resize frame
+    //     cv::cuda::resize(gpu_frame, gpu_frame, Size(FARNEBACK_FRAME_WIDTH, FARNEBACK_FRAME_HEIGHT), 0, 0, INTER_LINEAR);
 
-        // convert to gray
-        cv::cuda::GpuMat gpu_current;
-        cv::cuda::cvtColor(gpu_frame, gpu_current, COLOR_BGR2GRAY);
+    //     // convert to gray
+    //     cv::cuda::GpuMat gpu_current;
+    //     cv::cuda::cvtColor(gpu_frame, gpu_current, COLOR_BGR2GRAY);
 
-        // end pre-process timer
-        auto end_pre_time = high_resolution_clock::now();
+    //     // end pre-process timer
+    //     auto end_pre_time = high_resolution_clock::now();
 
-        // add elapsed iteration time
-        timers["pre-process"].push_back(duration_cast<milliseconds>(end_pre_time - start_pre_time).count() / 1000.0);
+    //     // add elapsed iteration time
+    //     timers["pre-process"].push_back(duration_cast<milliseconds>(end_pre_time - start_pre_time).count() / 1000.0);
 
-        // start optical flow timer
-        auto start_of_time = high_resolution_clock::now();
+    //     // start optical flow timer
+    //     auto start_of_time = high_resolution_clock::now();
 
-        // create optical flow instance
-        Ptr<cuda::FarnebackOpticalFlow> ptr_calc = cuda::FarnebackOpticalFlow::create(5, 0.5, false, 15, 3, 5, 1.2, 0);
-        // calculate optical flow
-        cv::cuda::GpuMat gpu_flow;
-        ptr_calc->calc(gpuPrevious, gpu_current, gpu_flow);
+    //     // create optical flow instance
+    //     Ptr<cuda::FarnebackOpticalFlow> ptr_calc = cuda::FarnebackOpticalFlow::create(5, 0.5, false, 15, 3, 5, 1.2, 0);
+    //     // calculate optical flow
+    //     cv::cuda::GpuMat gpu_flow;
+    //     ptr_calc->calc(gpuPrevious, gpu_current, gpu_flow);
 
-        // end optical flow timer
-        auto end_of_time = high_resolution_clock::now();
+    //     // end optical flow timer
+    //     auto end_of_time = high_resolution_clock::now();
 
-        // add elapsed iteration time
-        timers["optical flow"].push_back(duration_cast<milliseconds>(end_of_time - start_of_time).count() / 1000.0);
+    //     // add elapsed iteration time
+    //     timers["optical flow"].push_back(duration_cast<milliseconds>(end_of_time - start_of_time).count() / 1000.0);
 
-        // start post-process timer
-        auto start_post_time = high_resolution_clock::now();
+    //     // start post-process timer
+    //     auto start_post_time = high_resolution_clock::now();
 
-        // split the output flow into 2 vectors
-        cv::cuda::GpuMat gpu_flow_xy[2];
-        cv::cuda::split(gpu_flow, gpu_flow_xy);
+    //     // split the output flow into 2 vectors
+    //     cv::cuda::GpuMat gpu_flow_xy[2];
+    //     cv::cuda::split(gpu_flow, gpu_flow_xy);
 
-        // convert from cartesian to polar coordinates
-        cv::cuda::cartToPolar(gpu_flow_xy[0], gpu_flow_xy[1], gpuMagnitude, gpuAngle, true);
+    //     // convert from cartesian to polar coordinates
+    //     cv::cuda::cartToPolar(gpu_flow_xy[0], gpu_flow_xy[1], gpuMagnitude, gpuAngle, true);
 
-        // normalize magnitude from 0 to 1
-        cv::cuda::normalize(gpuMagnitude, gpuNormalizedMagnitude, 0.0, 1.0, NORM_MINMAX, -1);
+    //     // normalize magnitude from 0 to 1
+    //     cv::cuda::normalize(gpuMagnitude, gpuNormalizedMagnitude, 0.0, 1.0, NORM_MINMAX, -1);
 
-        // get angle of optical flow
-        gpuAngle.download(angle);
-        angle *= ((1 / 360.0) * (180 / 255.0));
+    //     // get angle of optical flow
+    //     gpuAngle.download(angle);
+    //     angle *= ((1 / 360.0) * (180 / 255.0));
 
-        // build hsv image
-        gpuHSV[0].upload(angle);
-        gpuHSV[2] = gpuNormalizedMagnitude;
-        cv::cuda::merge(gpuHSV, 3, gpuMergedHSV);
+    //     // build hsv image
+    //     gpuHSV[0].upload(angle);
+    //     gpuHSV[2] = gpuNormalizedMagnitude;
+    //     cv::cuda::merge(gpuHSV, 3, gpuMergedHSV);
 
-        // multiply each pixel value to 255
-        gpuMergedHSV.cv::cuda::GpuMat::convertTo(gpuHSV_8u, CV_8U, 255.0);
+    //     // multiply each pixel value to 255
+    //     gpuMergedHSV.cv::cuda::GpuMat::convertTo(gpuHSV_8u, CV_8U, 255.0);
 
-        // convert hsv to bgr
-        cv::cuda::cvtColor(gpuHSV_8u, gpuBGR, COLOR_HSV2BGR);
+    //     // convert hsv to bgr
+    //     cv::cuda::cvtColor(gpuHSV_8u, gpuBGR, COLOR_HSV2BGR);
 
-        // send original frame from GPU back to CPU
-        gpu_frame.download(frame);
+    //     // send original frame from GPU back to CPU
+    //     gpu_frame.download(frame);
 
-        // send result from GPU back to CPU
-        gpuBGR.download(bgr);
+    //     // send result from GPU back to CPU
+    //     gpuBGR.download(bgr);
 
-        // update previousFrame value
-        gpuPrevious = gpu_current;
+    //     // update previousFrame value
+    //     gpuPrevious = gpu_current;
 
-        // end post pipeline timer
-        auto end_post_time = high_resolution_clock::now();
+    //     // end post pipeline timer
+    //     auto end_post_time = high_resolution_clock::now();
 
-        // add elapsed iteration time
-        timers["post-process"].push_back(duration_cast<milliseconds>(end_post_time - start_post_time).count() / 1000.0);
+    //     // add elapsed iteration time
+    //     timers["post-process"].push_back(duration_cast<milliseconds>(end_post_time - start_post_time).count() / 1000.0);
 
-        // end full pipeline timer
-        auto end_full_time = high_resolution_clock::now();
+    //     // end full pipeline timer
+    //     auto end_full_time = high_resolution_clock::now();
 
-        // add elapsed iteration time
-        timers["full pipeline"].push_back(duration_cast<milliseconds>(end_full_time - start_full_time).count() / 1000.0);
+    //     // add elapsed iteration time
+    //     timers["full pipeline"].push_back(duration_cast<milliseconds>(end_full_time - start_full_time).count() / 1000.0);
 
-        // visualization
-        imshow("original", frame);
-        imshow("result", bgr);
-        int keyboard = waitKey(1);
-        if (keyboard == 27)
-            break;
-    }
+    //     // visualization
+    //     imshow("original", frame);
+    //     imshow("result", bgr);
+    //     int keyboard = waitKey(1);
+    //     if (keyboard == 27)
+    //         break;
+    // }
 
-    capture.release();
-    destroyAllWindows();
+    // capture.release();
+    // destroyAllWindows();
+
+    // destroy rpp handle and deallocate all buffers
+    rppDestroyGPU(handle);
+    hipFree(&d_roiTensorPtrSrcRGB);
+    hipFree(&d_src1ImgSizes);
+    hipFree(&d_srcRGB);
+    hipFree(&d_srcResizedRGB);
+    hipFree(&d_src1);
+    hipFree(&d_src2);
+    free(roiTensorPtrSrcRGB);
+    free(src1ImgSizes);
+    free(srcRGB);
+    free(srcResizedRGB);
+    free(src1);
+    free(src2);
 
     // display video file properties to user
     cout << "\nInput Video File - " << inputVideoFileName;
@@ -230,10 +430,17 @@ int main(int argc, const char** argv)
     }
     string inputVideoFileName;
     inputVideoFileName = argv[1];
-    
+
     // query and fix max batch size
     const auto cpuThreadCount = std::thread::hardware_concurrency();
     cout << "\n\nCPU Threads = " << cpuThreadCount;
+
+    int device, deviceCount;
+    hipGetDevice(&device);
+    hipGetDeviceCount(&deviceCount);
+    cout << "\nDevice = " << device;
+    cout << "\nDevice Count = " << deviceCount;
+    cout << "\n";
 
     // run optical flow
     cout << "\n\nProcessing RPP optical flow on " << inputVideoFileName << " with HIP backend...\n\n";
