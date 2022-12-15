@@ -45,19 +45,28 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
     int frameHeight = int(capture.get(CAP_PROP_FRAME_HEIGHT));
     int bitRate = int(capture.get(CAP_PROP_BITRATE));
 
+    // declare gpu inputs for optical flow
+    cv::cuda::GpuMat gpuFrame, gpuPrevious, gpuFlow, gpuFlowXY[2];
+
     // read the first frame
     cv::Mat frame, previousFrame;
     capture >> frame;
 
+    // cpu processing on first frame - working
     // resize frame
     cv::resize(frame, frame, Size(960, 540), 0, 0, INTER_LINEAR);
-
     // convert to gray
     cv::cvtColor(frame, previousFrame, COLOR_BGR2GRAY);
-
     // upload pre-processed frame to GPU
-    cv::cuda::GpuMat gpuPrevious;
     gpuPrevious.upload(previousFrame);
+
+    // gpu processing on first frame - not working - core dumped
+    // upload frame to GPU
+    // gpuFrame.upload(frame);
+    // resize frame
+    // cv::cuda::resize(gpuFrame, gpuFrame, Size(960, 540), 0, 0, INTER_LINEAR);
+    // convert to gray
+    // cv::cuda::cvtColor(gpuFrame, gpuPrevious, COLOR_BGR2GRAY);
 
     // declare cpu outputs for optical flow
     cv::Mat hsv[3], angle, bgr;
@@ -85,7 +94,6 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
             break;
 
         // upload frame to GPU
-        cv::cuda::GpuMat gpuFrame;
         gpuFrame.upload(frame);
 
         // end reading timer
@@ -116,7 +124,6 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         // create optical flow instance
         Ptr<cuda::FarnebackOpticalFlow> ptr_calc = cuda::FarnebackOpticalFlow::create(5, 0.5, false, 15, 3, 5, 1.2, 0);
         // calculate optical flow
-        cv::cuda::GpuMat gpuFlow;
         ptr_calc->calc(gpuPrevious, gpuCurrent, gpuFlow);
 
         // end optical flow timer
@@ -129,7 +136,6 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         auto startPostProcessTime = high_resolution_clock::now();
 
         // split the output flow into 2 vectors
-        cv::cuda::GpuMat gpuFlowXY[2];
         cv::cuda::split(gpuFlow, gpuFlowXY);
 
         // convert from cartesian to polar coordinates
