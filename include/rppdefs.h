@@ -36,6 +36,7 @@ THE SOFTWARE.
 #define RPP_MAX_8U      ( 255 )
 #define RPP_MIN_16U     ( 0 )
 #define RPP_MAX_16U     ( 65535 )
+#define RPPT_MAX_DIMS   ( 4 )
 
 const float ONE_OVER_6 = 1.0f / 6;
 const float ONE_OVER_3 = 1.0f / 3;
@@ -66,7 +67,9 @@ typedef enum
     RPP_ERROR_INVALID_SRC_CHANNELS      = -7,
     RPP_ERROR_INVALID_DST_CHANNELS      = -8,
     RPP_ERROR_INVALID_SRC_LAYOUT        = -9,
-    RPP_ERROR_INVALID_DST_LAYOUT        = -10
+    RPP_ERROR_INVALID_DST_LAYOUT        = -10,
+    RPP_ERROR_INVALID_SRC_DATA_TYPE     = -11,
+    RPP_ERROR_INVALID_DST_DATA_TYPE     = -12
 } RppStatus;
 
 typedef enum
@@ -218,7 +221,7 @@ typedef enum
 
 typedef enum
 {
-    U8,
+    U8 = 0,
     F32,
     F16,
     I8
@@ -226,19 +229,19 @@ typedef enum
 
 typedef enum
 {
-    NCHW,
-    NHWC
+    NHWC = 0,
+    NCHW
 } RpptLayout;
 
 typedef enum
 {
-    LTRB,
-    XYWH
+    XYWH = 0,
+    LTRB
 } RpptRoiType;
 
 typedef enum
 {
-    RGBtype,
+    RGBtype = 0,
     BGRtype
 } RpptSubpixelLayout;
 
@@ -251,6 +254,12 @@ typedef enum
     GAUSSIAN,
     TRIANGULAR
 } RpptInterpolationType;
+
+typedef enum
+{
+    RADIANS = 0,
+    DEGREES
+} RpptAngleType;
 
 typedef struct
 {
@@ -275,9 +284,9 @@ typedef union
 typedef struct
 {
     Rpp32u nStride;
-    Rpp32u cStride;
     Rpp32u hStride;
     Rpp32u wStride;
+    Rpp32u cStride;
 } RpptStrides;
 
 typedef struct
@@ -285,10 +294,25 @@ typedef struct
     RppSize_t numDims;
     Rpp32u offsetInBytes;
     RpptDataType dataType;
-    RpptLayout layout;
-    Rpp32u n, c, h, w;
+    Rpp32u n, h, w, c;
     RpptStrides strides;
+    RpptLayout layout;
 } RpptDesc, *RpptDescPtr;
+
+typedef struct
+{
+    Rpp32u dim[RPPT_MAX_DIMS];
+} RpptGenericStrides;
+
+typedef struct
+{
+    RppSize_t numDims;
+    Rpp32u offsetInBytes;
+    RpptDataType dataType;
+    Rpp32u dims[RPPT_MAX_DIMS];
+    RpptGenericStrides strides;
+    RpptLayout layout;
+} RpptGenericDesc, *RpptGenericDescPtr;
 
 typedef struct
 {
