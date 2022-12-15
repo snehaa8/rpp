@@ -73,10 +73,10 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
     while (true)
     {
         // start full pipeline timer
-        auto start_full_time = high_resolution_clock::now();
+        auto startFullTime = high_resolution_clock::now();
 
         // start reading timer
-        auto start_read_time = high_resolution_clock::now();
+        auto startReadTime = high_resolution_clock::now();
 
         // capture frame-by-frame
         capture >> frame;
@@ -85,55 +85,55 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
             break;
 
         // upload frame to GPU
-        cv::cuda::GpuMat gpu_frame;
-        gpu_frame.upload(frame);
+        cv::cuda::GpuMat gpuFrame;
+        gpuFrame.upload(frame);
 
         // end reading timer
-        auto end_read_time = high_resolution_clock::now();
+        auto endReadTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["reading"].push_back(duration_cast<milliseconds>(end_read_time - start_read_time).count() / 1000.0);
+        timers["reading"].push_back(duration_cast<milliseconds>(endReadTime - startReadTime).count() / 1000.0);
 
         // start pre-process timer
-        auto start_pre_time = high_resolution_clock::now();
+        auto startPreProcessTime = high_resolution_clock::now();
 
         // resize frame
-        cv::cuda::resize(gpu_frame, gpu_frame, Size(960, 540), 0, 0, INTER_LINEAR);
+        cv::cuda::resize(gpuFrame, gpuFrame, Size(960, 540), 0, 0, INTER_LINEAR);
 
         // convert to gray
-        cv::cuda::GpuMat gpu_current;
-        cv::cuda::cvtColor(gpu_frame, gpu_current, COLOR_BGR2GRAY);
+        cv::cuda::GpuMat gpuCurrent;
+        cv::cuda::cvtColor(gpuFrame, gpuCurrent, COLOR_BGR2GRAY);
 
         // end pre-process timer
-        auto end_pre_time = high_resolution_clock::now();
+        auto endPreProcessTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["pre-process"].push_back(duration_cast<milliseconds>(end_pre_time - start_pre_time).count() / 1000.0);
+        timers["pre-process"].push_back(duration_cast<milliseconds>(endPreProcessTime - startPreProcessTime).count() / 1000.0);
 
         // start optical flow timer
-        auto start_of_time = high_resolution_clock::now();
+        auto startOpticalFlowTime = high_resolution_clock::now();
 
         // create optical flow instance
         Ptr<cuda::FarnebackOpticalFlow> ptr_calc = cuda::FarnebackOpticalFlow::create(5, 0.5, false, 15, 3, 5, 1.2, 0);
         // calculate optical flow
-        cv::cuda::GpuMat gpu_flow;
-        ptr_calc->calc(gpuPrevious, gpu_current, gpu_flow);
+        cv::cuda::GpuMat gpuFlow;
+        ptr_calc->calc(gpuPrevious, gpuCurrent, gpuFlow);
 
         // end optical flow timer
-        auto end_of_time = high_resolution_clock::now();
+        auto endOpticalFlowTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["optical flow"].push_back(duration_cast<milliseconds>(end_of_time - start_of_time).count() / 1000.0);
+        timers["optical flow"].push_back(duration_cast<milliseconds>(endOpticalFlowTime - startOpticalFlowTime).count() / 1000.0);
 
         // start post-process timer
-        auto start_post_time = high_resolution_clock::now();
+        auto startPostProcessTime = high_resolution_clock::now();
 
         // split the output flow into 2 vectors
-        cv::cuda::GpuMat gpu_flow_xy[2];
-        cv::cuda::split(gpu_flow, gpu_flow_xy);
+        cv::cuda::GpuMat gpuFlowXY[2];
+        cv::cuda::split(gpuFlow, gpuFlowXY);
 
         // convert from cartesian to polar coordinates
-        cv::cuda::cartToPolar(gpu_flow_xy[0], gpu_flow_xy[1], gpuMagnitude, gpuAngle, true);
+        cv::cuda::cartToPolar(gpuFlowXY[0], gpuFlowXY[1], gpuMagnitude, gpuAngle, true);
 
         // normalize magnitude from 0 to 1
         cv::cuda::normalize(gpuMagnitude, gpuNormalizedMagnitude, 0.0, 1.0, NORM_MINMAX, -1);
@@ -154,25 +154,25 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         cv::cuda::cvtColor(gpuHSV_8u, gpuBGR, COLOR_HSV2BGR);
 
         // send original frame from GPU back to CPU
-        gpu_frame.download(frame);
+        gpuFrame.download(frame);
 
         // send result from GPU back to CPU
         gpuBGR.download(bgr);
 
         // update previousFrame value
-        gpuPrevious = gpu_current;
+        gpuPrevious = gpuCurrent;
 
         // end post pipeline timer
-        auto end_post_time = high_resolution_clock::now();
+        auto endPostProcessTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["post-process"].push_back(duration_cast<milliseconds>(end_post_time - start_post_time).count() / 1000.0);
+        timers["post-process"].push_back(duration_cast<milliseconds>(endPostProcessTime - startPostProcessTime).count() / 1000.0);
 
         // end full pipeline timer
-        auto end_full_time = high_resolution_clock::now();
+        auto endFullTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["full pipeline"].push_back(duration_cast<milliseconds>(end_full_time - start_full_time).count() / 1000.0);
+        timers["full pipeline"].push_back(duration_cast<milliseconds>(endFullTime - startFullTime).count() / 1000.0);
 
         // visualization
         imshow("original", frame);
@@ -220,7 +220,7 @@ int main(int argc, const char** argv)
     }
     string inputVideoFileName;
     inputVideoFileName = argv[1];
-    
+
     // query and fix max batch size
     const auto cpuThreadCount = std::thread::hardware_concurrency();
     cout << "\n\nCPU threads = " << cpuThreadCount;
