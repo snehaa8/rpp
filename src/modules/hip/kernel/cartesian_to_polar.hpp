@@ -198,7 +198,7 @@ RppStatus hip_exec_cartesian_to_polar_tensor(T *srcPtr,
     else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NHWC))
     {
         globalThreads_x = (srcDescPtr->strides.hStride + 7) >> 3;
-        hipLaunchKernelGGL(cartesian_to_polar_pln3_pkd3_tensor,
+        hipLaunchKernelGGL(cartesian_to_polar_pln2_pkd2_tensor,
                            dim3(ceil((float)globalThreads_x/localThreads_x), ceil((float)globalThreads_y/localThreads_y), ceil((float)globalThreads_z/localThreads_z)),
                            dim3(localThreads_x, localThreads_y, localThreads_z),
                            0,
