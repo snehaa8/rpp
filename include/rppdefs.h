@@ -301,16 +301,11 @@ typedef struct
 
 typedef struct
 {
-    Rpp32u dim[RPPT_MAX_DIMS];
-} RpptGenericStrides;
-
-typedef struct
-{
     RppSize_t numDims;
     Rpp32u offsetInBytes;
     RpptDataType dataType;
     Rpp32u dims[RPPT_MAX_DIMS];
-    RpptGenericStrides strides;
+    Rpp32u strides[RPPT_MAX_DIMS];
     RpptLayout layout;
 } RpptGenericDesc, *RpptGenericDescPtr;
 
