@@ -48,6 +48,9 @@ RppStatus rppt_cartesian_to_polar_host(RppPtr_t srcPtr,
 
     RpptDesc srcDesc, dstDesc;
     RpptDescPtr srcDescPtr, dstDescPtr;
+    srcDescPtr = &srcDesc;
+    dstDescPtr = &dstDesc;
+
     rpp_tensor_generic_to_image_desc(srcGenericDescPtr, srcDescPtr);
     rpp_tensor_generic_to_image_desc(dstGenericDescPtr, dstDescPtr);
 
