@@ -132,25 +132,15 @@ RppStatus hip_exec_image_sum_tensor(T *srcPtr,
     int globalThreads_x = (srcDescPtr->strides.hStride + 7) >> 3;
     int globalThreads_y = srcDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();
-
     int gridDim_x = (int) ceil((float)globalThreads_x/localThreads_x);
     int gridDim_y = (int) ceil((float)globalThreads_y/localThreads_y);
     int gridDim_z = (int) ceil((float)globalThreads_z/localThreads_z);
 
-    printf("\n\nKernel Launch:");
-    printf("\nlx, ly, lz = %d, %d, %d", localThreads_x, localThreads_y, localThreads_z);
-    printf("\ngx, gy, gz = %d, %d, %d", (int)ceil((float)globalThreads_x/localThreads_x), (int)ceil((float)globalThreads_y/localThreads_y), (int)ceil((float)globalThreads_z/localThreads_z));
-    printf("\n\n");
-
+    Rpp32u imagePartialSumArrLength = gridDim_x * gridDim_y * gridDim_z;
     float *imagePartialSumArr;
     imagePartialSumArr = handle.GetInitHandle()->mem.mgpu.maskArr.floatmem;
+    hipMemset(imagePartialSumArr, 0, imagePartialSumArrLength * sizeof(float));
 
-    Rpp32u outputSize = gridDim_x * gridDim_y * gridDim_z;
-    Rpp32f output[outputSize];
-    hipMemset(imagePartialSumArr, 0, outputSize * sizeof(float));
-    hipMemset(imageSumArr, 0, gridDim_z * sizeof(float));
-
-    printf("\nstrides = %d, %d, %d, %d", srcDescPtr->strides.nStride, srcDescPtr->strides.cStride, srcDescPtr->strides.hStride, srcDescPtr->strides.wStride);
     if ((srcDescPtr->c == 1) && (srcDescPtr->layout == RpptLayout::NCHW))
     {
         hipLaunchKernelGGL(image_sum_pln1_tensor,
@@ -162,14 +152,6 @@ RppStatus hip_exec_image_sum_tensor(T *srcPtr,
                            make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                            imagePartialSumArr,
                            roiTensorPtrSrc);
-        hipDeviceSynchronize();
-        hipMemcpy(output, imagePartialSumArr, outputSize * sizeof(float), hipMemcpyDeviceToHost);
-        printf("\n\nimagePartialSumArr: ");
-        for (int i = 0; i < outputSize; i++)
-        {
-            printf(" %0.3f ", output[i]);
-        }
-
         hipLaunchKernelGGL(image_sum_grid_result_tensor,
                            dim3(1, 1, gridDim_z),
                            dim3(256, 1, 1),
@@ -178,14 +160,6 @@ RppStatus hip_exec_image_sum_tensor(T *srcPtr,
                            imagePartialSumArr,
                            gridDim_x * gridDim_y,
                            imageSumArr);
-        hipDeviceSynchronize();
-        hipMemcpy(output, imageSumArr, gridDim_z * sizeof(float), hipMemcpyDeviceToHost);
-        printf("\n\nimageSumArr: ");
-        for (int i = 0; i < gridDim_z; i++)
-        {
-            printf(" %0.3f ", output[i]);
-        }
-
     }
 
     return RPP_SUCCESS;
