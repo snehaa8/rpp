@@ -46,6 +46,24 @@ extern "C" {
 RppStatus rppt_cartesian_to_polar_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, RpptAngleType angleType, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
+/******************** image_sum ********************/
+
+// Image sum finder operation for a NCHW/NHWC layout tensor
+
+// *param[in] srcPtr source tensor memory
+// *param[in] srcDescPtr source tensor descriptor
+// *param[out] imageSumArr destination array of length (srcPtr->n * srcPtr->c)
+// *param[out] imageSumArrLength length of provided destination array (srcPtr->n * srcPtr->c)
+// *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
+// *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
+// *returns a  RppStatus enumeration.
+// *retval RPP_SUCCESS : succesful completion
+// *retval RPP_ERROR : Error
+
+#ifdef GPU_SUPPORT
+RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t imageSumArr, Rpp32u imageSumArrLength, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+#endif // GPU_SUPPORT
+
 #ifdef __cplusplus
 }
 #endif

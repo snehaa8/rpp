@@ -69,7 +69,8 @@ typedef enum
     RPP_ERROR_INVALID_SRC_LAYOUT        = -9,
     RPP_ERROR_INVALID_DST_LAYOUT        = -10,
     RPP_ERROR_INVALID_SRC_DATA_TYPE     = -11,
-    RPP_ERROR_INVALID_DST_DATA_TYPE     = -12
+    RPP_ERROR_INVALID_DST_DATA_TYPE     = -12,
+    RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH = -13
 } RppStatus;
 
 typedef enum
@@ -131,6 +132,10 @@ typedef struct
     Rpp32u bufferMultiplier;
 } RppLayoutParams;
 
+typedef struct
+{
+    Rpp32f data[2];
+} Rpp32f2;
 typedef struct
 {
     Rpp32f data[6];
@@ -273,6 +278,20 @@ typedef struct
     int roiWidth, roiHeight;
 
 } RpptRoiXywh;
+
+// typedef struct
+// {
+//     RppiPoint3D xyz;
+//     int xLength, yLength, zLength;
+
+// } RpptRoiXYZ;
+
+// typedef struct
+// {
+//     int roiStart[RPP_MAX_DIMS];
+//     int roiLength[RPP_MAX_DIMS];
+
+// } RpptRoiND;
 
 typedef union
 {

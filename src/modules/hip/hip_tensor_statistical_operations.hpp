@@ -24,5 +24,6 @@ THE SOFTWARE.
 #define HIP_TENSOR_STATISTICAL_OPERATIONS_HPP
 
 #include "kernel/cartesian_to_polar.hpp"
+#include "kernel/image_sum.hpp"
 
 #endif // HIP_TENSOR_STATISTICAL_OPERATIONS_HPP
