@@ -29,23 +29,13 @@ __global__ void image_sum_grid_result_tensor(float *srcPtr,
     partialSumLDS_f4[hipThreadIdx_x] += (src_f8.f4[0] + src_f8.f4[1]);  // perform small work of vectorized addition of two f4s and store in LDS
     __syncthreads();                                                    // syncthreads after LDS load
 
-    // Unrolled loop to run a vectorized reduction of 1024 floats on 256 threads per block in x dimension
-    if (hipThreadIdx_x < 128) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 128], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 64) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 64], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 32) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 32], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 16) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 16], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 8) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 8], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 4) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 4], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 2) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 2], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 1) rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + 1], partialSumLDS_f4[hipThreadIdx_x]);
-    __syncthreads();
+    // Vectorized float4 reduction of 1024 floats on 256 threads per block in x dimension
+    for (int threadMax = 128; threadMax >= 1; threadMax /= 2)
+    {
+        if (hipThreadIdx_x < threadMax)
+            rpp_hip_math_add4(partialSumLDS_f4[hipThreadIdx_x], partialSumLDS_f4[hipThreadIdx_x + threadMax], partialSumLDS_f4[hipThreadIdx_x]);
+        __syncthreads();
+    }
 
     // Final reduction of float4 vector to single float
     if (hipThreadIdx_x == 0)
@@ -84,27 +74,23 @@ __global__ void image_sum_pln1_tensor(T *srcPtr,
     partialSumLDSRowPtr_f4[hipThreadIdx_x] += (src_f8.f4[0] + src_f8.f4[1]);    // perform small work of vectorized addition of two f4s and store in LDS
     __syncthreads();                                                            // syncthreads after LDS load
 
-    // Unrolled loop to run a vectorized reduction of 64 floats on 16 threads per block in x dimension (for every y dimension)
-    if (hipThreadIdx_x < 8) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 8], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 4) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 4], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 2) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 2], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-    __syncthreads();
-    if (hipThreadIdx_x < 1) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 1], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-    __syncthreads();
+    // Vectorized float4 reduction of 64 floats on 16 threads per block in x dimension (for every y dimension)
+    for (int threadMax = 8; threadMax >= 1; threadMax /= 2)
+    {
+        if (hipThreadIdx_x < threadMax)
+            rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + threadMax], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
+        __syncthreads();
+    }
 
     if (hipThreadIdx_x == 0)
     {
-        // Unrolled loop to run a vectorized reduction of 64 floats on 16 threads per block in y dimension
-        if (hipThreadIdx_y < 8) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 128], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-        __syncthreads();
-        if (hipThreadIdx_y < 4) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 64], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-        __syncthreads();
-        if (hipThreadIdx_y < 2) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 32], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-        __syncthreads();
-        if (hipThreadIdx_y < 1) rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + 16], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
-        __syncthreads();
+        // Vectorized float4 reduction of 64 floats on 16 threads per block in y dimension
+        for (int threadMax = 8, increment = 128; threadMax >= 1; threadMax /= 2, increment /= 2)
+        {
+            if (hipThreadIdx_x < threadMax)
+                rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + increment], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
+            __syncthreads();
+        }
 
         // Final reduction of float4 vector to single float
         if (hipThreadIdx_y == 0)
