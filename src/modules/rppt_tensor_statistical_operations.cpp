@@ -80,6 +80,8 @@ RppStatus rppt_cartesian_to_polar_gpu(RppPtr_t srcPtr,
 #endif // backend
 }
 
+/******************** image_sum ********************/
+
 RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr,
                              RpptDescPtr srcDescPtr,
                              RppPtr_t imageSumArr,
@@ -96,7 +98,7 @@ RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr,
     }
     else if (srcDescPtr->c == 3)
     {
-        if (imageSumArrLength < srcDescPtr->n * 4)  // sum of each channel, and total sum
+        if (imageSumArrLength < srcDescPtr->n * 4)  // sum of each channel, and total sum of all 3 channels
             return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
     }
 
@@ -135,6 +137,71 @@ RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr,
                                   roiTensorPtrSrc,
                                   roiType,
                                   rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+/******************** image_min_max ********************/
+
+RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr,
+                                 RpptDescPtr srcDescPtr,
+                                 RppPtr_t imageMinMaxArr,
+                                 Rpp32u imageMinMaxArrLength,
+                                 RpptROIPtr roiTensorPtrSrc,
+                                 RpptRoiType roiType,
+                                 rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    if (srcDescPtr->c == 1)
+    {
+        if (imageMinMaxArrLength < srcDescPtr->n * 2)      // min and max of single channel
+            return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
+    }
+    else if (srcDescPtr->c == 3)
+    {
+        if (imageMinMaxArrLength < srcDescPtr->n * 8)  // min and max of each channel, and overall min and max of all 3 channels
+            return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
+    }
+
+    if (srcDescPtr->dataType == RpptDataType::U8)
+    {
+        hip_exec_image_min_max_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                      srcDescPtr,
+                                      static_cast<Rpp32f*>(imageMinMaxArr),
+                                      roiTensorPtrSrc,
+                                      roiType,
+                                      rpp::deref(rppHandle));
+    }
+    else if (srcDescPtr->dataType == RpptDataType::F16)
+    {
+        hip_exec_image_min_max_tensor((half*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+                                      srcDescPtr,
+                                      static_cast<Rpp32f*>(imageMinMaxArr),
+                                      roiTensorPtrSrc,
+                                      roiType,
+                                      rpp::deref(rppHandle));
+    }
+    else if (srcDescPtr->dataType == RpptDataType::F32)
+    {
+        hip_exec_image_min_max_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+                                      srcDescPtr,
+                                      static_cast<Rpp32f*>(imageMinMaxArr),
+                                      roiTensorPtrSrc,
+                                      roiType,
+                                      rpp::deref(rppHandle));
+    }
+    else if (srcDescPtr->dataType == RpptDataType::I8)
+    {
+        hip_exec_image_min_max_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                      srcDescPtr,
+                                      static_cast<Rpp32f*>(imageMinMaxArr),
+                                      roiTensorPtrSrc,
+                                      roiType,
+                                      rpp::deref(rppHandle));
     }
 
     return RPP_SUCCESS;

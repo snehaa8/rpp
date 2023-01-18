@@ -1,56 +1,57 @@
 #include <hip/hip_runtime.h>
 #include "rpp_hip_common.hpp"
 
-// __global__ void image_min_max_grid_result_tensor(float *srcPtr,
-//                                              uint xBufferLength,
-//                                              float *dstPtr)
-// {
-//     int id_x = hipThreadIdx_x * 8;
-//     int id_z = hipBlockIdx_z;
+__global__ void image_min_max_grid_result_tensor(float *srcPtr,
+                                                 uint xBufferLength,
+                                                 float *dstPtr)
+{
+    int id_x = hipThreadIdx_x * 8;
+    int id_z = hipBlockIdx_z;
 
-//     __shared__ float partialSumLDS[1024];                               // 256 * 4 floats of src in a 256 x 1 thread block
-//     float4 *partialSumLDS_f4 = (float4 *)&partialSumLDS[0];             // float4 pointer to beginning of buffer in LDS
-//     partialSumLDS_f4[hipThreadIdx_x] = (float4) 0.0f;                   // vectorized float4 initialization of LDS to 0 using all 256 x 1 threads
+    __shared__ float partialMinMaxLDS[1024];                        // 512 * 2 floats of src in a 512 x 1 thread block
+    float2 *partialMinMaxLDS_f2 = (float2 *)partialMinMaxLDS;       // float2 pointer to beginning of buffer in LDS
 
-//     if (id_x >= xBufferLength)
-//     {
-//         return;
-//     }
+    uint srcIdx = (id_z * xBufferLength);
+    float2 *srcPtr_f2 = (float2 *)srcPtr;
+    float2 srcRef_f2 = srcPtr_f2[srcIdx];
+    partialMinMaxLDS_f2[hipThreadIdx_x] = srcRef_f2;
 
-//     int xAlignedLength = xBufferLength & ~7;                            // alignedLength for vectorized global loads
-//     int xDiff = xBufferLength - xAlignedLength;                         // difference between bufferLength and alignedLength
-//     uint srcIdx = (id_z * xBufferLength) + id_x;
+    if (id_x >= xBufferLength)
+    {
+        return;
+    }
 
-//     d_float8 src_f8;
-//     rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);       // load 8 pixels to local mmemory
-//     if (id_x + 8 > xBufferLength)
-//         for(int i = xDiff; i < 8; i++)
-//             src_f8.f1[i] = 0.0f;                                        // reset invalid loads to 0.0f
-//     partialSumLDS_f4[hipThreadIdx_x] += (src_f8.f4[0] + src_f8.f4[1]);  // perform small work of vectorized addition of two f4s and store in LDS
-//     __syncthreads();                                                    // syncthreads after LDS load
+    int xAlignedLength = xBufferLength & ~3;                        // alignedLength for vectorized global loads
+    int xDiff = xBufferLength - xAlignedLength;                     // difference between bufferLength and alignedLength
+    srcIdx += id_x;
 
-//     // Unrolled loop to run a vectorized reduction of 1024 floats on 256 threads per block in x dimension
-//     if (hipThreadIdx_x < 128) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 128];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 64) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 64];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 32) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 32];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 16) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 16];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 8) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 8];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 4) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 4];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 2) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 2];
-//     __syncthreads();
-//     if (hipThreadIdx_x < 1) partialSumLDS_f4[hipThreadIdx_x] += partialSumLDS_f4[hipThreadIdx_x + 1];
-//     __syncthreads();
+    d_float8 src_f8;
+    rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);   // load 8 pixels to local mmemory
+    if (id_x + 8 > xBufferLength * 2)
+        for(int i = xDiff; i < 4; i++)
+            src_f8.f2[i] = srcRef_f2;                               // reset invalid loads to srcRef_f2
+    partialMinMaxLDS_f2[hipThreadIdx_x].x = fminf(src_f8.f1[0], fminf(src_f8.f1[2], fminf(src_f8.f1[4], src_f8.f1[6])));    // perform small work of min/max a vector f8 and store in LDS
+    partialMinMaxLDS_f2[hipThreadIdx_x].y = fmaxf(src_f8.f1[1], fmaxf(src_f8.f1[3], fmaxf(src_f8.f1[5], src_f8.f1[7])));    // perform small work of min/max a vector f8 and store in LDS
+    __syncthreads();                                                // syncthreads after LDS load
 
-//     // Final reduction of float4 vector to single float
-//     if (hipThreadIdx_x == 0)
-//         dstPtr[hipBlockIdx_z] = partialSumLDS_f4[0].x + partialSumLDS_f4[0].y + partialSumLDS_f4[0].z + partialSumLDS_f4[0].w;
-// }
+    // Vectorized float2 reduction of 1024 floats on 512 threads per block in x dimension
+    for (int threadMax = 256; threadMax >= 1; threadMax /= 2)
+    {
+        if (hipThreadIdx_x < threadMax)
+        {
+            partialMinMaxLDS_f2[hipThreadIdx_x].x = fminf(partialMinMaxLDS_f2[hipThreadIdx_x].x, partialMinMaxLDS_f2[hipThreadIdx_x + threadMax].x);
+            partialMinMaxLDS_f2[hipThreadIdx_x].y = fmaxf(partialMinMaxLDS_f2[hipThreadIdx_x].y, partialMinMaxLDS_f2[hipThreadIdx_x + threadMax].y);
+        }
+        __syncthreads();
+    }
+
+    // Final store of float2 vector min_max to dst
+    if (hipThreadIdx_x == 0)
+    {
+        float2 *dstPtr_f2 = (float2 *)dstPtr;
+        dstPtr_f2[hipBlockIdx_z] = partialMinMaxLDS_f2[0];
+    }
+}
 
 template <typename T, typename U>
 __global__ void image_min_max_pln1_tensor(T *srcPtr,
@@ -156,14 +157,14 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
                            make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                            imagePartialMinMaxArr,
                            roiTensorPtrSrc);
-        // hipLaunchKernelGGL(image_min_max_grid_result_tensor,
-        //                    dim3(1, 1, gridDim_z),
-        //                    dim3(256, 1, 1),
-        //                    0,
-        //                    handle.GetStream(),
-        //                    imagePartialMinMaxArr,
-        //                    gridDim_x * gridDim_y,
-        //                    imageMinMaxArr);
+        hipLaunchKernelGGL(image_min_max_grid_result_tensor,
+                           dim3(1, 1, gridDim_z),
+                           dim3(512, 1, 1),
+                           0,
+                           handle.GetStream(),
+                           imagePartialMinMaxArr,
+                           gridDim_x * gridDim_y,
+                           imageMinMaxArr);
     }
 
     return RPP_SUCCESS;

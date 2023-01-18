@@ -51,8 +51,8 @@ RppStatus rppt_cartesian_to_polar_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGen
 
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
-// *param[out] imageSumArr destination array of length (srcPtr->n * srcPtr->c)
-// *param[out] imageSumArrLength length of provided destination array (srcPtr->n * srcPtr->c)
+// *param[out] imageSumArr destination array of minimum length (srcPtr->n * srcPtr->c)
+// *param[out] imageSumArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c)
 // *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
 // *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
 // *returns a  RppStatus enumeration.
@@ -61,6 +61,24 @@ RppStatus rppt_cartesian_to_polar_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGen
 
 #ifdef GPU_SUPPORT
 RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t imageSumArr, Rpp32u imageSumArrLength, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+#endif // GPU_SUPPORT
+
+/******************** image_min_max ********************/
+
+// Image min_max finder operation for a NCHW/NHWC layout tensor
+
+// *param[in] srcPtr source tensor memory
+// *param[in] srcDescPtr source tensor descriptor
+// *param[out] imageMinMaxArr destination array of minimum length (srcPtr->n * srcPtr->c * 2)
+// *param[out] imageMinMaxArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c * 2)
+// *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
+// *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
+// *returns a  RppStatus enumeration.
+// *retval RPP_SUCCESS : succesful completion
+// *retval RPP_ERROR : Error
+
+#ifdef GPU_SUPPORT
+RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t imageMinMaxArr, Rpp32u imageMinMaxArrLength, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
 #ifdef __cplusplus
