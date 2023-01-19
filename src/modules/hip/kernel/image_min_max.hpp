@@ -63,14 +63,17 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    __shared__ float partialMinMaxLDS[16][128];                                                         // 16 rows of src, 64 cols of src in a 16 x 16 thread block (each producing outputs for min and max)
+    // __shared__ float partialMinMaxLDS[16][128];                                                         // 16 rows of src, 32 cols of src in a 16 x 16 thread block (each producing outputs for min and max)
+    __shared__ float partialMinMaxLDS[16][32];                                                         // 16 rows of src, 32 cols of src in a 16 x 16 thread block (each producing outputs for min and max)
     float *partialMinMaxLDSRowPtr = &partialMinMaxLDS[hipThreadIdx_y][0];                               // float pointer to beginning of each row in LDS
-    d_float8 *partialMinMaxLDSRowPtr_f8 = (d_float8 *)partialMinMaxLDSRowPtr;                           // d_float8 pointer to beginning of each row in LDS
+    // d_float8 *partialMinMaxLDSRowPtr_f8 = (d_float8 *)partialMinMaxLDSRowPtr;                           // d_float8 pointer to beginning of each row in LDS
+    float2 *partialMinMaxLDSRowPtr_f2 = (float2 *)partialMinMaxLDSRowPtr;                           // d_float8 pointer to beginning of each row in LDS
 
     uint srcIdx = (id_z * srcStridesNH.x);
     float srcRef = srcPtr[srcIdx];
-    partialMinMaxLDSRowPtr_f8[hipThreadIdx_x].f4[0] = (float4) srcRef;                                  // vectorized float4 initialization of LDS to 0 using all 16x16 threads
-    partialMinMaxLDSRowPtr_f8[hipThreadIdx_x].f4[1] = partialMinMaxLDSRowPtr_f8[hipThreadIdx_x].f4[0];  // vectorized float4 initialization of LDS to 0 using all 16x16 threads
+    // partialMinMaxLDSRowPtr_f8[hipThreadIdx_x].f4[0] = (float4) srcRef;                                  // vectorized float4 initialization of LDS to srcRef using all 16x16 threads
+    // partialMinMaxLDSRowPtr_f8[hipThreadIdx_x].f4[1] = partialMinMaxLDSRowPtr_f8[hipThreadIdx_x].f4[0];  // vectorized float4 initialization of LDS to srcRef using all 16x16 threads
+    partialMinMaxLDSRowPtr_f2[hipThreadIdx_x] = (float2) srcRef;
 
     if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
@@ -86,14 +89,19 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
     if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
         for(int i = xDiff; i < 8; i++)
             src_f8.f1[i] = srcRef;                                                                      // reset invalid loads to srcRef
-    rpp_hip_math_minmax4(src_f8.f4[0], src_f8.f4[1], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x]);        // perform small work of finding minmax for two vector f4s and store in LDS
+    // rpp_hip_math_minmax4(src_f8.f4[0], src_f8.f4[1], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x]);        // perform small work of finding minmax for two vector f4s and store in LDS
+    rpp_hip_math_minmax8(src_f8, partialMinMaxLDSRowPtr_f2[hipThreadIdx_x]);
     __syncthreads();                                                                                    // syncthreads after LDS load
 
     // Vectorized float4 reduction of 64 floats on 16 threads per block in x dimension (for every y dimension)
     for (int threadMax = 8; threadMax >= 1; threadMax /= 2)
     {
         if (hipThreadIdx_x < threadMax)
-            rpp_hip_math_minmax4(partialMinMaxLDSRowPtr_f8[hipThreadIdx_x], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x + threadMax], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x]);
+            // rpp_hip_math_minmax4(partialMinMaxLDSRowPtr_f8[hipThreadIdx_x], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x + threadMax], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x]);
+        {
+            partialMinMaxLDSRowPtr_f2[hipThreadIdx_x].x = fminf(partialMinMaxLDSRowPtr_f2[hipThreadIdx_x].x, partialMinMaxLDSRowPtr_f2[hipThreadIdx_x + threadMax].x);
+            partialMinMaxLDSRowPtr_f2[hipThreadIdx_x].y = fmaxf(partialMinMaxLDSRowPtr_f2[hipThreadIdx_x].y, partialMinMaxLDSRowPtr_f2[hipThreadIdx_x + threadMax].y);
+        }
         __syncthreads();
     }
 
@@ -102,8 +110,12 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
         // Vectorized float4 reduction of 128 floats on 16 threads per block in y dimension
         for (int threadMax = 8, increment = 128; threadMax >= 1; threadMax /= 2, increment /= 2)
         {
-            if (hipThreadIdx_x < threadMax)
-                rpp_hip_math_minmax4(partialMinMaxLDSRowPtr_f8[hipThreadIdx_x], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x + increment], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x]);
+            // rpp_hip_math_minmax4(partialMinMaxLDSRowPtr_f8[hipThreadIdx_x], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x + increment], partialMinMaxLDSRowPtr_f8[hipThreadIdx_x]);
+            if (hipThreadIdx_y < threadMax)
+            {
+                partialMinMaxLDSRowPtr_f2[0].x = fminf(partialMinMaxLDSRowPtr_f2[0].x, partialMinMaxLDSRowPtr_f2[increment].x);
+                partialMinMaxLDSRowPtr_f2[0].y = fmaxf(partialMinMaxLDSRowPtr_f2[0].y, partialMinMaxLDSRowPtr_f2[increment].y);
+            }
             __syncthreads();
         }
 
@@ -111,11 +123,12 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
         if (hipThreadIdx_y == 0)
         {
             float2 *imageMinMaxArr_f2 = (float2 *)imageMinMaxArr;
-            float2 minmax_f2 = make_float2(
-                fminf(fminf(fminf(partialMinMaxLDSRowPtr_f8[0].f1[0], partialMinMaxLDSRowPtr_f8[0].f1[1]), partialMinMaxLDSRowPtr_f8[0].f1[2]), partialMinMaxLDSRowPtr_f8[0].f1[3]),
-                fmaxf(fmaxf(fmaxf(partialMinMaxLDSRowPtr_f8[0].f1[4], partialMinMaxLDSRowPtr_f8[0].f1[5]), partialMinMaxLDSRowPtr_f8[0].f1[6]), partialMinMaxLDSRowPtr_f8[0].f1[7])
-            );
-            imageMinMaxArr_f2[(hipBlockIdx_z * hipGridDim_y + hipBlockIdx_y) * hipGridDim_x + hipBlockIdx_x] = minmax_f2;
+            // float2 minmax_f2 = make_float2(
+            //     fminf(fminf(fminf(partialMinMaxLDSRowPtr_f8[0].f1[0], partialMinMaxLDSRowPtr_f8[0].f1[1]), partialMinMaxLDSRowPtr_f8[0].f1[2]), partialMinMaxLDSRowPtr_f8[0].f1[3]),
+            //     fmaxf(fmaxf(fmaxf(partialMinMaxLDSRowPtr_f8[0].f1[4], partialMinMaxLDSRowPtr_f8[0].f1[5]), partialMinMaxLDSRowPtr_f8[0].f1[6]), partialMinMaxLDSRowPtr_f8[0].f1[7])
+            // );
+            // imageMinMaxArr_f2[(hipBlockIdx_z * hipGridDim_y + hipBlockIdx_y) * hipGridDim_x + hipBlockIdx_x] = minmax_f2;
+            imageMinMaxArr_f2[(hipBlockIdx_z * hipGridDim_y + hipBlockIdx_y) * hipGridDim_x + hipBlockIdx_x] = partialMinMaxLDSRowPtr_f2[0];
         }
     }
 }
