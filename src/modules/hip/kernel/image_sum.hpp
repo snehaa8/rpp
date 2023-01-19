@@ -87,7 +87,7 @@ __global__ void image_sum_pln1_tensor(T *srcPtr,
         // Vectorized float4 reduction of 64 floats on 16 threads per block in y dimension
         for (int threadMax = 8, increment = 128; threadMax >= 1; threadMax /= 2, increment /= 2)
         {
-            if (hipThreadIdx_x < threadMax)
+            if (hipThreadIdx_y < threadMax)
                 rpp_hip_math_add4(partialSumLDSRowPtr_f4[hipThreadIdx_x], partialSumLDSRowPtr_f4[hipThreadIdx_x + increment], partialSumLDSRowPtr_f4[hipThreadIdx_x]);
             __syncthreads();
         }
