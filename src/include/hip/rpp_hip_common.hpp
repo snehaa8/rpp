@@ -1500,32 +1500,12 @@ __device__ __forceinline__ void rpp_hip_math_minmax2(float2 &src1Ptr_f2, float2 
     dstPtr_f2.y = fmaxf(src1Ptr_f2.y, src2Ptr_f2.y);
 }
 
-// float4 min_max (read common-vector float4s and write vector d_float8)
+// d_float8 min_max (reduce d_float8 to float2)
 
-__device__ __forceinline__ void rpp_hip_math_minmax4(float4 &src1Ptr_f4, float4 &src2Ptr_f4, d_float8 &dstPtr_f8)
+__device__ __forceinline__ void rpp_hip_math_minmax8(d_float8 &srcPtr_f8, float2 &dstPtr_f2)
 {
-    dstPtr_f8.f1[0] = fminf(src1Ptr_f4.x, src2Ptr_f4.x);
-    dstPtr_f8.f1[1] = fminf(src1Ptr_f4.y, src2Ptr_f4.y);
-    dstPtr_f8.f1[2] = fminf(src1Ptr_f4.z, src2Ptr_f4.z);
-    dstPtr_f8.f1[3] = fminf(src1Ptr_f4.w, src2Ptr_f4.w);
-    dstPtr_f8.f1[4] = fmaxf(src1Ptr_f4.x, src2Ptr_f4.x);
-    dstPtr_f8.f1[5] = fmaxf(src1Ptr_f4.y, src2Ptr_f4.y);
-    dstPtr_f8.f1[6] = fmaxf(src1Ptr_f4.z, src2Ptr_f4.z);
-    dstPtr_f8.f1[7] = fmaxf(src1Ptr_f4.w, src2Ptr_f4.w);
-}
-
-// float4 min_max (read and write vector d_float8s)
-
-__device__ __forceinline__ void rpp_hip_math_minmax4(d_float8 &src1Ptr_f8, d_float8 &src2Ptr_f8, d_float8 &dstPtr_f8)
-{
-    dstPtr_f8.f1[0] = fminf(src1Ptr_f8.f1[0], src2Ptr_f8.f1[0]);
-    dstPtr_f8.f1[1] = fminf(src1Ptr_f8.f1[1], src2Ptr_f8.f1[1]);
-    dstPtr_f8.f1[2] = fminf(src1Ptr_f8.f1[2], src2Ptr_f8.f1[2]);
-    dstPtr_f8.f1[3] = fminf(src1Ptr_f8.f1[3], src2Ptr_f8.f1[3]);
-    dstPtr_f8.f1[4] = fmaxf(src1Ptr_f8.f1[4], src2Ptr_f8.f1[4]);
-    dstPtr_f8.f1[5] = fmaxf(src1Ptr_f8.f1[5], src2Ptr_f8.f1[5]);
-    dstPtr_f8.f1[6] = fmaxf(src1Ptr_f8.f1[6], src2Ptr_f8.f1[6]);
-    dstPtr_f8.f1[7] = fmaxf(src1Ptr_f8.f1[7], src2Ptr_f8.f1[7]);
+    dstPtr_f2.x = fminf(fminf(fminf(fminf(fminf(fminf(fminf(srcPtr_f8.f1[0], srcPtr_f8.f1[1]), srcPtr_f8.f1[2]), srcPtr_f8.f1[3]), srcPtr_f8.f1[4]), srcPtr_f8.f1[5]), srcPtr_f8.f1[6]), srcPtr_f8.f1[7]);
+    dstPtr_f2.y = fmaxf(fmaxf(fmaxf(fmaxf(fmaxf(fmaxf(fmaxf(srcPtr_f8.f1[0], srcPtr_f8.f1[1]), srcPtr_f8.f1[2]), srcPtr_f8.f1[3]), srcPtr_f8.f1[4]), srcPtr_f8.f1[5]), srcPtr_f8.f1[6]), srcPtr_f8.f1[7]);
 }
 
 // float4 add
