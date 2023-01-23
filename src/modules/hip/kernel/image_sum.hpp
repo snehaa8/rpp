@@ -24,7 +24,7 @@ __global__ void image_sum_grid_result_tensor(float *srcPtr,
     rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);   // load 8 pixels to local mmemory
     if (id_x + 8 > xBufferLength)
         for(int i = xDiff; i < 8; i++)
-            src_f8.f1[i] = 0.0f;                                    // reset invalid loads to 0.0f
+            src_f8.f1[i] = 0.0f;                                    // local memory reset of invalid values (from the vectorized global load) to 0.0f
     src_f8.f4[0] += src_f8.f4[1];                                   // perform small work of vectorized float4 addition
     partialSumLDS[hipThreadIdx_x] += (src_f8.f1[0] +
                                       src_f8.f1[1] +
@@ -72,7 +72,7 @@ __global__ void image_sum_pln1_tensor(T *srcPtr,
     rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);           // load 8 pixels to local mmemory
     if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
         for(int i = xDiff; i < 8; i++)
-            src_f8.f1[i] = 0.0f;                                            // reset invalid loads to 0.0f
+            src_f8.f1[i] = 0.0f;                                            // local memory reset of invalid values (from the vectorized global load) to 0.0f
     src_f8.f4[0] += src_f8.f4[1];                                           // perform small work of vectorized float4 addition
     partialSumLDSRowPtr[hipThreadIdx_x] = (src_f8.f1[0] +
                                            src_f8.f1[1] +

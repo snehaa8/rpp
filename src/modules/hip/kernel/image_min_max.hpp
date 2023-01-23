@@ -29,7 +29,7 @@ __global__ void image_min_max_grid_result_tensor(float *srcPtr,
     rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);   // load 8 pixels to local mmemory
     if (id_x + 8 > blocksAndBufferSizePerImage_i2.y)
         for(int i = xDiff; i < 4; i++)
-            src_f8.f2[i] = srcRef_f2;                               // reset invalid loads to srcRef_f2
+            src_f8.f2[i] = srcRef_f2;                               // local memory reset of invalid values (from the vectorized global load) to srcRef_f2
     partialMinMaxLDS_f2[hipThreadIdx_x].x = fminf(src_f8.f1[0], fminf(src_f8.f1[2], fminf(src_f8.f1[4], src_f8.f1[6])));    // perform small work of min/max a d_float8 vector and store in LDS
     partialMinMaxLDS_f2[hipThreadIdx_x].y = fmaxf(src_f8.f1[1], fmaxf(src_f8.f1[3], fmaxf(src_f8.f1[5], src_f8.f1[7])));    // perform small work of min/max a d_float8 vector and store in LDS
     __syncthreads();                                                // syncthreads after LDS load
@@ -70,6 +70,8 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
 
     if ((id_y >= roiTensorPtrSrc[id_z].xywhROI.roiHeight) || (id_x >= roiTensorPtrSrc[id_z].xywhROI.roiWidth))
     {
+        float2 *imageMinMaxArr_f2 = (float2 *)imageMinMaxArr;
+        imageMinMaxArr_f2[(hipBlockIdx_z * hipGridDim_y + hipBlockIdx_y) * hipGridDim_x + hipBlockIdx_x] = (float2) srcRef;
         return;
     }
 
@@ -81,7 +83,7 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
     rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);               // load 8 pixels to local mmemory
     if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
         for(int i = xDiff; i < 8; i++)
-            src_f8.f1[i] = srcRef;                                              // reset invalid loads to srcRef
+            src_f8.f1[i] = srcRef;                                              // local memory reset of invalid values (from the vectorized global load) to srcRef
     rpp_hip_math_minmax8(src_f8, partialMinMaxLDSRowPtr_f2[hipThreadIdx_x]);    // perform small work of reducing vector d_float8 to float2 min-max and store in LDS
     __syncthreads();                                                            // syncthreads after LDS load
 
@@ -141,6 +143,21 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
     {
         int xBufferSizePerImage = numOfBlocksPerImage * 2;
         hipMemset(imagePartialMinMaxArr, 0, xBufferSizePerImage * gridDim_z * sizeof(float));
+
+        std::cout << std::endl;
+        std::cout <<  "Kernel Launch Params:" << std::endl;
+        std::cout << "localThreads_x = " << localThreads_x << std::endl;
+        std::cout << "localThreads_y = " << localThreads_y << std::endl;
+        std::cout << "localThreads_z = " << localThreads_z << std::endl;
+        std::cout << "globalThreads_x = " << globalThreads_x << std::endl;
+        std::cout << "globalThreads_y = " << globalThreads_y << std::endl;
+        std::cout << "globalThreads_z = " << globalThreads_z << std::endl;
+        std::cout << "gridDim_x = " << gridDim_x << std::endl;
+        std::cout << "gridDim_y = " << gridDim_y << std::endl;
+        std::cout << "gridDim_z = " << gridDim_z << std::endl;
+        std::cout << "numOfBlocksPerImage = " << numOfBlocksPerImage << std::endl;
+        std::cout << "xBufferSizePerImage = " << xBufferSizePerImage << std::endl;
+
         hipLaunchKernelGGL(image_min_max_pln1_tensor,
                            dim3(gridDim_x, gridDim_y, gridDim_z),
                            dim3(localThreads_x, localThreads_y, localThreads_z),
@@ -150,6 +167,15 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
                            make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                            imagePartialMinMaxArr,
                            roiTensorPtrSrc);
+
+        Rpp32f output[xBufferSizePerImage * gridDim_z];
+        hipMemcpy(output, imagePartialMinMaxArr, xBufferSizePerImage * gridDim_z * sizeof(float), hipMemcpyDeviceToHost);
+        printf("\n\n");
+        for (int i = 0; i < xBufferSizePerImage * gridDim_z; i++)
+        {
+            printf(" %0.3f ", output[i]);
+        }
+
         hipLaunchKernelGGL(image_min_max_grid_result_tensor,
                            dim3(1, 1, gridDim_z),
                            dim3(512, 1, 1),
