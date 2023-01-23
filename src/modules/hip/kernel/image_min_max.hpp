@@ -2,7 +2,7 @@
 #include "rpp_hip_common.hpp"
 
 __global__ void image_min_max_grid_result_tensor(float *srcPtr,
-                                                 uint xBufferLength,
+                                                 int2 blocksAndBufferSizePerImage_i2, //xBufferLength,//540
                                                  float *dstPtr)
 {
     int id_x = hipThreadIdx_x * 8;
@@ -11,30 +11,30 @@ __global__ void image_min_max_grid_result_tensor(float *srcPtr,
     __shared__ float partialMinMaxLDS[1024];                        // 4096 floats of src reduced to 1024 in a 512 x 1 thread block
     float2 *partialMinMaxLDS_f2 = (float2 *)partialMinMaxLDS;       // float2 pointer to beginning of buffer in LDS
 
-    uint srcIdx = (id_z * xBufferLength);
+    uint srcIdx = (id_z * blocksAndBufferSizePerImage_i2.x);
     float2 *srcPtr_f2 = (float2 *)srcPtr;
     float2 srcRef_f2 = srcPtr_f2[srcIdx];
     partialMinMaxLDS_f2[hipThreadIdx_x] = srcRef_f2;                // vectorized float2 initialization of LDS to srcRef_f2 using all 512 x 1 threads
 
-    if (id_x >= xBufferLength)
+    if (id_x >= blocksAndBufferSizePerImage_i2.y)
     {
         return;
     }
 
-    int xAlignedLength = xBufferLength & ~3;                        // alignedLength for vectorized global loads
-    int xDiff = xBufferLength - xAlignedLength;                     // difference between bufferLength and alignedLength
-    srcIdx += id_x;
+    int xAlignedLength = blocksAndBufferSizePerImage_i2.x & ~3;     // alignedLength for vectorized global loads
+    int xDiff = blocksAndBufferSizePerImage_i2.x - xAlignedLength;  // difference between bufferLength and alignedLength
+    srcIdx += (srcIdx + id_x);
 
     d_float8 src_f8;
     rpp_hip_load8_and_unpack_to_float8(srcPtr + srcIdx, &src_f8);   // load 8 pixels to local mmemory
-    if (id_x + 8 > xBufferLength * 2)
+    if (id_x + 8 > blocksAndBufferSizePerImage_i2.y)
         for(int i = xDiff; i < 4; i++)
             src_f8.f2[i] = srcRef_f2;                               // reset invalid loads to srcRef_f2
     partialMinMaxLDS_f2[hipThreadIdx_x].x = fminf(src_f8.f1[0], fminf(src_f8.f1[2], fminf(src_f8.f1[4], src_f8.f1[6])));    // perform small work of min/max a d_float8 vector and store in LDS
     partialMinMaxLDS_f2[hipThreadIdx_x].y = fmaxf(src_f8.f1[1], fmaxf(src_f8.f1[3], fmaxf(src_f8.f1[5], src_f8.f1[7])));    // perform small work of min/max a d_float8 vector and store in LDS
     __syncthreads();                                                // syncthreads after LDS load
 
-    // Reduction of 512 floats on 512 threads per block in x dimension
+    // Reduction of 1024 floats on 512 threads per block in x dimension
     for (int threadMax = 256; threadMax >= 1; threadMax /= 2)
     {
         if (hipThreadIdx_x < threadMax)
@@ -60,7 +60,7 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     int id_z = hipBlockIdx_z * hipBlockDim_z + hipThreadIdx_z;
 
-    __shared__ float partialMinMaxLDS[16][32];                                  // 16 rows of src, 256 reduced cols of src in a 16 x 16 thread block (each producing float2 outputs for min and max)
+    __shared__ float partialMinMaxLDS[32][32];                                  // 32 rows of src, 256 reduced cols of src in a 16 x 16 thread block (each producing float2 outputs for min and max)
     float *partialMinMaxLDSRowPtr = &partialMinMaxLDS[hipThreadIdx_y][0];       // float pointer to beginning of each row in LDS
     float2 *partialMinMaxLDSRowPtr_f2 = (float2 *)partialMinMaxLDSRowPtr;       // float2 pointer to beginning of each row in LDS
 
@@ -95,8 +95,8 @@ __global__ void image_min_max_pln1_tensor(T *srcPtr,
 
     if (hipThreadIdx_x == 0)
     {
-        // Vectorized reduction of 16 float2s (32 floats) on 16 threads per block in y dimension
-        for (int threadMax = 8, increment = 128; threadMax >= 1; threadMax /= 2, increment /= 2)
+        // Vectorized reduction of 32 float2s (64 floats) on 32 threads per block in y dimension
+        for (int threadMax = 16, increment = 256; threadMax >= 1; threadMax /= 2, increment /= 2)
         {
             if (hipThreadIdx_y < threadMax)
                 rpp_hip_math_minmax2(partialMinMaxLDSRowPtr_f2[0], partialMinMaxLDSRowPtr_f2[increment], partialMinMaxLDSRowPtr_f2[0]);
@@ -124,7 +124,7 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
         hip_exec_roi_converison_ltrb_to_xywh(roiTensorPtrSrc, handle);
 
     int localThreads_x = LOCAL_THREADS_X;
-    int localThreads_y = LOCAL_THREADS_Y;
+    int localThreads_y = LOCAL_THREADS_Y * 2;
     int localThreads_z = LOCAL_THREADS_Z;
     int globalThreads_x = (srcDescPtr->strides.hStride + 7) >> 3;
     int globalThreads_y = srcDescPtr->h;
@@ -132,14 +132,15 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
     int gridDim_x = (int) ceil((float)globalThreads_x/localThreads_x);
     int gridDim_y = (int) ceil((float)globalThreads_y/localThreads_y);
     int gridDim_z = (int) ceil((float)globalThreads_z/localThreads_z);
+    int numOfBlocksPerImage = gridDim_x * gridDim_y;
 
-    Rpp32u imagePartialMinMaxArrLength = gridDim_x * gridDim_y * gridDim_z * 2;
     float *imagePartialMinMaxArr;
     imagePartialMinMaxArr = handle.GetInitHandle()->mem.mgpu.maskArr.floatmem;
-    hipMemset(imagePartialMinMaxArr, 0, imagePartialMinMaxArrLength * sizeof(float));
 
     if ((srcDescPtr->c == 1) && (srcDescPtr->layout == RpptLayout::NCHW))
     {
+        int xBufferSizePerImage = numOfBlocksPerImage * 2;
+        hipMemset(imagePartialMinMaxArr, 0, xBufferSizePerImage * gridDim_z * sizeof(float));
         hipLaunchKernelGGL(image_min_max_pln1_tensor,
                            dim3(gridDim_x, gridDim_y, gridDim_z),
                            dim3(localThreads_x, localThreads_y, localThreads_z),
@@ -155,7 +156,7 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
                            0,
                            handle.GetStream(),
                            imagePartialMinMaxArr,
-                           gridDim_x * gridDim_y,
+                           make_int2(numOfBlocksPerImage, xBufferSizePerImage),
                            imageMinMaxArr);
     }
 
