@@ -143,21 +143,6 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
     {
         int xBufferSizePerImage = numOfBlocksPerImage * 2;
         hipMemset(imagePartialMinMaxArr, 0, xBufferSizePerImage * gridDim_z * sizeof(float));
-
-        std::cout << std::endl;
-        std::cout <<  "Kernel Launch Params:" << std::endl;
-        std::cout << "localThreads_x = " << localThreads_x << std::endl;
-        std::cout << "localThreads_y = " << localThreads_y << std::endl;
-        std::cout << "localThreads_z = " << localThreads_z << std::endl;
-        std::cout << "globalThreads_x = " << globalThreads_x << std::endl;
-        std::cout << "globalThreads_y = " << globalThreads_y << std::endl;
-        std::cout << "globalThreads_z = " << globalThreads_z << std::endl;
-        std::cout << "gridDim_x = " << gridDim_x << std::endl;
-        std::cout << "gridDim_y = " << gridDim_y << std::endl;
-        std::cout << "gridDim_z = " << gridDim_z << std::endl;
-        std::cout << "numOfBlocksPerImage = " << numOfBlocksPerImage << std::endl;
-        std::cout << "xBufferSizePerImage = " << xBufferSizePerImage << std::endl;
-
         hipLaunchKernelGGL(image_min_max_pln1_tensor,
                            dim3(gridDim_x, gridDim_y, gridDim_z),
                            dim3(localThreads_x, localThreads_y, localThreads_z),
@@ -167,15 +152,6 @@ RppStatus hip_exec_image_min_max_tensor(T *srcPtr,
                            make_uint2(srcDescPtr->strides.nStride, srcDescPtr->strides.hStride),
                            imagePartialMinMaxArr,
                            roiTensorPtrSrc);
-
-        Rpp32f output[xBufferSizePerImage * gridDim_z];
-        hipMemcpy(output, imagePartialMinMaxArr, xBufferSizePerImage * gridDim_z * sizeof(float), hipMemcpyDeviceToHost);
-        printf("\n\n");
-        for (int i = 0; i < xBufferSizePerImage * gridDim_z; i++)
-        {
-            printf(" %0.3f ", output[i]);
-        }
-
         hipLaunchKernelGGL(image_min_max_grid_result_tensor,
                            dim3(1, 1, gridDim_z),
                            dim3(512, 1, 1),
