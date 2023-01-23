@@ -2,7 +2,7 @@
 #include "rpp_hip_common.hpp"
 
 __global__ void image_min_max_grid_result_tensor(float *srcPtr,
-                                                 int2 blocksAndBufferSizePerImage_i2, //xBufferLength,//540
+                                                 int2 blocksAndBufferSizePerImage_i2,
                                                  float *dstPtr)
 {
     int id_x = hipThreadIdx_x * 8;
