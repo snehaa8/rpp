@@ -26,5 +26,6 @@ THE SOFTWARE.
 #include "kernel/cartesian_to_polar.hpp"
 #include "kernel/image_sum.hpp"
 #include "kernel/image_min_max.hpp"
+#include "kernel/normalize_minmax.hpp"
 
 #endif // HIP_TENSOR_STATISTICAL_OPERATIONS_HPP

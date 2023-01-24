@@ -1492,6 +1492,20 @@ __device__ __forceinline__ void rpp_hip_math_fmod8_const(d_float8 *srcPtr_f8, d_
     dstPtr_f8->f1[7] = fmodf(srcPtr_f8->f1[7], divisor);
 }
 
+// d_float8 fmaf
+
+__device__ __forceinline__ void rpp_hip_math_fmaf8_const(d_float8 *srcPtr_f8, d_float8 *dstPtr_f8, float multiplier, float addend)
+{
+    dstPtr_f8->f1[0] = fmaf(srcPtr_f8->f1[0], multiplier, addend);
+    dstPtr_f8->f1[1] = fmaf(srcPtr_f8->f1[1], multiplier, addend);
+    dstPtr_f8->f1[2] = fmaf(srcPtr_f8->f1[2], multiplier, addend);
+    dstPtr_f8->f1[3] = fmaf(srcPtr_f8->f1[3], multiplier, addend);
+    dstPtr_f8->f1[4] = fmaf(srcPtr_f8->f1[4], multiplier, addend);
+    dstPtr_f8->f1[5] = fmaf(srcPtr_f8->f1[5], multiplier, addend);
+    dstPtr_f8->f1[6] = fmaf(srcPtr_f8->f1[6], multiplier, addend);
+    dstPtr_f8->f1[7] = fmaf(srcPtr_f8->f1[7], multiplier, addend);
+}
+
 // float2 min_max (read and write vector float2)
 
 __device__ __forceinline__ void rpp_hip_math_minmax2(float2 &src1Ptr_f2, float2 &src2Ptr_f2, float2 &dstPtr_f2)

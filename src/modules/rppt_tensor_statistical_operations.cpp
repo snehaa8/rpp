@@ -56,7 +56,6 @@ RppStatus rppt_cartesian_to_polar_gpu(RppPtr_t srcPtr,
     RpptDescPtr srcDescPtr, dstDescPtr;
     srcDescPtr = &srcDesc;
     dstDescPtr = &dstDesc;
-
     rpp_tensor_generic_to_image_desc(srcGenericDescPtr, srcDescPtr);
     rpp_tensor_generic_to_image_desc(dstGenericDescPtr, dstDescPtr);
 
@@ -148,7 +147,7 @@ RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr,
 /******************** image_min_max ********************/
 
 RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr,
-                                 RpptDescPtr srcDescPtr,
+                                 RpptGenericDescPtr srcGenericDescPtr,
                                  RppPtr_t imageMinMaxArr,
                                  Rpp32u imageMinMaxArrLength,
                                  RpptROIPtr roiTensorPtrSrc,
@@ -156,14 +155,19 @@ RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr,
                                  rppHandle_t rppHandle)
 {
 #ifdef HIP_COMPILE
+    RpptDesc srcDesc;
+    RpptDescPtr srcDescPtr;
+    srcDescPtr = &srcDesc;
+    rpp_tensor_generic_to_image_desc(srcGenericDescPtr, srcDescPtr);
+
     if (srcDescPtr->c == 1)
     {
-        if (imageMinMaxArrLength < srcDescPtr->n * 2)      // min and max of single channel
+        if (imageMinMaxArrLength < srcDescPtr->n * 2)   // min and max of single channel
             return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
     }
     else if (srcDescPtr->c == 3)
     {
-        if (imageMinMaxArrLength < srcDescPtr->n * 8)  // min and max of each channel, and overall min and max of all 3 channels
+        if (imageMinMaxArrLength < srcDescPtr->n * 8)   // min and max of each channel, and overall min and max of all 3 channels
             return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
     }
 
@@ -202,6 +206,101 @@ RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr,
                                       roiTensorPtrSrc,
                                       roiType,
                                       rpp::deref(rppHandle));
+    }
+
+    return RPP_SUCCESS;
+#elif defined(OCL_COMPILE)
+    return RPP_ERROR_NOT_IMPLEMENTED;
+#endif // backend
+}
+
+/******************** normalize_minmax ********************/
+
+RppStatus rppt_normalize_minmax_gpu(RppPtr_t srcPtr,
+                                    RpptGenericDescPtr srcGenericDescPtr,
+                                    RppPtr_t dstPtr,
+                                    RpptGenericDescPtr dstGenericDescPtr,
+                                    Rpp32f *imageMinMaxArr,
+                                    Rpp32u imageMinMaxArrLength,
+                                    Rpp32f newMin,
+                                    Rpp32f newMax,
+                                    RpptROIPtr roiTensorPtrSrc,
+                                    RpptRoiType roiType,
+                                    rppHandle_t rppHandle)
+{
+#ifdef HIP_COMPILE
+    RpptDesc srcDesc, dstDesc;
+    RpptDescPtr srcDescPtr, dstDescPtr;
+    srcDescPtr = &srcDesc;
+    dstDescPtr = &dstDesc;
+    rpp_tensor_generic_to_image_desc(srcGenericDescPtr, srcDescPtr);
+    rpp_tensor_generic_to_image_desc(dstGenericDescPtr, dstDescPtr);
+
+    if (srcDescPtr->c == 1)
+    {
+        if (imageMinMaxArrLength < srcDescPtr->n * 2)   // min and max of single channel
+            return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
+        for (int i = 0; i < imageMinMaxArrLength; i += 2)
+            if (imageMinMaxArr[i] == imageMinMaxArr[i + 1])
+                return RPP_ERROR_INVALID_ARGUMENTS;
+    }
+    else if (srcDescPtr->c == 3)
+    {
+        if (imageMinMaxArrLength < srcDescPtr->n * 8)   // min and max of each channel, and overall min and max of all 3 channels
+            return RPP_ERROR_INSUFFICIENT_DST_BUFFER_LENGTH;
+    }
+
+    if ((srcDescPtr->dataType == RpptDataType::U8) && (dstDescPtr->dataType == RpptDataType::U8))
+    {
+        hip_exec_normalize_minmax_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                         srcDescPtr,
+                                         static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                         dstDescPtr,
+                                         static_cast<Rpp32f*>(imageMinMaxArr),
+                                         newMin,
+                                         newMax,
+                                         roiTensorPtrSrc,
+                                         roiType,
+                                         rpp::deref(rppHandle));
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::F16) && (dstDescPtr->dataType == RpptDataType::F16))
+    {
+        hip_exec_normalize_minmax_tensor((half*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+                                         srcDescPtr,
+                                         (half*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+                                         dstDescPtr,
+                                         static_cast<Rpp32f*>(imageMinMaxArr),
+                                         newMin,
+                                         newMax,
+                                         roiTensorPtrSrc,
+                                         roiType,
+                                         rpp::deref(rppHandle));
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::F32) && (dstDescPtr->dataType == RpptDataType::F32))
+    {
+        hip_exec_normalize_minmax_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
+                                         srcDescPtr,
+                                         (Rpp32f*) (static_cast<Rpp8u*>(dstPtr) + dstDescPtr->offsetInBytes),
+                                         dstDescPtr,
+                                         static_cast<Rpp32f*>(imageMinMaxArr),
+                                         newMin,
+                                         newMax,
+                                         roiTensorPtrSrc,
+                                         roiType,
+                                         rpp::deref(rppHandle));
+    }
+    else if ((srcDescPtr->dataType == RpptDataType::I8) && (dstDescPtr->dataType == RpptDataType::I8))
+    {
+        hip_exec_normalize_minmax_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
+                                         srcDescPtr,
+                                         static_cast<Rpp8s*>(dstPtr) + dstDescPtr->offsetInBytes,
+                                         dstDescPtr,
+                                         static_cast<Rpp32f*>(imageMinMaxArr),
+                                         newMin,
+                                         newMax,
+                                         roiTensorPtrSrc,
+                                         roiType,
+                                         rpp::deref(rppHandle));
     }
 
     return RPP_SUCCESS;

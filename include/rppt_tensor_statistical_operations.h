@@ -52,7 +52,7 @@ RppStatus rppt_cartesian_to_polar_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGen
 // *param[in] srcPtr source tensor memory
 // *param[in] srcDescPtr source tensor descriptor
 // *param[out] imageSumArr destination array of minimum length (srcPtr->n * srcPtr->c)
-// *param[out] imageSumArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c)
+// *param[in] imageSumArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c)
 // *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
 // *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
 // *returns a  RppStatus enumeration.
@@ -68,9 +68,9 @@ RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t i
 // Image min_max finder operation for a NCHW/NHWC layout tensor
 
 // *param[in] srcPtr source tensor memory
-// *param[in] srcDescPtr source tensor descriptor
-// *param[out] imageMinMaxArr destination array of minimum length (srcPtr->n * srcPtr->c * 2)
-// *param[out] imageMinMaxArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c * 2)
+// *param[in] srcGenericDescPtr source tensor descriptor
+// *param[out] imageMinMaxArr destination minmax array (length >= srcPtr->n * srcPtr->c * 2)
+// *param[in] imageMinMaxArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c * 2)
 // *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
 // *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
 // *returns a  RppStatus enumeration.
@@ -78,7 +78,29 @@ RppStatus rppt_image_sum_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t i
 // *retval RPP_ERROR : Error
 
 #ifdef GPU_SUPPORT
-RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_t imageMinMaxArr, Rpp32u imageMinMaxArrLength, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+RppStatus rppt_image_min_max_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t imageMinMaxArr, Rpp32u imageMinMaxArrLength, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
+#endif // GPU_SUPPORT
+
+/******************** normalize_minmax ********************/
+
+// Minmax normalize operation for a NCHW/NHWC layout tensor
+
+// *param[in] srcPtr source tensor memory
+// *param[in] srcGenericDescPtr source tensor descriptor
+// *param[out] dstPtr destination tensor memory
+// *param[in] dstGenericDescPtr destination tensor descriptor
+// *param[in] imageMinMaxArr minmax array containing min, max of each image in batch (min != max for any single image, and length >= srcPtr->n * srcPtr->c * 2)
+// *param[in] imageMinMaxArrLength length of provided destination array (minimum length = srcPtr->n * srcPtr->c * 2)
+// *param[in] newMin new Rpp32f minimum value to use for normalize operation
+// *param[in] newMax new Rpp32f maximum value to use for normalize operation
+// *param[in] roiTensorSrc ROI data for each image in source tensor (2D tensor of size batchSize * 4, in either format - XYWH(xy.x, xy.y, roiWidth, roiHeight) or LTRB(lt.x, lt.y, rb.x, rb.y))
+// *param[in] roiType ROI type used (RpptRoiType::XYWH or RpptRoiType::LTRB)
+// *returns a  RppStatus enumeration.
+// *retval RPP_SUCCESS : succesful completion
+// *retval RPP_ERROR : Error
+
+#ifdef GPU_SUPPORT
+RppStatus rppt_normalize_minmax_gpu(RppPtr_t srcPtr, RpptGenericDescPtr srcGenericDescPtr, RppPtr_t dstPtr, RpptGenericDescPtr dstGenericDescPtr, Rpp32f *imageMinMaxArr, Rpp32u imageMinMaxArrLength, Rpp32f newMin, Rpp32f newMax, RpptROIPtr roiTensorPtrSrc, RpptRoiType roiType, rppHandle_t rppHandle);
 #endif // GPU_SUPPORT
 
 #ifdef __cplusplus
