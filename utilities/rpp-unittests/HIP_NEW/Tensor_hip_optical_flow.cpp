@@ -212,20 +212,28 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     RpptDescPtr srcDescPtrRGB, srcResizedDescPtrRGB, src1DescPtr, src2DescPtr;
     RpptGenericDesc motionVectorPlnDesc, motionVectorPkdDesc, motionVectorCompPlnDesc;
     RpptGenericDescPtr motionVectorPlnDescPtr, motionVectorPkdDescPtr, motionVectorCompPlnDescPtr;
-
-    // initialize rpp tensor descriptor for srcRGB frames
     srcDescPtrRGB = &srcDescRGB;
-    rpp_tensor_initialize_descriptor(srcDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, frameHeight, frameWidth, 3, frameHeight * frameWidth * 3, frameWidth * 3, 3, 1);
-
-    // initialize rpp tensor descriptor for srcResizedRGB frames (same descriptor as srcRGB except farneback width/height and stride changes)
     srcResizedDescPtrRGB = &srcResizedDescRGB;
-    rpp_tensor_initialize_descriptor(srcResizedDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 3, FARNEBACK_OUTPUT_RGB_SIZE, FARNEBACK_FRAME_WIDTH * 3, 3, 1);
-
-    // initialize rpp tensor descriptors for src greyscale frames
     src1DescPtr = &src1Desc;
-    rpp_tensor_initialize_descriptor(src1DescPtr, RpptLayout::NCHW, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE);
     src2DescPtr = &src2Desc;
+    motionVectorPkdDescPtr = &motionVectorPkdDesc;
+    motionVectorPlnDescPtr = &motionVectorPlnDesc;
+    motionVectorCompPlnDescPtr = &motionVectorCompPlnDesc;
+
+    // initialize all rpp tensor descriptors used in the optical flow pipeline
+    // initialize rpp tensor descriptor for srcRGB frames
+    rpp_tensor_initialize_descriptor(srcDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, frameHeight, frameWidth, 3, frameHeight * frameWidth * 3, frameWidth * 3, 3, 1);
+    // initialize rpp tensor descriptor for srcResizedRGB frames (same descriptor as srcRGB except with a resized farneback width/height and stride changes)
+    rpp_tensor_initialize_descriptor(srcResizedDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 3, FARNEBACK_OUTPUT_RGB_SIZE, FARNEBACK_FRAME_WIDTH * 3, 3, 1);
+    // initialize rpp tensor descriptors for src greyscale frames (layout changed to NCHW, single channel)
+    rpp_tensor_initialize_descriptor(src1DescPtr, RpptLayout::NCHW, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE);
     src2Desc = src1Desc;
+    // initialize rpp generic tensor descriptor for packed motion vector (a 2 channel NHWC tensor)
+    rpp_tensor_initialize_descriptor_generic(motionVectorPkdDescPtr, RpptLayout::NHWC, RpptDataType::F32, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 2, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE, FARNEBACK_FRAME_WIDTH * 2, 2, 1);
+    // initialize rpp generic tensor descriptor for planar motion vector (a 2 channel NCHW tensor)
+    rpp_tensor_initialize_descriptor_generic(motionVectorPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 2, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE * 4, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
+    // initialize rpp generic tensor descriptor to extract one component of motion vector
+    rpp_tensor_initialize_descriptor_generic(motionVectorCompPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
 
     // set rpp tensor buffer sizes in bytes for srcRGB, srcResizedRGB, src1 and src2
     unsigned long long sizeInBytesSrcRGB, sizeInBytesSrcResizedRGB, sizeInBytesSrc1, sizeInBytesSrc2;
@@ -255,6 +263,36 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     rpp_tensor_initialize_roi_xywh(roiTensorPtrSrcResized, 0, 0, FARNEBACK_FRAME_WIDTH, FARNEBACK_FRAME_HEIGHT);
     src1ImgSizes[0].width = src1DescPtr->w;
     src1ImgSizes[0].height = src1DescPtr->h;
+
+    // allocate hip motion vector buffers
+    Rpp32f *d_motionVectorsCartesianF32, *d_motionVectorsPolarF32, *d_motionVectorsPolarF32Comp1, *d_motionVectorsPolarF32Comp2, *d_motionVectorsPolarF32Comp3;
+    hipMalloc(&d_motionVectorsCartesianF32, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE * sizeof(Rpp32f));
+    hipMalloc(&d_motionVectorsPolarF32, FARNEBACK_OUTPUT_FRAME_SIZE * 4 * sizeof(Rpp32f));
+    d_motionVectorsPolarF32Comp1 = d_motionVectorsPolarF32 + FARNEBACK_OUTPUT_FRAME_SIZE;
+    d_motionVectorsPolarF32Comp2 = d_motionVectorsPolarF32Comp1 + FARNEBACK_OUTPUT_FRAME_SIZE;
+    d_motionVectorsPolarF32Comp3 = d_motionVectorsPolarF32Comp2 + FARNEBACK_OUTPUT_FRAME_SIZE;
+    hipMemcpy(d_motionVectorsCartesianF32, motionVectorsCartesian, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE * sizeof(Rpp32f), hipMemcpyHostToDevice);
+
+    // preinitialize saturation channel portion of the buffer for HSV and reuse on every iteration in post-processing
+    Rpp32f saturationChannel[FARNEBACK_OUTPUT_FRAME_SIZE];
+    std::fill(&saturationChannel[0], &saturationChannel[FARNEBACK_OUTPUT_FRAME_SIZE - 1], 1.0f);
+    hipMemcpy(d_motionVectorsPolarF32Comp2, saturationChannel, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyHostToDevice);
+
+    // allocate post-processing buffer for imageMinMax
+    Rpp32f *imageMinMaxArr;
+    Rpp32u imageMinMaxArrLength = 2 * srcDescPtrRGB->n;
+    hipHostMalloc(&imageMinMaxArr, imageMinMaxArrLength * sizeof(Rpp32f));
+
+    // declare cpu outputs for optical flow
+    // cv::Mat hsv[3], angle, bgr;      // ------- revisit
+
+    // declare gpu outputs for optical flow
+    // cv::cuda::GpuMat gpuMagnitude, gpuNormalizedMagnitude, gpuAngle;      // ------- revisit
+    // cv::cuda::GpuMat gpuHSV[3], gpuMergedHSV, gpuHSV_8u, gpuBGR;      // ------- revisit
+
+    // set saturation to 1
+    // hsv[1] = cv::Mat::ones(frame.size(), CV_32F);      // ------- revisit
+    // gpuHSV[1].upload(hsv[1]);      // ------- revisit
 
     // read the first frame
     cv::Mat frame, previousFrame;
@@ -294,48 +332,6 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     // hipMemcpy(src1, d_src1, sizeInBytesSrc1, hipMemcpyDeviceToHost);
     // rpp_tensor_write_to_file("src1", src1, src1DescPtr);
     // rpp_tensor_write_to_images("src1", src1, src1DescPtr, src1ImgSizes);
-
-    // initialize rpp generic tensor descriptor for packed motion vector
-    motionVectorPkdDescPtr = &motionVectorPkdDesc;
-    rpp_tensor_initialize_descriptor_generic(motionVectorPkdDescPtr, RpptLayout::NHWC, RpptDataType::F32, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 2, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE, FARNEBACK_FRAME_WIDTH * 2, 2, 1);
-
-    // initialize rpp generic tensor descriptor for planar motion vector
-    motionVectorPlnDescPtr = &motionVectorPlnDesc;
-    rpp_tensor_initialize_descriptor_generic(motionVectorPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 2, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE * 4, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
-
-    // initialize rpp generic tensor descriptor to extract one component of motion vector
-    motionVectorCompPlnDescPtr = &motionVectorCompPlnDesc;
-    rpp_tensor_initialize_descriptor_generic(motionVectorCompPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
-
-    // allocate hip motion vector buffers
-    Rpp32f *d_motionVectorsCartesianF32, *d_motionVectorsPolarF32, *d_motionVectorsPolarF32Comp1, *d_motionVectorsPolarF32Comp2, *d_motionVectorsPolarF32Comp3;
-    hipMalloc(&d_motionVectorsCartesianF32, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE * sizeof(Rpp32f));
-    hipMalloc(&d_motionVectorsPolarF32, FARNEBACK_OUTPUT_FRAME_SIZE * 4 * sizeof(Rpp32f));
-    d_motionVectorsPolarF32Comp1 = d_motionVectorsPolarF32 + FARNEBACK_OUTPUT_FRAME_SIZE;
-    d_motionVectorsPolarF32Comp2 = d_motionVectorsPolarF32Comp1 + FARNEBACK_OUTPUT_FRAME_SIZE;
-    d_motionVectorsPolarF32Comp3 = d_motionVectorsPolarF32Comp2 + FARNEBACK_OUTPUT_FRAME_SIZE;
-    hipMemcpy(d_motionVectorsCartesianF32, motionVectorsCartesian, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE * sizeof(Rpp32f), hipMemcpyHostToDevice);
-
-    // preinitialize saturation channel portion of the buffer for HSV and reuse on every iteration in post-processing
-    Rpp32f saturationChannel[FARNEBACK_OUTPUT_FRAME_SIZE];
-    std::fill(&saturationChannel[0], &saturationChannel[FARNEBACK_OUTPUT_FRAME_SIZE - 1], 1.0f);
-    hipMemcpy(d_motionVectorsPolarF32Comp2, saturationChannel, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyHostToDevice);
-
-    // allocate post-processing buffer for imageMinMax
-    Rpp32f *imageMinMaxArr;
-    Rpp32u imageMinMaxArrLength = 2 * srcDescPtrRGB->n;
-    hipHostMalloc(&imageMinMaxArr, imageMinMaxArrLength * sizeof(Rpp32f));
-
-    // declare cpu outputs for optical flow
-    // cv::Mat hsv[3], angle, bgr;      // ------- revisit
-
-    // declare gpu outputs for optical flow
-    // cv::cuda::GpuMat gpuMagnitude, gpuNormalizedMagnitude, gpuAngle;      // ------- revisit
-    // cv::cuda::GpuMat gpuHSV[3], gpuMergedHSV, gpuHSV_8u, gpuBGR;      // ------- revisit
-
-    // set saturation to 1
-    // hsv[1] = cv::Mat::ones(frame.size(), CV_32F);      // ------- revisit
-    // gpuHSV[1].upload(hsv[1]);      // ------- revisit
 
     while (true)
     {
@@ -432,13 +428,13 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         hipDeviceSynchronize();
 
         // -------------------- stage output dump check --------------------
-        Rpp32f motionVectorsPolarCPU[FARNEBACK_OUTPUT_FRAME_SIZE];
-        hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp1, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
-        rpp_tensor_write_to_file("motionVectorsPolarCPUComp1", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
-        hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp2, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
-        rpp_tensor_write_to_file("motionVectorsPolarCPUComp2", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
-        hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp3, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
-        rpp_tensor_write_to_file("motionVectorsPolarCPUComp3", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
+        // Rpp32f motionVectorsPolarCPU[FARNEBACK_OUTPUT_FRAME_SIZE];
+        // hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp1, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
+        // rpp_tensor_write_to_file("motionVectorsPolarCPUComp1", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
+        // hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp2, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
+        // rpp_tensor_write_to_file("motionVectorsPolarCPUComp2", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
+        // hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp3, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
+        // rpp_tensor_write_to_file("motionVectorsPolarCPUComp3", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
 
         // end post pipeline timer
         auto end_post_time = high_resolution_clock::now();
