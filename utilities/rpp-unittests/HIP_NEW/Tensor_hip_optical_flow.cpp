@@ -336,10 +336,10 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     while (true)
     {
         // start full pipeline timer
-        auto start_full_time = high_resolution_clock::now();
+        auto startFullTime = high_resolution_clock::now();
 
         // start reading timer
-        auto start_read_time = high_resolution_clock::now();
+        auto startReadTime = high_resolution_clock::now();
 
         // capture frame-by-frame
         capture >> frame;
@@ -353,13 +353,13 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         hipDeviceSynchronize();
 
         // end reading timer
-        auto end_read_time = high_resolution_clock::now();
+        auto endReadTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["reading"].push_back(duration_cast<microseconds>(end_read_time - start_read_time).count() / 1000.0);
+        timers["reading"].push_back(duration_cast<microseconds>(endReadTime - startReadTime).count() / 1000.0);
 
         // start pre-process timer
-        auto start_pre_time = high_resolution_clock::now();
+        auto startPreProcessTime = high_resolution_clock::now();
 
         // resize frame
         rppt_resize_gpu(d_srcRGB, srcDescPtrRGB, d_srcResizedRGB, srcResizedDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle);
@@ -372,13 +372,13 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         hipDeviceSynchronize();
 
         // end pre-process timer
-        auto end_pre_time = high_resolution_clock::now();
+        auto endPreProcessTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["pre-process"].push_back(duration_cast<microseconds>(end_pre_time - start_pre_time).count() / 1000.0);
+        timers["pre-process"].push_back(duration_cast<microseconds>(endPreProcessTime - startPreProcessTime).count() / 1000.0);
 
         // start optical flow timer
-        auto start_of_time = high_resolution_clock::now();
+        auto startOpticalFlowTime = high_resolution_clock::now();
 
         // create optical flow instance
         // Ptr<cuda::FarnebackOpticalFlow> ptr_calc = cuda::FarnebackOpticalFlow::create(5, 0.5, false, 15, 3, 5, 1.2, 0);
@@ -387,13 +387,13 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // ptr_calc->calc(gpuPrevious, gpu_current, gpu_flow);
 
         // end optical flow timer
-        auto end_of_time = high_resolution_clock::now();
+        auto endOpticalFlowTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["optical flow"].push_back(duration_cast<microseconds>(end_of_time - start_of_time).count() / 1000.0);
+        timers["optical flow"].push_back(duration_cast<microseconds>(endOpticalFlowTime - startOpticalFlowTime).count() / 1000.0);
 
         // start post-process timer
-        auto start_post_time = high_resolution_clock::now();
+        auto startPostProcessTime = high_resolution_clock::now();
 
         // -------------------- stage output dump check --------------------
         // Rpp32f motionVectorsCartesianCPU[FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE];
@@ -437,16 +437,16 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // rpp_tensor_write_to_file("motionVectorsPolarCPUComp3", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
 
         // end post pipeline timer
-        auto end_post_time = high_resolution_clock::now();
+        auto endPostProcessTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["post-process"].push_back(duration_cast<microseconds>(end_post_time - start_post_time).count() / 1000.0);
+        timers["post-process"].push_back(duration_cast<microseconds>(endPostProcessTime - startPostProcessTime).count() / 1000.0);
 
         // end full pipeline timer
-        auto end_full_time = high_resolution_clock::now();
+        auto endFullTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["full pipeline"].push_back(duration_cast<microseconds>(end_full_time - start_full_time).count() / 1000.0);
+        timers["full pipeline"].push_back(duration_cast<microseconds>(endFullTime - startFullTime).count() / 1000.0);
 
         // visualization
         // imshow("original", frame);
@@ -494,8 +494,8 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         cout << "\n- " << timer.first << " : " << std::accumulate(timer.second.begin(), timer.second.end(), 0.0) << " milliseconds";
 
     // calculate frames per second
-    float opticalFlowFPS  = (numOfFrames - 1) / std::accumulate(timers["optical flow"].begin(),  timers["optical flow"].end(),  0.0);
-    float fullPipelineFPS = (numOfFrames - 1) / std::accumulate(timers["full pipeline"].begin(), timers["full pipeline"].end(), 0.0);
+    float opticalFlowFPS  = 1000 * (numOfFrames - 1) / std::accumulate(timers["optical flow"].begin(),  timers["optical flow"].end(),  0.0);
+    float fullPipelineFPS = 1000 * (numOfFrames - 1) / std::accumulate(timers["full pipeline"].begin(), timers["full pipeline"].end(), 0.0);
     cout << "\n\nInput video FPS : " << fps;
     cout << "\nOptical flow FPS : " << opticalFlowFPS;
     cout << "\nFull pipeline FPS : " << fullPipelineFPS;
