@@ -100,7 +100,7 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         auto endReadTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["reading"].push_back(duration_cast<milliseconds>(endReadTime - startReadTime).count() / 1000.0);
+        timers["reading"].push_back(duration_cast<microseconds>(endReadTime - startReadTime).count() / 1000.0);
 
         // start pre-process timer
         auto startPreProcessTime = high_resolution_clock::now();
@@ -116,7 +116,7 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         auto endPreProcessTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["pre-process"].push_back(duration_cast<milliseconds>(endPreProcessTime - startPreProcessTime).count() / 1000.0);
+        timers["pre-process"].push_back(duration_cast<microseconds>(endPreProcessTime - startPreProcessTime).count() / 1000.0);
 
         // start optical flow timer
         auto startOpticalFlowTime = high_resolution_clock::now();
@@ -130,7 +130,7 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         auto endOpticalFlowTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["optical flow"].push_back(duration_cast<milliseconds>(endOpticalFlowTime - startOpticalFlowTime).count() / 1000.0);
+        timers["optical flow"].push_back(duration_cast<microseconds>(endOpticalFlowTime - startOpticalFlowTime).count() / 1000.0);
 
         // start post-process timer
         auto startPostProcessTime = high_resolution_clock::now();
@@ -214,13 +214,13 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         auto endPostProcessTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["post-process"].push_back(duration_cast<milliseconds>(endPostProcessTime - startPostProcessTime).count() / 1000.0);
+        timers["post-process"].push_back(duration_cast<microseconds>(endPostProcessTime - startPostProcessTime).count() / 1000.0);
 
         // end full pipeline timer
         auto endFullTime = high_resolution_clock::now();
 
         // add elapsed iteration time
-        timers["full pipeline"].push_back(duration_cast<milliseconds>(endFullTime - startFullTime).count() / 1000.0);
+        timers["full pipeline"].push_back(duration_cast<microseconds>(endFullTime - startFullTime).count() / 1000.0);
 
         // visualization
         // imshow("original", frame);
@@ -246,11 +246,11 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
     // elapsed time at each stage
     cout << "\n\nElapsed time:";
     for (auto const& timer : timers)
-        cout << "\n- " << timer.first << " : " << std::accumulate(timer.second.begin(), timer.second.end(), 0.0) << " seconds";
+        cout << "\n- " << timer.first << " : " << std::accumulate(timer.second.begin(), timer.second.end(), 0.0) << " milliseconds";
 
     // calculate frames per second
-    float opticalFlowFPS  = (numOfFrames - 1) / std::accumulate(timers["optical flow"].begin(),  timers["optical flow"].end(),  0.0);
-    float fullPipelineFPS = (numOfFrames - 1) / std::accumulate(timers["full pipeline"].begin(), timers["full pipeline"].end(), 0.0);
+    float opticalFlowFPS  = 1000 * (numOfFrames - 1) / std::accumulate(timers["optical flow"].begin(),  timers["optical flow"].end(),  0.0);
+    float fullPipelineFPS = 1000 * (numOfFrames - 1) / std::accumulate(timers["full pipeline"].begin(), timers["full pipeline"].end(), 0.0);
     cout << "\n\nInput video FPS : " << fps;
     cout << "\nOptical flow FPS : " << opticalFlowFPS;
     cout << "\nFull pipeline FPS : " << fullPipelineFPS;
