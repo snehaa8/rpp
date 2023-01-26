@@ -34,7 +34,19 @@ const RpptSubpixelLayout srcSubpixelLayout = RpptSubpixelLayout::BGRtype;
 const RpptRoiType roiType = RpptRoiType::XYWH;
 const RpptAngleType angleType = RpptAngleType::DEGREES;
 
-void rpp_tensor_initialize_descriptor(RpptDescPtr descPtr, RpptLayout layout, RpptDataType dataType, Rpp32u offsetInBytes, RppSize_t numDims, Rpp32u n, Rpp32u h, Rpp32u w, Rpp32u c, Rpp32u nStride, Rpp32u hStride, Rpp32u wStride, Rpp32u cStride)
+void rpp_tensor_initialize_descriptor(RpptDescPtr descPtr,
+                                      RpptLayout layout,
+                                      RpptDataType dataType,
+                                      Rpp32u offsetInBytes,
+                                      RppSize_t numDims,
+                                      Rpp32u n,
+                                      Rpp32u h,
+                                      Rpp32u w,
+                                      Rpp32u c,
+                                      Rpp32u nStride,
+                                      Rpp32u hStride,
+                                      Rpp32u wStride,
+                                      Rpp32u cStride)
 {
     descPtr->layout = layout;
     descPtr->dataType = dataType;
@@ -50,7 +62,19 @@ void rpp_tensor_initialize_descriptor(RpptDescPtr descPtr, RpptLayout layout, Rp
     descPtr->strides.cStride = cStride;
 }
 
-void rpp_tensor_initialize_descriptor_generic(RpptGenericDescPtr descPtr, RpptLayout layout, RpptDataType dataType, Rpp32u offsetInBytes, RppSize_t numDims, Rpp32u dim0, Rpp32u dim1, Rpp32u dim2, Rpp32u dim3, Rpp32u stride0, Rpp32u stride1, Rpp32u stride2, Rpp32u stride3)
+void rpp_tensor_initialize_descriptor_generic(RpptGenericDescPtr descPtr,
+                                              RpptLayout layout,
+                                              RpptDataType dataType,
+                                              Rpp32u offsetInBytes,
+                                              RppSize_t numDims,
+                                              Rpp32u dim0,
+                                              Rpp32u dim1,
+                                              Rpp32u dim2,
+                                              Rpp32u dim3,
+                                              Rpp32u stride0,
+                                              Rpp32u stride1,
+                                              Rpp32u stride2,
+                                              Rpp32u stride3)
 {
     descPtr->layout = layout;
     descPtr->dataType = dataType;
@@ -193,49 +217,15 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     srcDescPtrRGB = &srcDescRGB;
     rpp_tensor_initialize_descriptor(srcDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, frameHeight, frameWidth, 3, frameHeight * frameWidth * 3, frameWidth * 3, 3, 1);
 
-    // srcDescPtrRGB->layout = RpptLayout::NHWC;
-    // srcDescPtrRGB->dataType = RpptDataType::U8;
-    // srcDescPtrRGB->numDims = 4;
-    // srcDescPtrRGB->offsetInBytes = 0;
-    // srcDescPtrRGB->n = 1;
-    // srcDescPtrRGB->h = frameHeight;
-    // srcDescPtrRGB->w = frameWidth; // -------------------- to add the / 8 * 8 + 8?
-    // srcDescPtrRGB->c = 3;
-    // srcDescPtrRGB->strides.nStride = srcDescPtrRGB->c * srcDescPtrRGB->w * srcDescPtrRGB->h;
-    // srcDescPtrRGB->strides.hStride = srcDescPtrRGB->c * srcDescPtrRGB->w;
-    // srcDescPtrRGB->strides.wStride = srcDescPtrRGB->c;
-    // srcDescPtrRGB->strides.cStride = 1;
-
     // initialize rpp tensor descriptor for srcResizedRGB frames (same descriptor as srcRGB except farneback width/height and stride changes)
     srcResizedDescPtrRGB = &srcResizedDescRGB;
     rpp_tensor_initialize_descriptor(srcResizedDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 3, FARNEBACK_OUTPUT_RGB_SIZE, FARNEBACK_FRAME_WIDTH * 3, 3, 1);
-
-    // srcResizedDescRGB = srcDescRGB;
-    // srcResizedDescPtrRGB->h = FARNEBACK_FRAME_HEIGHT;
-    // srcResizedDescPtrRGB->w = FARNEBACK_FRAME_WIDTH; // -------------------- to add the / 8 * 8 + 8?
-    // srcResizedDescPtrRGB->strides.nStride = srcResizedDescPtrRGB->c * srcResizedDescPtrRGB->w * srcResizedDescPtrRGB->h;
-    // srcResizedDescPtrRGB->strides.hStride = srcResizedDescPtrRGB->c * srcResizedDescPtrRGB->w;
 
     // initialize rpp tensor descriptors for src greyscale frames
     src1DescPtr = &src1Desc;
     rpp_tensor_initialize_descriptor(src1DescPtr, RpptLayout::NCHW, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE);
     src2DescPtr = &src2Desc;
     src2Desc = src1Desc;
-
-    // src1DescPtr->layout = RpptLayout::NCHW;
-    // src1DescPtr->dataType = RpptDataType::U8;
-    // src1DescPtr->numDims = 4;
-    // src1DescPtr->offsetInBytes = 0;
-    // src1DescPtr->n = srcDescPtrRGB->n;
-    // src1DescPtr->c = 1;
-    // src1DescPtr->h = FARNEBACK_FRAME_HEIGHT;
-    // src1DescPtr->w = FARNEBACK_FRAME_WIDTH; // -------------------- to add the / 8 * 8 + 8?
-    // src1DescPtr->strides.nStride = src1DescPtr->c * src1DescPtr->w * src1DescPtr->h;
-    // src1DescPtr->strides.cStride = src1DescPtr->w * src1DescPtr->h;
-    // src1DescPtr->strides.hStride = src1DescPtr->w;
-    // src1DescPtr->strides.wStride = 1;
-    // src2DescPtr = &src2Desc;
-    // src2Desc = src1Desc;
 
     // set rpp tensor buffer sizes in bytes for srcRGB, srcResizedRGB, src1 and src2
     unsigned long long sizeInBytesSrcRGB, sizeInBytesSrcResizedRGB, sizeInBytesSrc1, sizeInBytesSrc2;
@@ -309,39 +299,13 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     motionVectorPkdDescPtr = &motionVectorPkdDesc;
     rpp_tensor_initialize_descriptor_generic(motionVectorPkdDescPtr, RpptLayout::NHWC, RpptDataType::F32, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 2, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE, FARNEBACK_FRAME_WIDTH * 2, 2, 1);
 
-    // motionVectorPkdDescPtr->numDims = 4;
-    // motionVectorPkdDescPtr->dataType = RpptDataType::F32;
-    // motionVectorPkdDescPtr->offsetInBytes = 0;
-    // motionVectorPkdDescPtr->dims[0] = 1;
-    // motionVectorPkdDescPtr->dims[1] = FARNEBACK_FRAME_HEIGHT;
-    // motionVectorPkdDescPtr->dims[2] = FARNEBACK_FRAME_WIDTH;
-    // motionVectorPkdDescPtr->dims[3] = 2;
-    // motionVectorPkdDescPtr->strides[0] = FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE;
-    // motionVectorPkdDescPtr->strides[1] = FARNEBACK_FRAME_WIDTH * 2;
-    // motionVectorPkdDescPtr->strides[2] = 2;
-    // motionVectorPkdDescPtr->strides[3] = 1;
-    // motionVectorPkdDescPtr->layout = RpptLayout::NHWC;
-
     // initialize rpp generic tensor descriptor for planar motion vector
     motionVectorPlnDescPtr = &motionVectorPlnDesc;
-    motionVectorPlnDescPtr->numDims = 4;
-    motionVectorPlnDescPtr->dataType = RpptDataType::F32;
-    motionVectorPlnDescPtr->offsetInBytes = 0;
-    motionVectorPlnDescPtr->dims[0] = 1;
-    motionVectorPlnDescPtr->dims[1] = 2;
-    motionVectorPlnDescPtr->dims[2] = FARNEBACK_FRAME_HEIGHT;
-    motionVectorPlnDescPtr->dims[3] = FARNEBACK_FRAME_WIDTH;
-    motionVectorPlnDescPtr->strides[0] = FARNEBACK_OUTPUT_FRAME_SIZE * 4;   // spacer buffer for saturation channel in HSV)
-    motionVectorPlnDescPtr->strides[1] = FARNEBACK_OUTPUT_FRAME_SIZE;
-    motionVectorPlnDescPtr->strides[2] = FARNEBACK_FRAME_WIDTH;
-    motionVectorPlnDescPtr->strides[3] = 1;
-    motionVectorPlnDescPtr->layout = RpptLayout::NCHW;
+    rpp_tensor_initialize_descriptor_generic(motionVectorPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 2, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE * 4, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
 
     // initialize rpp generic tensor descriptor to extract one component of motion vector
-    motionVectorCompPlnDesc = motionVectorPlnDesc;
     motionVectorCompPlnDescPtr = &motionVectorCompPlnDesc;
-    motionVectorCompPlnDescPtr->dims[1] = 1;                                // extract one channel from motion vector
-    motionVectorCompPlnDescPtr->strides[0] = FARNEBACK_OUTPUT_FRAME_SIZE;   // interpret as pln1 with nStride = FARNEBACK_OUTPUT_FRAME_SIZE
+    rpp_tensor_initialize_descriptor_generic(motionVectorCompPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
 
     // allocate hip motion vector buffers
     Rpp32f *d_motionVectorsCartesianF32, *d_motionVectorsPolarF32, *d_motionVectorsPolarF32Comp1, *d_motionVectorsPolarF32Comp2, *d_motionVectorsPolarF32Comp3;
@@ -357,7 +321,7 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     std::fill(&saturationChannel[0], &saturationChannel[FARNEBACK_OUTPUT_FRAME_SIZE - 1], 1.0f);
     hipMemcpy(d_motionVectorsPolarF32Comp2, saturationChannel, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyHostToDevice);
 
-    // allocate post-processing buffers
+    // allocate post-processing buffer for imageMinMax
     Rpp32f *imageMinMaxArr;
     Rpp32u imageMinMaxArrLength = 2 * srcDescPtrRGB->n;
     hipHostMalloc(&imageMinMaxArr, imageMinMaxArrLength * sizeof(Rpp32f));
