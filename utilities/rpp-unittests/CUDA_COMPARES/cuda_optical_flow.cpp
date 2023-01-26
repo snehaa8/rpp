@@ -135,23 +135,61 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         // start post-process timer
         auto startPostProcessTime = high_resolution_clock::now();
 
+        // -------------------- stage output dump check --------------------
+        // cv::Mat flow;
+        // gpuFlow.download(flow);
+        // std::cout << "\ngpuFlow:\n" << flow << "\n";
+
         // split the output flow into 2 vectors
         cv::cuda::split(gpuFlow, gpuFlowXY);
+
+        // -------------------- stage output dump check --------------------
+        // cv::Mat flowXY[2];
+        // gpuFlowXY[0].download(flowXY[0]);
+        // gpuFlowXY[1].download(flowXY[1]);
+        // std::cout << "\nflowXY[0]:\n" << flowXY[0] << "\n";
+        // std::cout << "\nflowXY[1]:\n" << flowXY[1] << "\n";
 
         // convert from cartesian to polar coordinates
         cv::cuda::cartToPolar(gpuFlowXY[0], gpuFlowXY[1], gpuMagnitude, gpuAngle, true);
 
+        // -------------------- stage output dump check --------------------
+        // cv::Mat magnitude_temp, angle_temp;
+        // gpuMagnitude.download(magnitude_temp);
+        // gpuAngle.download(angle_temp);
+        // std::cout << "\ngpuMagnitude:\n" << magnitude_temp << "\n";
+        // std::cout << "\ngpuAngle:\n" << angle_temp << "\n";
+
         // normalize magnitude from 0 to 1
         cv::cuda::normalize(gpuMagnitude, gpuNormalizedMagnitude, 0.0, 1.0, NORM_MINMAX, -1);
+
+        // -------------------- stage output dump check --------------------
+        // cv::Mat normalizedMagnitude_temp;
+        // gpuNormalizedMagnitude.download(normalizedMagnitude_temp);
+        // std::cout << "\ngpuNormalizedMagnitude:\n" << normalizedMagnitude_temp << "\n";
 
         // get angle of optical flow
         gpuAngle.download(angle);
         angle *= ((1 / 360.0) * (180 / 255.0));
 
+        // -------------------- stage output dump check --------------------
+        // std::cout << "\nangle:\n" << angle << "\n";
+
         // build hsv image
         gpuHSV[0].upload(angle);
         gpuHSV[2] = gpuNormalizedMagnitude;
         cv::cuda::merge(gpuHSV, 3, gpuMergedHSV);
+
+        // -------------------- stage output dump check --------------------
+        // cv::Mat hsv_temp0, hsv_temp1, hsv_temp2, hsvMerged_temp;
+        // gpuHSV[0].download(hsv_temp0);
+        // gpuHSV[1].download(hsv_temp1);
+        // gpuHSV[2].download(hsv_temp2);
+        // gpuMergedHSV.download(hsvMerged_temp);
+        // std::cout << "\ngpuHSV[0]:\n" << hsv_temp0 << "\n";
+        // std::cout << "\ngpuHSV[1]:\n" << hsv_temp1 << "\n";
+        // std::cout << "\ngpuHSV[2]:\n" << hsv_temp2 << "\n";
+        // std::cout << "\ngpuMergedHSV:\n" << hsvMerged_temp << "\n";
 
         // multiply each pixel value to 255
         gpuMergedHSV.cv::cuda::GpuMat::convertTo(gpuHSV_8u, CV_8U, 255.0);
@@ -164,6 +202,10 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
 
         // send result from GPU back to CPU
         gpuBGR.download(bgr);
+
+        // -------------------- stage output dump check --------------------
+        // std::cout << "\nframe:\n" << frame << "\n";
+        // std::cout << "\nbgr:\n" << bgr << "\n";
 
         // update previousFrame value
         gpuPrevious = gpuCurrent;
@@ -181,11 +223,13 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         timers["full pipeline"].push_back(duration_cast<milliseconds>(endFullTime - startFullTime).count() / 1000.0);
 
         // visualization
-        imshow("original", frame);
-        imshow("result", bgr);
+        // imshow("original", frame);
+        // imshow("result", bgr);
         int keyboard = waitKey(1);
         if (keyboard == 27)
             break;
+
+        break;
     }
 
     capture.release();
