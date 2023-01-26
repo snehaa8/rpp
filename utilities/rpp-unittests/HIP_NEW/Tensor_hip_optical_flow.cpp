@@ -30,7 +30,7 @@ using namespace std::chrono;
 #define HUE_CONVERSION_FACTOR 0.0019607843f             // ((1 / 360.0) * (180 / 255.0))
 
 const RpptInterpolationType interpolationType = RpptInterpolationType::NEAREST_NEIGHBOR;
-const RpptSubpixelLayout srcSubpixelLayout = RpptSubpixelLayout::BGRtype;
+const RpptSubpixelLayout subpixelLayout = RpptSubpixelLayout::BGRtype;
 const RpptRoiType roiType = RpptRoiType::XYWH;
 const RpptAngleType angleType = RpptAngleType::DEGREES;
 
@@ -208,14 +208,15 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     int bitRate = int(capture.get(CAP_PROP_BITRATE));           // input video bitrate
 
     // declare rpp tensor descriptors
-    RpptDesc srcDescRGB, srcResizedDescRGB, src1Desc, src2Desc;
-    RpptDescPtr srcDescPtrRGB, srcResizedDescPtrRGB, src1DescPtr, src2DescPtr;
+    RpptDesc srcDescRGB, src1Desc, src2Desc, dstDescHSV, dstDescRGB;
+    RpptDescPtr srcDescPtrRGB, src1DescPtr, src2DescPtr, dstDescPtrHSV, dstDescPtrRGB;
     RpptGenericDesc motionVectorPlnDesc, motionVectorPkdDesc, motionVectorCompPlnDesc;
     RpptGenericDescPtr motionVectorPlnDescPtr, motionVectorPkdDescPtr, motionVectorCompPlnDescPtr;
     srcDescPtrRGB = &srcDescRGB;
-    srcResizedDescPtrRGB = &srcResizedDescRGB;
     src1DescPtr = &src1Desc;
     src2DescPtr = &src2Desc;
+    dstDescPtrHSV = &dstDescHSV;
+    dstDescPtrRGB = &dstDescRGB;
     motionVectorPkdDescPtr = &motionVectorPkdDesc;
     motionVectorPlnDescPtr = &motionVectorPlnDesc;
     motionVectorCompPlnDescPtr = &motionVectorCompPlnDesc;
@@ -223,11 +224,13 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     // initialize all rpp tensor descriptors used in the optical flow pipeline
     // initialize rpp tensor descriptor for srcRGB frames
     rpp_tensor_initialize_descriptor(srcDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, frameHeight, frameWidth, 3, frameHeight * frameWidth * 3, frameWidth * 3, 3, 1);
-    // initialize rpp tensor descriptor for srcResizedRGB frames (same descriptor as srcRGB except with a resized farneback width/height and stride changes)
-    rpp_tensor_initialize_descriptor(srcResizedDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 3, FARNEBACK_OUTPUT_RGB_SIZE, FARNEBACK_FRAME_WIDTH * 3, 3, 1);
+    // initialize rpp tensor descriptor for dstRGB frames (same descriptor as srcRGB except with a resized farneback width/height and stride changes)
+    rpp_tensor_initialize_descriptor(dstDescPtrRGB, RpptLayout::NHWC, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 3, FARNEBACK_OUTPUT_RGB_SIZE, FARNEBACK_FRAME_WIDTH * 3, 3, 1);
     // initialize rpp tensor descriptors for src greyscale frames (layout changed to NCHW, single channel)
     rpp_tensor_initialize_descriptor(src1DescPtr, RpptLayout::NCHW, RpptDataType::U8, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE);
     src2Desc = src1Desc;
+    // initialize rpp tensor descriptors for dstHSV NCHW PLN3 F32 frames
+    rpp_tensor_initialize_descriptor(dstDescPtrHSV, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 3, FARNEBACK_OUTPUT_RGB_SIZE, FARNEBACK_FRAME_WIDTH, 1, FARNEBACK_OUTPUT_FRAME_SIZE);
     // initialize rpp generic tensor descriptor for packed motion vector (a 2 channel NHWC tensor)
     rpp_tensor_initialize_descriptor_generic(motionVectorPkdDescPtr, RpptLayout::NHWC, RpptDataType::F32, 0, 4, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, 2, FARNEBACK_OUTPUT_MOTION_VECTORS_SIZE, FARNEBACK_FRAME_WIDTH * 2, 2, 1);
     // initialize rpp generic tensor descriptor for planar motion vector (a 2 channel NCHW tensor)
@@ -235,32 +238,33 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     // initialize rpp generic tensor descriptor to extract one component of motion vector
     rpp_tensor_initialize_descriptor_generic(motionVectorCompPlnDescPtr, RpptLayout::NCHW, RpptDataType::F32, 0, 4, 1, 1, FARNEBACK_FRAME_HEIGHT, FARNEBACK_FRAME_WIDTH, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_OUTPUT_FRAME_SIZE, FARNEBACK_FRAME_WIDTH, 1);
 
-    // set rpp tensor buffer sizes in bytes for srcRGB, srcResizedRGB, src1 and src2
-    unsigned long long sizeInBytesSrcRGB, sizeInBytesSrcResizedRGB, sizeInBytesSrc1, sizeInBytesSrc2;
+    // set rpp tensor buffer sizes in bytes for srcRGB, dstRGB, src1 and src2
+    unsigned long long sizeInBytesSrcRGB, sizeInBytesDstRGB, sizeInBytesSrc1, sizeInBytesSrc2;
     sizeInBytesSrcRGB = (srcDescPtrRGB->n * srcDescPtrRGB->strides.nStride) + srcDescPtrRGB->offsetInBytes;
-    sizeInBytesSrcResizedRGB = (srcResizedDescPtrRGB->n * srcResizedDescPtrRGB->strides.nStride) + srcResizedDescPtrRGB->offsetInBytes;
+    sizeInBytesDstRGB = (dstDescPtrRGB->n * dstDescPtrRGB->strides.nStride) + dstDescPtrRGB->offsetInBytes;
     sizeInBytesSrc1 = (src1DescPtr->n * src1DescPtr->strides.nStride) + src1DescPtr->offsetInBytes;
     sizeInBytesSrc2 = (src2DescPtr->n * src2DescPtr->strides.nStride) + src2DescPtr->offsetInBytes;
 
-    // allocate rpp 8u host and hip buffers for srcRGB, srcResizedRGB, src1 and src2
+    // allocate rpp 8u host and hip buffers for srcRGB, dstRGB, dstInputRGB, src1 and src2
     Rpp8u *srcRGB = (Rpp8u *)calloc(sizeInBytesSrcRGB, 1);
-    Rpp8u *srcResizedRGB = (Rpp8u *)calloc(sizeInBytesSrcResizedRGB, 1);
+    Rpp8u *dstRGB = (Rpp8u *)calloc(sizeInBytesDstRGB, 1);
+    Rpp8u *dstInputRGB = (Rpp8u *)calloc(sizeInBytesDstRGB, 1);
     Rpp8u *src1 = (Rpp8u *)calloc(sizeInBytesSrc1, 1);
     Rpp8u *src2 = (Rpp8u *)calloc(sizeInBytesSrc2, 1);
-    Rpp8u *d_srcRGB, *d_srcResizedRGB, *d_src1, *d_src2;
+    Rpp8u *d_srcRGB, *d_dstRGB, *d_src1, *d_src2;
     hipMalloc(&d_srcRGB, sizeInBytesSrcRGB);
-    hipMalloc(&d_srcResizedRGB, sizeInBytesSrcResizedRGB);
+    hipMalloc(&d_dstRGB, sizeInBytesDstRGB);
     hipMalloc(&d_src1, sizeInBytesSrc1);
     hipMalloc(&d_src2, sizeInBytesSrc2);
 
     // allocate and initialize rpp roi and imagePatch buffers for resize ops on pinned memory
-    RpptROI *roiTensorPtrSrcRGB, *roiTensorPtrSrcResized;
+    RpptROI *roiTensorPtrSrcRGB, *roiTensorPtrDstRGB;
     RpptImagePatch *src1ImgSizes;
     hipHostMalloc(&roiTensorPtrSrcRGB, srcDescPtrRGB->n * sizeof(RpptROI));
-    hipHostMalloc(&roiTensorPtrSrcResized, srcDescPtrRGB->n * sizeof(RpptROI));
+    hipHostMalloc(&roiTensorPtrDstRGB, dstDescPtrRGB->n * sizeof(RpptROI));
     hipHostMalloc(&src1ImgSizes, srcDescPtrRGB->n * sizeof(RpptImagePatch));
     rpp_tensor_initialize_roi_xywh(roiTensorPtrSrcRGB, 0, 0, srcDescPtrRGB->w, srcDescPtrRGB->h);
-    rpp_tensor_initialize_roi_xywh(roiTensorPtrSrcResized, 0, 0, FARNEBACK_FRAME_WIDTH, FARNEBACK_FRAME_HEIGHT);
+    rpp_tensor_initialize_roi_xywh(roiTensorPtrDstRGB, 0, 0, FARNEBACK_FRAME_WIDTH, FARNEBACK_FRAME_HEIGHT);
     src1ImgSizes[0].width = src1DescPtr->w;
     src1ImgSizes[0].height = src1DescPtr->h;
 
@@ -318,16 +322,16 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     // rpp_tensor_write_to_images("srcRGB", srcRGB, srcDescPtrRGB, &srcRGBImgSizes);
 
     // resize frame
-    rppt_resize_gpu(d_srcRGB, srcDescPtrRGB, d_srcResizedRGB, srcResizedDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle1);
+    rppt_resize_gpu(d_srcRGB, srcDescPtrRGB, d_dstRGB, dstDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle1);
 
     // -------------------- stage output dump check --------------------
     // hipDeviceSynchronize();
-    // hipMemcpy(srcResizedRGB, d_srcResizedRGB, sizeInBytesSrcResizedRGB, hipMemcpyDeviceToHost);
-    // rpp_tensor_write_to_file("srcResizedRGB", srcResizedRGB, srcResizedDescPtrRGB);
-    // rpp_tensor_write_to_images("srcResizedRGB", srcResizedRGB, srcResizedDescPtrRGB, src1ImgSizes);
+    // hipMemcpy(dstRGB, d_dstRGB, sizeInBytesDstRGB, hipMemcpyDeviceToHost);
+    // rpp_tensor_write_to_file("srcResizedRGB", dstRGB, dstDescPtrRGB);
+    // rpp_tensor_write_to_images("srcResizedRGB", dstRGB, dstDescPtrRGB, src1ImgSizes);
 
     // convert to gray
-    rppt_color_to_greyscale_gpu(d_srcResizedRGB, srcResizedDescPtrRGB, d_src1, src1DescPtr, srcSubpixelLayout, handle1);
+    rppt_color_to_greyscale_gpu(d_dstRGB, dstDescPtrRGB, d_src1, src1DescPtr, subpixelLayout, handle1);
 
     // -------------------- stage output dump check --------------------
     // hipDeviceSynchronize();
@@ -367,12 +371,12 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         auto startPreProcessTime = high_resolution_clock::now();
 
         // resize frame
-        rppt_resize_gpu(d_srcRGB, srcDescPtrRGB, d_srcResizedRGB, srcResizedDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle1);
-        // rppt_resize_host(srcRGB, srcDescPtrRGB, srcResizedRGB, srcResizedDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle1);
+        rppt_resize_gpu(d_srcRGB, srcDescPtrRGB, d_dstRGB, dstDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle1);
+        // rppt_resize_host(srcRGB, srcDescPtrRGB, dstRGB, dstDescPtrRGB, src1ImgSizes, interpolationType, roiTensorPtrSrcRGB, roiType, handle1);
 
         // convert to gray
-        rppt_color_to_greyscale_gpu(d_srcResizedRGB, srcResizedDescPtrRGB, d_src2, src2DescPtr, srcSubpixelLayout, handle1);
-        // rppt_color_to_greyscale_host(srcResizedRGB, srcResizedDescPtrRGB, src2, src2DescPtr, srcSubpixelLayout, handle1);
+        rppt_color_to_greyscale_gpu(d_dstRGB, dstDescPtrRGB, d_src2, src2DescPtr, subpixelLayout, handle1);
+        // rppt_color_to_greyscale_host(dstRGB, dstDescPtrRGB, src2, src2DescPtr, subpixelLayout, handle1);
 
         // all ops in all streams need to complete at end of pre-processing
         hipDeviceSynchronize();
@@ -415,7 +419,7 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // rpp_tensor_write_to_file("motionVectorsCartesianCPU", motionVectorsCartesianCPU, (RpptDescPtr)motionVectorPkdDescPtr);
 
         // convert from cartesian to polar coordinates
-        rppt_cartesian_to_polar_gpu(d_motionVectorsCartesianF32, motionVectorPkdDescPtr, d_motionVectorsPolarF32, motionVectorPlnDescPtr, angleType, roiTensorPtrSrcResized, roiType, handle1);
+        rppt_cartesian_to_polar_gpu(d_motionVectorsCartesianF32, motionVectorPkdDescPtr, d_motionVectorsPolarF32, motionVectorPlnDescPtr, angleType, roiTensorPtrDstRGB, roiType, handle1);
 
         // all ops in stream1 need to complete before rppt_multiply_scalar_gpu executes on stream1 and rppt_image_min_max executes on stream2
         hipStreamSynchronize(stream1);
@@ -433,19 +437,25 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // rpp_tensor_write_to_file("motionVectorsPolarCPUComp3", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
 
         // normalize polar angle from 0 to 1 in hip stream1
-        rppt_multiply_scalar_gpu(d_motionVectorsPolarF32Comp1, motionVectorCompPlnDescPtr, d_motionVectorsPolarF32Comp1, motionVectorCompPlnDescPtr, HUE_CONVERSION_FACTOR, roiTensorPtrSrcResized, roiType, handle1);
+        rppt_multiply_scalar_gpu(d_motionVectorsPolarF32Comp1, motionVectorCompPlnDescPtr, d_motionVectorsPolarF32Comp1, motionVectorCompPlnDescPtr, HUE_CONVERSION_FACTOR, roiTensorPtrDstRGB, roiType, handle1);
 
         // find min and max of polar magnitude in  hip stream2
-        rppt_image_min_max_gpu(d_motionVectorsPolarF32, motionVectorCompPlnDescPtr, imageMinMaxArr, imageMinMaxArrLength, roiTensorPtrSrcResized, roiType, handle2);
+        rppt_image_min_max_gpu(d_motionVectorsPolarF32, motionVectorCompPlnDescPtr, imageMinMaxArr, imageMinMaxArrLength, roiTensorPtrDstRGB, roiType, handle2);
 
         // all ops in stream2 need to complete before rppt_normalize_minmax_gpu executes on stream2
         hipStreamSynchronize(stream2);
 
         // normalize polar magnitude from 0 to 1 in hip stream2
-        rppt_normalize_minmax_gpu(d_motionVectorsPolarF32, motionVectorCompPlnDescPtr, d_motionVectorsPolarF32Comp3, motionVectorCompPlnDescPtr, imageMinMaxArr, imageMinMaxArrLength, 0.0f, 1.0f, roiTensorPtrSrcResized, roiType, handle2);
+        rppt_normalize_minmax_gpu(d_motionVectorsPolarF32, motionVectorCompPlnDescPtr, d_motionVectorsPolarF32Comp3, motionVectorCompPlnDescPtr, imageMinMaxArr, imageMinMaxArrLength, 0.0f, 1.0f, roiTensorPtrDstRGB, roiType, handle2);
 
-        // all ops in all streams need to complete at end of post-processing
+        // all ops in all streams need to complete before rppt_hsv_to_rgbbgr_gpu executes on stream1
         hipDeviceSynchronize();
+
+        // move resized color frame from device to host in preparation for visualization
+        hipMemcpy(dstInputRGB, d_dstRGB, sizeInBytesDstRGB, hipMemcpyDeviceToHost);
+
+        // fused conversion of F32-PLN3 hsv to U8-PLN1 rgb in hip stream1
+        // rppt_hsv_to_rgbbgr_gpu(d_motionVectorsPolarF32Comp1, dstDescPtrHSV, d_dstRGB, dstDescPtrRGB, subpixelLayout, roiTensorPtrDstRGB, roiType, handle2);
 
         // -------------------- stage output dump check --------------------
         // Rpp32f motionVectorsPolarCPU[FARNEBACK_OUTPUT_FRAME_SIZE];
@@ -490,16 +500,18 @@ void rpp_optical_flow_hip(string inputVideoFileName)
     rppDestroyGPU(handle1);
     rppDestroyGPU(handle2);
     hipFree(&d_srcRGB);
-    hipFree(&d_srcResizedRGB);
+    hipFree(&d_dstRGB);
     hipFree(&d_src1);
     hipFree(&d_src2);
     hipFree(&d_motionVectorsCartesianF32);
     hipFree(&d_motionVectorsPolarF32);
     hipHostFree(&roiTensorPtrSrcRGB);
-    hipHostFree(&roiTensorPtrSrcResized);
+    hipHostFree(&roiTensorPtrDstRGB);
     hipHostFree(&src1ImgSizes);
+    hipHostFree(&imageMinMaxArr);
     free(srcRGB);
-    free(srcResizedRGB);
+    free(dstRGB);
+    free(dstInputRGB);
     free(src1);
     free(src2);
 
