@@ -225,6 +225,7 @@ void opencv_optical_flow_cuda(string inputVideoFileName)
         // visualization
         // imshow("original", frame);
         // imshow("result", bgr);
+        cv::imwrite("result.png", bgr);
         int keyboard = waitKey(1);
         if (keyboard == 27)
             break;
