@@ -451,12 +451,6 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // all ops in all streams need to complete before rppt_hsv_to_rgbbgr_gpu executes on stream1
         hipDeviceSynchronize();
 
-        // move resized color frame from device to host in preparation for visualization
-        hipMemcpy(dstInputRGB, d_dstRGB, sizeInBytesDstRGB, hipMemcpyDeviceToHost);
-
-        // fused conversion of F32-PLN3 hsv to U8-PLN1 rgb in hip stream1
-        // rppt_hsv_to_rgbbgr_gpu(d_motionVectorsPolarF32Comp1, dstDescPtrHSV, d_dstRGB, dstDescPtrRGB, subpixelLayout, roiTensorPtrDstRGB, roiType, handle2);
-
         // -------------------- stage output dump check --------------------
         // Rpp32f motionVectorsPolarCPU[FARNEBACK_OUTPUT_FRAME_SIZE];
         // hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp1, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
@@ -465,6 +459,25 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // rpp_tensor_write_to_file("motionVectorsPolarCPUComp2", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
         // hipMemcpy(motionVectorsPolarCPU, d_motionVectorsPolarF32Comp3, FARNEBACK_OUTPUT_FRAME_SIZE * sizeof(Rpp32f), hipMemcpyDeviceToHost);
         // rpp_tensor_write_to_file("motionVectorsPolarCPUComp3", motionVectorsPolarCPU, (RpptDescPtr)motionVectorCompPlnDescPtr);
+
+        // move resized input RGB frame from device to host in preparation for visualization
+        hipMemcpy(dstInputRGB, d_dstRGB, sizeInBytesDstRGB, hipMemcpyDeviceToHost);
+
+        // fused bitDepth + layout + colorType conversion of F32-PLN3 HSV to U8-PKD3 BGR in hip stream1
+        rppt_hsv_to_rgbbgr_gpu(d_motionVectorsPolarF32Comp1, dstDescPtrHSV, d_dstRGB, dstDescPtrRGB, subpixelLayout, handle1);
+
+        // all ops in all streams need to complete at end of post-processing
+        hipDeviceSynchronize();
+
+        // move output BGR frame from device to host in preparation for visualization
+        hipMemcpy(dstRGB, d_dstRGB, sizeInBytesDstRGB, hipMemcpyDeviceToHost);
+
+        // -------------------- stage output dump check --------------------
+        // rpp_tensor_write_to_file("dstRGB", dstRGB, dstDescPtrRGB);
+        // rpp_tensor_write_to_images("dstRGB", dstRGB, dstDescPtrRGB, src1ImgSizes);
+
+        // update d_src1
+        hipMemcpy(d_src1, d_src2, sizeInBytesSrc1, hipMemcpyDeviceToDevice);
 
         // end post pipeline timer
         auto endPostProcessTime = high_resolution_clock::now();
@@ -483,6 +496,8 @@ void rpp_optical_flow_hip(string inputVideoFileName)
         // visualization
         // imshow("original", frame);
         // imshow("result", bgr);
+        rpp_tensor_write_to_images("dstInputRGB", dstInputRGB, dstDescPtrRGB, src1ImgSizes);
+        rpp_tensor_write_to_images("dstRGB", dstRGB, dstDescPtrRGB, src1ImgSizes);
         // int keyboard = waitKey(1);
         // if (keyboard == 27)
         //     break;
