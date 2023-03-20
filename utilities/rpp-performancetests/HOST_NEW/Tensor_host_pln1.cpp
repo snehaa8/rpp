@@ -1743,5 +1743,8 @@ int main(int argc, char **argv)
     free(inputi8_second);
     free(outputi8);
 
+    if(reductionTypeCase)
+        free(reductionFuncResultArr);
+
     return 0;
 }

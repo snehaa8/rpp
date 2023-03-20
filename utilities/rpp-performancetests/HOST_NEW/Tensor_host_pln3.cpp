@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     if (argc < MIN_ARG_COUNT)
     {
         printf("\nImproper Usage! Needs all arguments!\n");
-        printf("\nUsage: ./Tensor_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:86> <verbosity = 0/1>\n");
+        printf("\nUsage: ./Tensor_host_pln3 <src1 folder> <src2 folder (place same as src1 folder for single image functionalities)> <u8 = 0 / f16 = 1 / f32 = 2 / u8->f16 = 3 / u8->f32 = 4 / i8 = 5 / u8->i8 = 6> <outputFormatToggle (pkd->pkd = 0 / pkd->pln = 1)> <case number = 0:87> <verbosity = 0/1>\n");
         return -1;
     }
 
@@ -96,6 +96,7 @@ int main(int argc, char **argv)
     bool interpolationTypeCase = (test_case == 21 || test_case == 23 || test_case == 24);
     bool noiseTypeCase = (test_case == 8);
     bool pln1OutTypeCase = (test_case == 86);
+    bool reductionTypeCase = (test_case == 87);
 
     unsigned int verbosity = additionalParamCase ? atoi(argv[7]) : atoi(argv[6]);
     unsigned int additionalParam = additionalParamCase ? atoi(argv[6]) : 1;
@@ -107,7 +108,7 @@ int main(int argc, char **argv)
         printf("\nsrc2 = %s", argv[2]);
         printf("\nu8 / f16 / f32 / u8->f16 / u8->f32 / i8 / u8->i8 (0/1/2/3/4/5/6) = %s", argv[3]);
         printf("\noutputFormatToggle (pkd->pkd = 0 / pkd->pln = 1) = %s", argv[4]);
-        printf("\ncase number (0:86) = %s", argv[5]);
+        printf("\ncase number (0:87) = %s", argv[5]);
     }
 
     int ip_channel = 3;
@@ -187,6 +188,9 @@ int main(int argc, char **argv)
         break;
     case 86:
         strcpy(funcName, "color_to_greyscale");
+        break;
+    case 87:
+        strcpy(funcName, "image_sum");
         break;
     default:
         strcpy(funcName, "test_case");
@@ -646,6 +650,13 @@ int main(int argc, char **argv)
             inputi8_secondTemp++;
         }
     }
+
+    // Initialize buffers for any reductionType functions
+    Rpp32f *reductionFuncResultArr;
+    Rpp32u reductionFuncResultArrLength = srcDescPtr->n * 4;
+    if(reductionTypeCase)
+        reductionFuncResultArr = (Rpp32f *)malloc(reductionFuncResultArrLength * sizeof(Rpp32f));
+
 
     // Run case-wise RPP API and measure time
 
@@ -1953,6 +1964,56 @@ int main(int argc, char **argv)
 
             break;
         }
+        case 87:
+        {
+            test_case_name = "image_sum";
+
+            //reductionFuncResultArrLength /= 2;
+
+            // Uncomment to run test case with an xywhROI override
+            /*for (i = 0; i < images; i++)
+            {
+                roiTensorPtrSrc[i].xywhROI.xy.x = 0;
+                roiTensorPtrSrc[i].xywhROI.xy.y = 0;
+                dstImgSizes[i].width = roiTensorPtrSrc[i].xywhROI.roiWidth = 100;
+                dstImgSizes[i].height = roiTensorPtrSrc[i].xywhROI.roiHeight = 180;
+            }*/
+
+            // Uncomment to run test case with an ltrbROI override
+            /*for (i = 0; i < images; i++)
+            {
+                roiTensorPtrSrc[i].ltrbROI.lt.x = 50;
+                roiTensorPtrSrc[i].ltrbROI.lt.y = 30;
+                roiTensorPtrSrc[i].ltrbROI.rb.x = 210;
+                roiTensorPtrSrc[i].ltrbROI.rb.y = 210;
+                dstImgSizes[i].width = roiTensorPtrSrc[i].ltrbROI.rb.x - roiTensorPtrSrc[i].ltrbROI.lt.x + 1;
+                dstImgSizes[i].height = roiTensorPtrSrc[i].ltrbROI.rb.y - roiTensorPtrSrc[i].ltrbROI.lt.y + 1;
+            }
+            roiTypeSrc = RpptRoiType::LTRB;
+            roiTypeDst = RpptRoiType::LTRB;*/
+
+            start_omp = omp_get_wtime();
+            start = clock();
+
+            if (ip_bitDepth == 0)
+                rppt_image_sum_host(input, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 1)
+                rppt_image_sum_host(inputf16, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 2)
+                rppt_image_sum_host(inputf32, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 3)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 4)
+                missingFuncFlag = 1;
+            else if (ip_bitDepth == 5)
+                rppt_image_sum_host(inputi8, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
+            else if (ip_bitDepth == 6)
+                missingFuncFlag = 1;
+            else
+                missingFuncFlag = 1;
+
+            break;
+        }
         default:
             missingFuncFlag = 1;
             break;
@@ -2002,6 +2063,9 @@ int main(int argc, char **argv)
     free(inputi8);
     free(inputi8_second);
     free(outputi8);
+
+    if(reductionTypeCase)
+        free(reductionFuncResultArr);
 
     return 0;
 }
