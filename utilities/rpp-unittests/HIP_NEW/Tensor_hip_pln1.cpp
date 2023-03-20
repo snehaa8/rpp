@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     bool kernelSizeCase = (test_case == 40 || test_case == 41 || test_case == 49);
     bool interpolationTypeCase = (test_case == 21 || test_case == 24);
     bool noiseTypeCase = (test_case == 8);
-    bool reductionTypeCase = (test_case == 87) || (test_case == 87);
+    bool reductionTypeCase = (test_case == 87);
 
     unsigned int verbosity = additionalParamCase ? atoi(argv[8]) : atoi(argv[7]);
     unsigned int additionalParam = additionalParamCase ? atoi(argv[7]) : 1;
