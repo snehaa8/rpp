@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     bool kernelSizeCase = (test_case == 40 || test_case == 41 || test_case == 49);
     bool interpolationTypeCase = (test_case == 21 || test_case == 24);
     bool noiseTypeCase = (test_case == 8);
-    bool reductionTypeCase = (test_case == 87) || (test_case == 87);
+    bool reductionTypeCase = (test_case == 87);
 
     unsigned int verbosity = additionalParamCase ? atoi(argv[7]) : atoi(argv[6]);
     unsigned int additionalParam = additionalParamCase ? atoi(argv[6]) : 1;
@@ -688,9 +688,7 @@ int main(int argc, char **argv)
     hipStreamCreate(&stream);
     rppCreateWithStreamAndBatchSize(&handle, stream, noOfImages);
 
-    clock_t start, end;
     std::chrono::steady_clock::time_point startChrono, endChrono;
-    double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
     std::chrono::duration<double, std::milli> elapsedTimeChrono, maxTimeChrono, minTimeChrono, avgTimeChrono;
 
     string test_case_name;
@@ -738,7 +736,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_brightness_gpu(d_input, srcDescPtr, d_output, dstDescPtr, alpha, beta, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -793,7 +791,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_gamma_correction_gpu(d_input, srcDescPtr, d_output, dstDescPtr, gammaVal, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -848,7 +846,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_blend_gpu(d_input, d_input_second, srcDescPtr, d_output, dstDescPtr, alpha, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -906,7 +904,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_contrast_gpu(d_input, srcDescPtr, d_output, dstDescPtr, contrastFactor, contrastCenter, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -972,7 +970,7 @@ int main(int argc, char **argv)
 
                     hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-                    start = clock();
+                    startChrono = std::chrono::steady_clock::now();
 
                     if (ip_bitDepth == 0)
                         rppt_salt_and_pepper_noise_gpu(d_input, srcDescPtr, d_output, dstDescPtr, noiseProbabilityTensor, saltProbabilityTensor, saltValueTensor, pepperValueTensor, seed, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1028,7 +1026,7 @@ int main(int argc, char **argv)
 
                     hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-                    start = clock();
+                    startChrono = std::chrono::steady_clock::now();
 
                     if (ip_bitDepth == 0)
                         rppt_gaussian_noise_gpu(d_input, srcDescPtr, d_output, dstDescPtr, meanTensor, stdDevTensor, seed, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1082,7 +1080,7 @@ int main(int argc, char **argv)
 
                     hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-                    start = clock();
+                    startChrono = std::chrono::steady_clock::now();
 
                     if (ip_bitDepth == 0)
                         rppt_shot_noise_gpu(d_input, srcDescPtr, d_output, dstDescPtr, shotNoiseFactorTensor, seed, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1146,7 +1144,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_exposure_gpu(d_input, srcDescPtr, d_output, dstDescPtr, exposureFactor, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1203,7 +1201,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_flip_gpu(d_input, srcDescPtr, d_output, dstDescPtr, horizontalFlag, verticalFlag, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1259,7 +1257,7 @@ int main(int argc, char **argv)
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
             hipMemcpy(d_dstImgSizes, dstImgSizes, images * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_resize_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_dstImgSizes, interpolationType, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1326,7 +1324,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_warp_affine_gpu(d_input, srcDescPtr, d_output, dstDescPtr, affineTensor, interpolationType, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1375,7 +1373,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_crop_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1438,7 +1436,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_crop_mirror_normalize_gpu(d_input, srcDescPtr, d_output, dstDescPtr, offset, multiplier, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1501,7 +1499,7 @@ int main(int argc, char **argv)
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
             hipMemcpy(d_dstImgSizes, dstImgSizes, images * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_resize_crop_mirror_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_dstImgSizes, interpolationType, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1551,7 +1549,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_erode_gpu(d_input, srcDescPtr, d_output, dstDescPtr, kernelSize, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1602,7 +1600,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_dilate_gpu(d_input, srcDescPtr, d_output, dstDescPtr, kernelSize, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1653,7 +1651,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_box_filter_gpu(d_input, srcDescPtr, d_output, dstDescPtr, kernelSize, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1678,7 +1676,7 @@ int main(int argc, char **argv)
         {
             test_case_name = "copy";
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_copy_gpu(d_input, srcDescPtr, d_output, dstDescPtr, handle);
             else if (ip_bitDepth == 1)
@@ -1749,7 +1747,7 @@ int main(int argc, char **argv)
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
             hipMemcpy(d_dstImgSizes, dstImgSizes, images * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_resize_mirror_normalize_gpu(d_input, srcDescPtr, d_output, dstDescPtr, d_dstImgSizes, interpolationType, mean, stdDev, mirror, d_roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1805,7 +1803,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_gridmask_gpu(d_input, srcDescPtr, d_output, dstDescPtr, tileWidth, gridRatio, gridAngle, translateVector, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1872,7 +1870,7 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_spatter_gpu(d_input, srcDescPtr, d_output, dstDescPtr, spatterColor, d_roiTensorPtrSrc, roiTypeSrc, handle);
@@ -1921,7 +1919,6 @@ int main(int argc, char **argv)
 
             hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
 
-            start = clock();
             startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
@@ -1959,13 +1956,6 @@ int main(int argc, char **argv)
         }
 
         // Display measured times
-
-        gpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-        if (gpu_time_used > max_time_used)
-            max_time_used = gpu_time_used;
-        if (gpu_time_used < min_time_used)
-            min_time_used = gpu_time_used;
-        avg_time_used += gpu_time_used;
 
         std::chrono::duration<double, std::milli> elapsedTimeChrono = endChrono - startChrono;
         if (elapsedTimeChrono > maxTimeChrono)
