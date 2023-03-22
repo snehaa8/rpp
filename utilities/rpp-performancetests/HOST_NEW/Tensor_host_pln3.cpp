@@ -663,7 +663,8 @@ int main(int argc, char **argv)
     rppHandle_t handle;
     rppCreateWithBatchSize(&handle, noOfImages);
 
-    double max_time_used = 0, min_time_used = 500, avg_time_used = 0;
+    std::chrono::steady_clock::time_point startChrono, endChrono;
+    std::chrono::duration<double, std::milli> elapsedTimeChrono, maxTimeChrono, minTimeChrono, avgTimeChrono;
 
     string test_case_name;
 
@@ -671,9 +672,7 @@ int main(int argc, char **argv)
 
     for (int perfRunCount = 0; perfRunCount < 100; perfRunCount++)
     {
-        clock_t start, end;
-        double start_omp, end_omp;
-        double cpu_time_used, omp_time_used;
+
         switch (test_case)
         {
         case 0:
@@ -708,8 +707,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_brightness_host(input, srcDescPtr, output, dstDescPtr, alpha, beta, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -759,8 +758,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_gamma_correction_host(input, srcDescPtr, output, dstDescPtr, gammaVal, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -810,8 +809,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_blend_host(input, input_second, srcDescPtr, output, dstDescPtr, alpha, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -862,8 +861,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_contrast_host(input, srcDescPtr, output, dstDescPtr, contrastFactor, contrastCenter, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -923,8 +922,8 @@ int main(int argc, char **argv)
                     roiTypeSrc = RpptRoiType::LTRB;
                     roiTypeDst = RpptRoiType::LTRB;*/
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    
+                    startChrono = std::chrono::steady_clock::now();
                     if (ip_bitDepth == 0)
                         rppt_salt_and_pepper_noise_host(input, srcDescPtr, output, dstDescPtr, noiseProbabilityTensor, saltProbabilityTensor, saltValueTensor, pepperValueTensor, seed, roiTensorPtrSrc, roiTypeSrc, handle);
                     else if (ip_bitDepth == 1)
@@ -974,8 +973,8 @@ int main(int argc, char **argv)
                     roiTypeSrc = RpptRoiType::LTRB;
                     roiTypeDst = RpptRoiType::LTRB;*/
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    
+                    startChrono = std::chrono::steady_clock::now();
                     if (ip_bitDepth == 0)
                         rppt_gaussian_noise_host(input, srcDescPtr, output, dstDescPtr, meanTensor, stdDevTensor, seed, roiTensorPtrSrc, roiTypeSrc, handle);
                     else if (ip_bitDepth == 1)
@@ -1023,8 +1022,8 @@ int main(int argc, char **argv)
                     roiTypeSrc = RpptRoiType::LTRB;
                     roiTypeDst = RpptRoiType::LTRB;*/
 
-                    start_omp = omp_get_wtime();
-                    start = clock();
+                    
+                    startChrono = std::chrono::steady_clock::now();
                     if (ip_bitDepth == 0)
                         rppt_shot_noise_host(input, srcDescPtr, output, dstDescPtr, shotNoiseFactorTensor, seed, roiTensorPtrSrc, roiTypeSrc, handle);
                     else if (ip_bitDepth == 1)
@@ -1083,8 +1082,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_exposure_host(input, srcDescPtr, output, dstDescPtr, exposureFactor, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1116,8 +1115,8 @@ int main(int argc, char **argv)
                 verticalFlag[i] = 0;
             }
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_flip_host(input, srcDescPtr, output, dstDescPtr, horizontalFlag, verticalFlag, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1167,8 +1166,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_resize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1224,8 +1223,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_rotate_host(input, srcDescPtr, output, dstDescPtr, angle, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1286,8 +1285,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_warp_affine_host(input, srcDescPtr, output, dstDescPtr, affineTensor, interpolationType, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1337,8 +1336,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_non_linear_blend_host(input, input_second, srcDescPtr, output, dstDescPtr, stdDev, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1392,8 +1391,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_color_cast_host(input, srcDescPtr, output, dstDescPtr, rgbTensor, alphaTensor, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1449,8 +1448,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_color_twist_host(input, srcDescPtr, output, dstDescPtr, brightness, contrast, hue, saturation, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1494,8 +1493,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_crop_host(input, srcDescPtr, output, dstDescPtr, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1560,8 +1559,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_crop_mirror_normalize_host(input, srcDescPtr, output, dstDescPtr, offset, multiplier, mirror, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1620,8 +1619,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_resize_crop_mirror_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, interpolationType, mirror, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1645,8 +1644,8 @@ int main(int argc, char **argv)
         {
             test_case_name = "copy";
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_copy_host(input, srcDescPtr, output, dstDescPtr, handle);
             else if (ip_bitDepth == 1)
@@ -1720,8 +1719,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_resize_mirror_normalize_host(input, srcDescPtr, output, dstDescPtr, dstImgSizes, interpolationType, mean, stdDev, mirror, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1777,8 +1776,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_color_jitter_host(input, srcDescPtr, output, dstDescPtr, brightness, contrast, hue, saturation, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1829,8 +1828,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_gridmask_host(input, srcDescPtr, output, dstDescPtr, tileWidth, gridRatio, gridAngle, translateVector, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1891,8 +1890,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_spatter_host(input, srcDescPtr, output, dstDescPtr, spatterColor, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
@@ -1916,8 +1915,8 @@ int main(int argc, char **argv)
         {
             test_case_name = "swap_channels";
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_swap_channels_host(input, srcDescPtr, output, dstDescPtr, handle);
             else if (ip_bitDepth == 1)
@@ -1943,8 +1942,8 @@ int main(int argc, char **argv)
 
             RpptSubpixelLayout srcSubpixelLayout = RpptSubpixelLayout::RGBtype;
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
             if (ip_bitDepth == 0)
                 rppt_color_to_greyscale_host(input, srcDescPtr, output, dstDescPtr, srcSubpixelLayout, handle);
             else if (ip_bitDepth == 1)
@@ -1992,8 +1991,8 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            start_omp = omp_get_wtime();
-            start = clock();
+            
+            startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
                 rppt_image_sum_host(input, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
@@ -2019,8 +2018,7 @@ int main(int argc, char **argv)
             break;
         }
 
-        end = clock();
-        end_omp = omp_get_wtime();
+        endChrono = std::chrono::steady_clock::now();
 
         if (missingFuncFlag == 1)
         {
@@ -2028,20 +2026,20 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-        omp_time_used = end_omp - start_omp;
-        if (omp_time_used > max_time_used)
-            max_time_used = omp_time_used;
-        if (omp_time_used < min_time_used)
-            min_time_used = omp_time_used;
-        avg_time_used += omp_time_used;
+        std::chrono::duration<double, std::milli> elapsedTimeChrono = endChrono - startChrono;
+        if (elapsedTimeChrono > maxTimeChrono)
+            maxTimeChrono = elapsedTimeChrono;
+        if (elapsedTimeChrono < minTimeChrono)
+            minTimeChrono = elapsedTimeChrono;
+        avgTimeChrono += elapsedTimeChrono;
     }
 
-    avg_time_used /= 100;
+    avgTimeChrono /= 100;
 
     // Display measured times
-
-    cout << fixed << "\nmax,min,avg = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
+    
+    // cout << fixed << "\nmax,min,avg = " << max_time_used << "," << min_time_used << "," << avg_time_used << endl;
+    cout << fixed << "\nmax,min,avg = " << maxTimeChrono.count() << "," << minTimeChrono.count() << "," << avgTimeChrono.count() << endl;
 
     rppDestroyHost(handle);
 
