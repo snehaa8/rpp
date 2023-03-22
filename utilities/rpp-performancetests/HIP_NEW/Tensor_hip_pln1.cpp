@@ -1947,7 +1947,6 @@ int main(int argc, char **argv)
 
         hipDeviceSynchronize();
         endChrono = std::chrono::steady_clock::now();
-        end = clock();
 
         if (missingFuncFlag == 1)
         {

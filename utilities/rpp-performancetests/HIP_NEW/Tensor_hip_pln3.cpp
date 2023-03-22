@@ -2206,22 +2206,20 @@ int main(int argc, char **argv)
             roiTypeSrc = RpptRoiType::LTRB;
             roiTypeDst = RpptRoiType::LTRB;*/
 
-            hipMemcpy(d_roiTensorPtrSrc, roiTensorPtrSrc, images * sizeof(RpptROI), hipMemcpyHostToDevice);
-
             startChrono = std::chrono::steady_clock::now();
 
             if (ip_bitDepth == 0)
-                rppt_image_sum_gpu(d_input, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_image_sum_gpu(d_input, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 1)
-                rppt_image_sum_gpu(d_inputf16, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_image_sum_gpu(d_inputf16, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 2)
-                rppt_image_sum_gpu(d_inputf32, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_image_sum_gpu(d_inputf32, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 3)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 4)
                 missingFuncFlag = 1;
             else if (ip_bitDepth == 5)
-                rppt_image_sum_gpu(d_inputi8, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, d_roiTensorPtrSrc, roiTypeSrc, handle);
+                rppt_image_sum_gpu(d_inputi8, srcDescPtr, reductionFuncResultArr, reductionFuncResultArrLength, roiTensorPtrSrc, roiTypeSrc, handle);
             else if (ip_bitDepth == 6)
                 missingFuncFlag = 1;
             else
@@ -2236,7 +2234,6 @@ int main(int argc, char **argv)
 
         hipDeviceSynchronize();
         endChrono = std::chrono::steady_clock::now();
-        end = clock();
 
         if (missingFuncFlag == 1)
         {
