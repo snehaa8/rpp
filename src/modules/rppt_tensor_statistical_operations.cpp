@@ -58,17 +58,15 @@ RppStatus rppt_image_sum_host(RppPtr_t srcPtr,
         image_sum_u8_u8_host_tensor(static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes,
                                     srcDescPtr,
                                     static_cast<Rpp32f*>(imageSumArr),
-                                    imageSumArrLength,
                                     roiTensorPtrSrc,
                                     roiType,
                                     layoutParams);
     }
-    /*else if (srcDescPtr->dataType == RpptDataType::F16)
+    else if (srcDescPtr->dataType == RpptDataType::F16)
     {
         image_sum_f16_f16_host_tensor((Rpp16f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
                                        srcDescPtr,
                                        static_cast<Rpp32f*>(imageSumArr),
-                                       imageSumArrLength,
                                        roiTensorPtrSrc,
                                        roiType,
                                        layoutParams);
@@ -78,7 +76,6 @@ RppStatus rppt_image_sum_host(RppPtr_t srcPtr,
         image_sum_f32_f32_host_tensor((Rpp32f*) (static_cast<Rpp8u*>(srcPtr) + srcDescPtr->offsetInBytes),
                                        srcDescPtr,
                                        static_cast<Rpp32f*>(imageSumArr),
-                                       imageSumArrLength,
                                        roiTensorPtrSrc,
                                        roiType,
                                        layoutParams);
@@ -88,11 +85,10 @@ RppStatus rppt_image_sum_host(RppPtr_t srcPtr,
         image_sum_i8_i8_host_tensor(static_cast<Rpp8s*>(srcPtr) + srcDescPtr->offsetInBytes,
                                      srcDescPtr,
                                      static_cast<Rpp32f*>(imageSumArr),
-                                     imageSumArrLength,
                                      roiTensorPtrSrc,
                                      roiType,
                                      layoutParams);
-    }*/
+    }
 
     return RPP_SUCCESS;
 }
