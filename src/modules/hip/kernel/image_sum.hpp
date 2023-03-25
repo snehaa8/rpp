@@ -124,14 +124,20 @@ __global__ void image_sum_grid_3channel_result_tensor(float *srcPtr,
     }
 
     int xAlignedLength = xBufferLength & ~7;                        // alignedLength for vectorized global loads
-    int xDiff = (xBufferLength - xAlignedLength) * 3;               // difference between bufferLength and alignedLength
+    int xDiff = xBufferLength - xAlignedLength;               // difference between bufferLength and alignedLength
     uint srcIdx = ((id_z * xBufferLength) + id_x) * 3;
 
     d_float24 src_f24;
     rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &src_f24);           // load 24 pixels to local mmemory
-    if (id_x + 8 > xBufferLength)
-        for(int i = xDiff; i < 24; i++)
-            src_f24.f1[i] = 0.0f;                                            // local memory reset of invalid values (from the vectorized global load) to 0.0f
+    if (id_x + 8 > xBufferLength)                                                        // local memory reset of invalid values (from the vectorized global load) to 0.0f
+    {
+        for(int i = xDiff; i < 8; i++)
+        {
+            src_f24.f8[0].f1[i] = 0.0f;
+            src_f24.f8[1].f1[i] = 0.0f;
+            src_f24.f8[2].f1[i] = 0.0f;
+        } 
+    }
     src_f24.f8[0].f4[0] += src_f24.f8[0].f4[1];                                           // perform small work of vectorized float4 addition
     src_f24.f8[1].f4[0] += src_f24.f8[1].f4[1];
     src_f24.f8[2].f4[0] += src_f24.f8[2].f4[1];
@@ -200,14 +206,20 @@ __global__ void image_sum_pln3_tensor(T *srcPtr,
     }
 
     int xAlignedLength = roiTensorPtrSrc[id_z].xywhROI.roiWidth & ~7;       // alignedLength for vectorized global loads
-    int xDiff = (roiTensorPtrSrc[id_z].xywhROI.roiWidth - xAlignedLength) * 3;    // difference between roiWidth and alignedLength
+    int xDiff = roiTensorPtrSrc[id_z].xywhROI.roiWidth - xAlignedLength;    // difference between roiWidth and alignedLength
     uint srcIdx = (id_z * srcStridesNCH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNCH.z) + (id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x);
 
     d_float24 src_f24;
     rpp_hip_load24_pln3_and_unpack_to_float24_pln3(srcPtr + srcIdx, srcStridesNCH.y, &src_f24);           // load 24 pixels to local mmemory
-    if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
-        for(int i = xDiff; i < 24; i++)
-            src_f24.f1[i] = 0.0f;                                            // local memory reset of invalid values (from the vectorized global load) to 0.0f
+    if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)                                              // local memory reset of invalid values (from the vectorized global load) to 0.0f
+    {
+        for(int i = xDiff; i < 8; i++)
+        {
+            src_f24.f8[0].f1[i] = 0.0f;
+            src_f24.f8[1].f1[i] = 0.0f;
+            src_f24.f8[2].f1[i] = 0.0f;
+        } 
+    }
     src_f24.f8[0].f4[0] += src_f24.f8[0].f4[1];                                           // perform small work of vectorized float4 addition
     src_f24.f8[1].f4[0] += src_f24.f8[1].f4[1];
     src_f24.f8[2].f4[0] += src_f24.f8[2].f4[1];
@@ -289,14 +301,20 @@ __global__ void image_sum_pkd3_tensor(T *srcPtr,
     }
 
     int xAlignedLength = roiTensorPtrSrc[id_z].xywhROI.roiWidth & ~7;       // alignedLength for vectorized global loads
-    int xDiff = (roiTensorPtrSrc[id_z].xywhROI.roiWidth - xAlignedLength) * 3;    // difference between roiWidth and alignedLength
+    int xDiff = roiTensorPtrSrc[id_z].xywhROI.roiWidth - xAlignedLength;    // difference between roiWidth and alignedLength
     uint srcIdx = (id_z * srcStridesNH.x) + ((id_y + roiTensorPtrSrc[id_z].xywhROI.xy.y) * srcStridesNH.y) + ((id_x + roiTensorPtrSrc[id_z].xywhROI.xy.x) * 3);
 
     d_float24 src_f24;
     rpp_hip_load24_pkd3_and_unpack_to_float24_pln3(srcPtr + srcIdx, &src_f24);           // load 24 pixels to local mmemory
-    if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)
-        for(int i = xDiff; i < 24; i++)
-            src_f24.f1[i] = 0.0f;                                            // local memory reset of invalid values (from the vectorized global load) to 0.0f
+    if (id_x + 8 > roiTensorPtrSrc[id_z].xywhROI.roiWidth)                               // local memory reset of invalid values (from the vectorized global load) to 0.0f
+    {
+        for(int i = xDiff; i < 8; i++)
+        {
+            src_f24.f8[0].f1[i] = 0.0f;
+            src_f24.f8[1].f1[i] = 0.0f;
+            src_f24.f8[2].f1[i] = 0.0f;
+        } 
+    }
     src_f24.f8[0].f4[0] += src_f24.f8[0].f4[1];                                           // perform small work of vectorized float4 addition
     src_f24.f8[1].f4[0] += src_f24.f8[1].f4[1];
     src_f24.f8[2].f4[0] += src_f24.f8[2].f4[1];
@@ -366,7 +384,7 @@ RppStatus hip_exec_image_sum_tensor(T *srcPtr,
     int localThreads_x = LOCAL_THREADS_X;
     int localThreads_y = LOCAL_THREADS_Y;
     int localThreads_z = LOCAL_THREADS_Z;
-    int globalThreads_x = (srcDescPtr->strides.hStride + 7) >> 3;
+    int globalThreads_x = (srcDescPtr->w + 7) >> 3;
     int globalThreads_y = srcDescPtr->h;
     int globalThreads_z = handle.GetBatchSize();
     int gridDim_x = (int) ceil((float)globalThreads_x/localThreads_x);
