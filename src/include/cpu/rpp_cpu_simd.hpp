@@ -2573,9 +2573,9 @@ inline void rpp_store8_f32pln1_to_u8pln1_avx(Rpp8u* dstPtr, __m256 &p)
 
 inline void rpp_store16_f32pln1_to_u8pln1_avx512(Rpp8u* dstPtr, __m512 &p)
 {
-    __m512i control = _mm512_set_epi64(7, 5, 3, 1, 6, 4, 2, 0);
-    __m512i px1 = _mm512_permutexvar_epi64(control, _mm512_packus_epi32(_mm512_cvtps_epi32(p), avx512_px0));
-    _mm512_storeu_si512((__m512i *)(dstPtr), _mm512_packus_epi16(px1, avx512_px0));
+    __m128i temp = _mm512_cvtepi32_epi8(_mm512_cvtps_epi32(p));
+    __m512i px1 = _mm512_inserti32x4(_mm512_setzero_epi32(), temp, 0);
+    _mm512_storeu_si512((__m512i *)(dstPtr), px1);
 }
 
 inline void rpp_store24_f32pln3_to_u8pln3_avx(Rpp8u* dstRPtr, Rpp8u* dstGPtr, Rpp8u* dstBPtr, __m256* p)
