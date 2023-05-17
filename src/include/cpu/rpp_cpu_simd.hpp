@@ -152,6 +152,7 @@ const __m512 avx512_p0 = _mm512_set1_ps(0.0f);
 const __m512 avx512_p1 = _mm512_set1_ps(1.0f);
 const __m512 avx512_p3 = _mm512_set1_ps(3.0f);
 const __m512 avx512_p8 = _mm512_set1_ps(8.0f);
+const __m512 avx512_p16 = _mm512_set1_ps(16.0f);
 
 const __m512i avx512_px0 = _mm512_set1_epi32(0);
 const __m512 avx512_pDstLocInit = _mm512_setr_ps(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);

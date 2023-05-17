@@ -5198,7 +5198,7 @@ inline void compute_resize_bilinear_src_loc_and_weights_mirror_avx(__m256 &pDstL
 inline void compute_resize_bilinear_src_loc_and_weights_avx512(__m512 &pDstLoc, __m512 &pScale, Rpp32s *srcLoc, __m512 *pWeight, __m512i &pxLoc, __m512 pOffset = avx512_p0, bool hasRGBChannels = false)
 {
     __m512 pLocFloat = _mm512_fmadd_ps(pDstLoc, pScale, pOffset);
-    pDstLoc = _mm512_add_ps(pDstLoc, avx512_p8);
+    pDstLoc = _mm512_add_ps(pDstLoc, avx512_p16);
     __m512 pLoc = _mm512_ceil_ps(pLocFloat);
     pWeight[1] = _mm512_sub_ps(pLoc, pLocFloat);
     pWeight[0] = _mm512_sub_ps(avx512_p1, pWeight[1]);
