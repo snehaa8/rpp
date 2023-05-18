@@ -838,7 +838,7 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
         srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * srcLayoutParams.bufferMultiplier);
         dstPtrChannel = dstPtrImage;
 #if __AVX512__
-        Rpp32u alignedLength = dstImgSize[batchCount].width & ~15;   // Align dst width to process 16 dst pixels per iteration
+        Rpp32u alignedLength = dstImgSize[batchCount].width & ~15;
         __m512 pWRatio = _mm512_set1_ps(wRatio);
         __m512 pWOffset = _mm512_set1_ps(wOffset);
         __m512i pxMaxSrcLoc = _mm512_set1_epi32(maxWidthLimitMinusStride);
@@ -966,10 +966,11 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 }
                 dstPtrRow += dstDescPtr->strides.hStride;
             }
-        }
+        }*/
 
         // Resize without fused output-layout toggle (NHWC -> NHWC)
-        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        //else 
+        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
             Rpp8u *dstPtrRow;
             dstPtrRow = dstPtrChannel;
@@ -981,13 +982,28 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 Rpp8u *srcRowPtrsForInterp[2];     // kernelSize(2)
                 compute_resize_bilinear_src_loc_and_weights(dstLocRow, hRatio, srcLocationRow, &weightParams[0], hOffset);  // Compute the src row location correspoding to the dst row location
                 compute_src_row_ptrs_for_bilinear_interpolation(srcRowPtrsForInterp, srcPtrChannel, srcLocationRow, maxHeightLimit, srcDescPtr); // Compute the src row pointers for interpolation
+#if __AVX512__
+                pWeightParams[0] = _mm512_set1_ps(weightParams[0]);
+                pWeightParams[1]  = _mm512_set1_ps(weightParams[1]);
+                pDstLoc = avx512_pDstLocInit;
+#elif __AVX2__
                 pWeightParams[0] = _mm256_set1_ps(weightParams[0]);
                 pWeightParams[1]  = _mm256_set1_ps(weightParams[1]);
                 pDstLoc = avx_pDstLocInit;
+#endif
 
                 int vectorLoopCount = 0;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                 {
+#if __AVX512__
+                    __m512 pSrc[12], pDst[3];
+                    __m512i pxSrcLoc;
+                    compute_resize_bilinear_src_loc_and_weights_avx512(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset, true);   // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients_avx512(pWeightParams, pBilinearCoeffs);      // Compute Bilinear coefficients
+                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx512, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);  // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx512(pSrc, pBilinearCoeffs, pDst);     // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx512, dstPtrTemp, pDst);   // Store dst pixels
+#elif __AVX2__
                     __m256 pSrc[12], pDst[3];
                     __m256i pxSrcLoc;
                     compute_resize_bilinear_src_loc_and_weights_avx(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset, true);   // Compute the src col location correspoding to the dst col location
@@ -995,6 +1011,7 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                     rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);  // Load input pixels required for bilinear interpolation
                     compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst);     // Compute Bilinear interpolation
                     rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst);   // Store dst pixels
+#endif
                     dstPtrTemp += vectorIncrementPkd;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
@@ -1007,11 +1024,10 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 }
                 dstPtrRow += dstDescPtr->strides.hStride;
             }
-        }*/
+        }
 
         // Resize without fused output-layout toggle (NCHW -> NCHW for 1 channel and 3 channel)
-        //else 
-        if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
+        else if ((srcDescPtr->layout == RpptLayout::NCHW) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
             Rpp8u *dstPtrRow;
             dstPtrRow = dstPtrChannel;
