@@ -856,7 +856,7 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
         Rpp32s srcLocationRow, srcLocationColumn;
 
         // Resize with fused output-layout toggle (NHWC -> NCHW) PKD->PLN
-        /*if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
+        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NCHW))
         {
             Rpp8u *dstPtrRowR, *dstPtrRowG, *dstPtrRowB;
             dstPtrRowR = dstPtrChannel;
@@ -873,13 +873,13 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 Rpp8u *srcRowPtrsForInterp[2];     // kernelSize(2)
                 compute_resize_bilinear_src_loc_and_weights(dstLocRow, hRatio, srcLocationRow, &weightParams[0], hOffset); // Compute the src row location correspoding to the dst row location
                 compute_src_row_ptrs_for_bilinear_interpolation(srcRowPtrsForInterp, srcPtrChannel, srcLocationRow, maxHeightLimit, srcDescPtr); // Compute the src row pointers for interpolation
-#if __AVX512__ 
+#if __AVX512__
                 pWeightParams[0] = _mm512_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm512_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm512_set1_ps(weightParams[1]);
                 pDstLoc = avx512_pDstLocInit;
 #elif __AVX2__
                 pWeightParams[0] = _mm256_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm256_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm256_set1_ps(weightParams[1]);
                 pDstLoc = avx_pDstLocInit;
 #endif
 
@@ -893,7 +893,7 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                     compute_bilinear_coefficients_avx512(pWeightParams, pBilinearCoeffs);  // Compute Bilinear coefficients
                     rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx512, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);  // Load input pixels required for bilinear interpolation
                     compute_bilinear_interpolation_3c_avx512(pSrc, pBilinearCoeffs, pDst); // Compute Bilinear interpolation
-                    rpp_simd_store(rpp_store24_f32pln3_to_u8pln3_avx512, dstPtrTempR, dstPtrTempG, dstPtrTempB, pDst); // Store dst pixels
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pln3_avx512, dstPtrTempR, dstPtrTempG, dstPtrTempB, pDst); // Store dst pixels
                     dstPtrTempR += vectorIncrementPerChannel;
                     dstPtrTempG += vectorIncrementPerChannel;
                     dstPtrTempB += vectorIncrementPerChannel;
@@ -939,38 +939,55 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 Rpp8u *srcRowPtrsForInterp[6];     // kernelSize(2) * numOfPlanes(3)
                 compute_resize_bilinear_src_loc_and_weights(dstLocRow, hRatio, srcLocationRow, &weightParams[0], hOffset);  // Compute the src row location correspoding to the dst row location
                 compute_src_row_ptrs_for_bilinear_interpolation_pln(srcRowPtrsForInterp, srcPtrChannel, srcLocationRow, maxHeightLimit, srcDescPtr); // Compute the src row pointers for interpolation
+#if __AVX512__
+                pWeightParams[0] = _mm512_set1_ps(weightParams[0]);
+                pWeightParams[1] = _mm512_set1_ps(weightParams[1]);
+                pDstLoc = avx512_pDstLocInit;
+#elif __AVX2__
                 pWeightParams[0] = _mm256_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm256_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm256_set1_ps(weightParams[1]);
                 pDstLoc = avx_pDstLocInit;
+#endif
 
                 int vectorLoopCount = 0;
                 for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrementPerChannel)
                 {
+#if __AVX512__
+                    __m512 pSrc[12], pDst[3];
+                    __m512i pxSrcLoc;
+                    compute_resize_bilinear_src_loc_and_weights_avx512(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset);                               // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients_avx512(pWeightParams, pBilinearCoeffs);                                                                                              // Compute Bilinear coefficients
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx512, &srcRowPtrsForInterp[0], srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride); // Load input pixels required for bilinear interpolation
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx512, &srcRowPtrsForInterp[2], srcLocationColumnArray, &pSrc[4], pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx512, &srcRowPtrsForInterp[4], srcLocationColumnArray, &pSrc[8], pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);
+                    compute_bilinear_interpolation_3c_avx512(pSrc, pBilinearCoeffs, pDst);  // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx512, dstPtrTemp, pDst); // Store dst pixels
+#elif __AVX2__
                     __m256 pSrc[12], pDst[3];
                     __m256i pxSrcLoc;
-                    compute_resize_bilinear_src_loc_and_weights_avx(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset); // Compute the src col location correspoding to the dst col location
-                    compute_bilinear_coefficients_avx(pWeightParams, pBilinearCoeffs);      // Compute Bilinear coefficients
-                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx, &srcRowPtrsForInterp[0], srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);  // Load input pixels required for bilinear interpolation
+                    compute_resize_bilinear_src_loc_and_weights_avx(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset);                               // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients_avx(pWeightParams, pBilinearCoeffs);                                                                                              // Compute Bilinear coefficients
+                    rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx, &srcRowPtrsForInterp[0], srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride); // Load input pixels required for bilinear interpolation
                     rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx, &srcRowPtrsForInterp[2], srcLocationColumnArray, &pSrc[4], pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);
                     rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx, &srcRowPtrsForInterp[4], srcLocationColumnArray, &pSrc[8], pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);
-                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst);     // Compute Bilinear interpolation
-                    rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst);    // Store dst pixels
+                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst);  // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst); // Store dst pixels
+#endif
                     dstPtrTemp += vectorIncrementPkd;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
-                    compute_resize_bilinear_src_loc_and_weights(vectorLoopCount, wRatio, srcLocationColumn, &weightParams[2], wOffset);  // Compute the src col location correspoding to the dst col location
-                    compute_bilinear_coefficients(weightParams, bilinearCoeffs);    // Compute Bilinear coefficients
-                    compute_bilinear_interpolation_3c_pln(srcRowPtrsForInterp, srcLocationColumn, maxWidthLimit, bilinearCoeffs, &dstPtrTemp[0], &dstPtrTemp[1], &dstPtrTemp[2]);  // Compute Bilinear interpolation
+                    compute_resize_bilinear_src_loc_and_weights(vectorLoopCount, wRatio, srcLocationColumn, &weightParams[2], wOffset);                                           // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients(weightParams, bilinearCoeffs);                                                                                                  // Compute Bilinear coefficients
+                    compute_bilinear_interpolation_3c_pln(srcRowPtrsForInterp, srcLocationColumn, maxWidthLimit, bilinearCoeffs, &dstPtrTemp[0], &dstPtrTemp[1], &dstPtrTemp[2]); // Compute Bilinear interpolation
                     dstPtrTemp += dstDescPtr->c;
                 }
                 dstPtrRow += dstDescPtr->strides.hStride;
             }
-        }*/
+        }
 
         // Resize without fused output-layout toggle (NHWC -> NHWC)
-        //else 
-        if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
+        else if ((srcDescPtr->c == 3) && (srcDescPtr->layout == RpptLayout::NHWC) && (dstDescPtr->layout == RpptLayout::NHWC))
         {
             Rpp8u *dstPtrRow;
             dstPtrRow = dstPtrChannel;
@@ -984,11 +1001,11 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 compute_src_row_ptrs_for_bilinear_interpolation(srcRowPtrsForInterp, srcPtrChannel, srcLocationRow, maxHeightLimit, srcDescPtr); // Compute the src row pointers for interpolation
 #if __AVX512__
                 pWeightParams[0] = _mm512_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm512_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm512_set1_ps(weightParams[1]);
                 pDstLoc = avx512_pDstLocInit;
 #elif __AVX2__
                 pWeightParams[0] = _mm256_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm256_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm256_set1_ps(weightParams[1]);
                 pDstLoc = avx_pDstLocInit;
 #endif
 
@@ -998,27 +1015,27 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
 #if __AVX512__
                     __m512 pSrc[12], pDst[3];
                     __m512i pxSrcLoc;
-                    compute_resize_bilinear_src_loc_and_weights_avx512(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset, true);   // Compute the src col location correspoding to the dst col location
-                    compute_bilinear_coefficients_avx512(pWeightParams, pBilinearCoeffs);      // Compute Bilinear coefficients
-                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx512, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);  // Load input pixels required for bilinear interpolation
-                    compute_bilinear_interpolation_3c_avx512(pSrc, pBilinearCoeffs, pDst);     // Compute Bilinear interpolation
-                    rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx512, dstPtrTemp, pDst);   // Store dst pixels
+                    compute_resize_bilinear_src_loc_and_weights_avx512(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset, true);                     // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients_avx512(pWeightParams, pBilinearCoeffs);                                                                                          // Compute Bilinear coefficients
+                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx512, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride); // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx512(pSrc, pBilinearCoeffs, pDst);                                                                                         // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store48_f32pln3_to_u8pkd3_avx512, dstPtrTemp, pDst);                                                                                        // Store dst pixels
 #elif __AVX2__
                     __m256 pSrc[12], pDst[3];
                     __m256i pxSrcLoc;
-                    compute_resize_bilinear_src_loc_and_weights_avx(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset, true);   // Compute the src col location correspoding to the dst col location
-                    compute_bilinear_coefficients_avx(pWeightParams, pBilinearCoeffs);      // Compute Bilinear coefficients
-                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride);  // Load input pixels required for bilinear interpolation
-                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst);     // Compute Bilinear interpolation
-                    rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst);   // Store dst pixels
+                    compute_resize_bilinear_src_loc_and_weights_avx(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset, true);                     // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients_avx(pWeightParams, pBilinearCoeffs);                                                                                          // Compute Bilinear coefficients
+                    rpp_simd_load(rpp_bilinear_load_u8pkd3_to_f32pln3_avx, srcRowPtrsForInterp, srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride); // Load input pixels required for bilinear interpolation
+                    compute_bilinear_interpolation_3c_avx(pSrc, pBilinearCoeffs, pDst);                                                                                         // Compute Bilinear interpolation
+                    rpp_simd_store(rpp_store24_f32pln3_to_u8pkd3_avx, dstPtrTemp, pDst);                                                                                        // Store dst pixels
 #endif
                     dstPtrTemp += vectorIncrementPkd;
                 }
                 for (; vectorLoopCount < dstImgSize[batchCount].width; vectorLoopCount++)
                 {
-                    compute_resize_bilinear_src_loc_and_weights(vectorLoopCount, wRatio, srcLocationColumn, &weightParams[2], wOffset, srcDescPtr->strides.wStride); // Compute the src col location correspoding to the dst col location
-                    compute_bilinear_coefficients(weightParams, bilinearCoeffs);    // Compute Bilinear coefficients
-                    compute_bilinear_interpolation_3c_pkd(srcRowPtrsForInterp, srcLocationColumn, maxWidthLimit, bilinearCoeffs, &dstPtrTemp[0], &dstPtrTemp[1], &dstPtrTemp[2]);  // Compute Bilinear interpolation
+                    compute_resize_bilinear_src_loc_and_weights(vectorLoopCount, wRatio, srcLocationColumn, &weightParams[2], wOffset, srcDescPtr->strides.wStride);              // Compute the src col location correspoding to the dst col location
+                    compute_bilinear_coefficients(weightParams, bilinearCoeffs);                                                                                                  // Compute Bilinear coefficients
+                    compute_bilinear_interpolation_3c_pkd(srcRowPtrsForInterp, srcLocationColumn, maxWidthLimit, bilinearCoeffs, &dstPtrTemp[0], &dstPtrTemp[1], &dstPtrTemp[2]); // Compute Bilinear interpolation
 
                     dstPtrTemp += dstDescPtr->c;
                 }
@@ -1040,12 +1057,12 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                 compute_src_row_ptrs_for_bilinear_interpolation_pln(srcRowPtrsForInterp, srcPtrChannel, srcLocationRow, maxHeightLimit, srcDescPtr); // Compute the src row pointers for interpolation
 #if __AVX512__
                 pWeightParams[0] = _mm512_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm512_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm512_set1_ps(weightParams[1]);
                 pDstLoc = avx512_pDstLocInit;
 
 #elif __AVX2__
                 pWeightParams[0] = _mm256_set1_ps(weightParams[0]);
-                pWeightParams[1]  = _mm256_set1_ps(weightParams[1]);
+                pWeightParams[1] = _mm256_set1_ps(weightParams[1]);
                 pDstLoc = avx_pDstLocInit;
 #endif
 
@@ -1059,7 +1076,7 @@ RppStatus resize_bilinear_u8_u8_host_tensor(Rpp8u *srcPtr,
                     __m512i pxSrcLoc;
                     compute_resize_bilinear_src_loc_and_weights_avx512(pDstLoc, pWRatio, srcLocationColumnArray, &pWeightParams[2], pxSrcLoc, pWOffset); // Compute the src col location correspoding to the dst col location
                     compute_bilinear_coefficients_avx512(pWeightParams, pBilinearCoeffs);          // Compute Bilinear coefficients
-                    
+
                     for (int c = 0; c < dstDescPtr->c; c++)
                     {
                         rpp_simd_load(rpp_bilinear_load_u8pln1_to_f32pln1_avx512, &srcRowPtrsForInterp[c * kernelSize], srcLocationColumnArray, pSrc, pxSrcLoc, pxMaxSrcLoc, maxWidthLimitMinusStride); // Load input pixels required for bilinear interpolation
