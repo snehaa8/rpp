@@ -1319,39 +1319,28 @@ inline void rpp_store24_f32pln3_to_f32pkd3_avx(Rpp32f *dstPtr, __m256 *p)
 
 inline void rpp_store48_f32pln3_to_f32pkd3_avx512(Rpp32f *dstPtr, __m512 *p)
 {
-    __m128 p128[4];
-    p128[0] = _mm512_extractf32x4_ps(p[0], 0);
-    p128[1] = _mm512_extractf32x4_ps(p[1], 0);
-    p128[2] = _mm512_extractf32x4_ps(p[2], 0);
-    _MM_TRANSPOSE4_PS(p128[0], p128[1], p128[2], p128[3]);
-    _mm_storeu_ps(dstPtr, p128[0]);
-    _mm_storeu_ps(dstPtr + 3, p128[1]);
-    _mm_storeu_ps(dstPtr + 6, p128[2]);
-    _mm_storeu_ps(dstPtr + 9, p128[3]);
-    p128[0] = _mm512_extractf32x4_ps(p[0], 1);
-    p128[1] = _mm512_extractf32x4_ps(p[1], 1);
-    p128[2] = _mm512_extractf32x4_ps(p[2], 1);
-    _MM_TRANSPOSE4_PS(p128[0], p128[1], p128[2], p128[3]);
-    _mm_storeu_ps(dstPtr + 12, p128[0]);
-    _mm_storeu_ps(dstPtr + 15, p128[1]);
-    _mm_storeu_ps(dstPtr + 18, p128[2]);
-    _mm_storeu_ps(dstPtr + 21, p128[3]);
-    p128[0] = _mm512_extractf32x4_ps(p[0], 2);
-    p128[1] = _mm512_extractf32x4_ps(p[1], 2);
-    p128[2] = _mm512_extractf32x4_ps(p[2], 2);
-    _MM_TRANSPOSE4_PS(p128[0], p128[1], p128[2], p128[3]);
-    _mm_storeu_ps(dstPtr + 24, p128[0]);
-    _mm_storeu_ps(dstPtr + 27, p128[1]);
-    _mm_storeu_ps(dstPtr + 30, p128[2]);
-    _mm_storeu_ps(dstPtr + 33, p128[3]);
-    p128[0] = _mm512_extractf32x4_ps(p[0], 3);
-    p128[1] = _mm512_extractf32x4_ps(p[1], 3);
-    p128[2] = _mm512_extractf32x4_ps(p[2], 3);
-    _MM_TRANSPOSE4_PS(p128[0], p128[1], p128[2], p128[3]);
-    _mm_storeu_ps(dstPtr + 36, p128[0]);
-    _mm_storeu_ps(dstPtr + 39, p128[1]);
-    _mm_storeu_ps(dstPtr + 42, p128[2]);
-    _mm_storeu_ps(dstPtr + 45, p128[3]);
+    __m512 px[5];
+    __m512i shuffle = _mm512_set_epi32(15,11,7,3,14,10,6,2,13,9,5,1,12,8,4,0);
+    __m512i index = _mm512_set_epi32(15,11,7,3,14,13,12,10,9,8,6,5,4,2,1,0);
+    p[0] = _mm512_permutexvar_ps(shuffle, p[0]);
+    p[1] = _mm512_permutexvar_ps(shuffle, p[1]);
+    p[2] = _mm512_permutexvar_ps(shuffle, p[2]);
+    px[0] = _mm512_unpacklo_ps(p[0], p[2]);
+    px[1] = _mm512_unpackhi_ps(p[0], p[2]);
+    px[2] = _mm512_unpacklo_ps(p[1], _mm512_set1_ps(0));
+    px[3] = _mm512_unpackhi_ps(p[1], _mm512_set1_ps(0));
+    px[4] = _mm512_unpacklo_ps(px[0], px[2]);
+    px[0] = _mm512_unpackhi_ps(px[0], px[2]);
+    px[2] = _mm512_unpacklo_ps(px[1], px[3]);
+    px[1] = _mm512_unpackhi_ps(px[1], px[3]);
+    px[4] = _mm512_permutexvar_ps(index, px[4]);
+    px[0] = _mm512_permutexvar_ps(index, px[0]);
+    px[2] = _mm512_permutexvar_ps(index, px[2]);
+    px[1] = _mm512_permutexvar_ps(index, px[1]);
+    _mm512_storeu_ps(dstPtr, px[4]);
+    _mm512_storeu_ps(dstPtr + 12, px[0]);
+    _mm512_storeu_ps(dstPtr + 24, px[2]);
+    _mm512_storeu_ps(dstPtr + 36, px[1]);
 }
 
 inline void rpp_load16_f32_to_f32_avx(Rpp32f *srcPtr, __m256 *p)
@@ -3105,7 +3094,6 @@ inline void rpp_bilinear_load_f32pkd3_to_f32pln3_avx512(Rpp32f **srcRowPtrsForIn
     pTemp[9] = _mm256_unpackhi_pd(pTemp[4], pTemp[6]);  /* Unpack to obtain [G01|G01|G01|G01|B02|B02|B02|B02] */
     px[8] = _mm256_unpacklo_pd(pTemp[5], pTemp[7]);      /* Unpack to obtain [B01|B01|B01|B01|XX|XX|XX|XX] */
     px[1] = _mm256_unpackhi_pd(pTemp[5], pTemp[7]);      /* Unpack to obtain [R02|R02|R02|R02|XX|XX|XX|XX] */
-    //p[8] = _mm512_inserti32x4(p[8], _mm256_unpacklo_pd(pTemp[5], pTemp[7]), 2);
 
     /* Repeat the above steps for next 4 dst locations*/
     pTemp[0] = _mm256_loadu_ps(srcRowPtrsForInterp[0] + loc[4]);
@@ -3346,72 +3334,14 @@ inline void rpp_bilinear_load_f32pln1_to_f32pln1_avx(Rpp32f **srcRowPtrsForInter
 
 inline void rpp_bilinear_load_f32pln1_to_f32pln1_avx512(Rpp32f **srcRowPtrsForInterp, Rpp32s *loc, __m512* p, __m512i &pxSrcLoc, __m512i &pxMaxSrcLoc, Rpp32s maxSrcLoc)
 {
-    __m128 pTemp[6];
-    pTemp[0] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[0]);   /* Top Row load LOC0 [R01|R02|R03|R04] Need R01-02 */
-    pTemp[1] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[1]);   /* Top Row load LOC1 [R01|R02|R03|R04] Need R01-02 */
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[2]);   /* Top Row load LOC2 [R01|R02|R03|R04] Need R01-02 */
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[3]);   /* Top Row load LOC3 [R01|R02|R03|R04] Need R01-02 */
-    _MM_TRANSPOSE4_PS(pTemp[0], pTemp[1], pTemp[2], pTemp[3]);  /* Transpose to obtain the R01 and R02 pixels of 4 locations in same vector*/
-
-    /* Repeat the above steps for next 4 dst locations*/
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[4]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[5]);
-    pTemp[4] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[6]);
-    pTemp[5] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[7]);
-    _MM_TRANSPOSE4_PS(pTemp[2], pTemp[3], pTemp[4], pTemp[5]);
-    p[0] = _mm512_inserti32x4(p[0], pTemp[0], 0);
-    p[0] = _mm512_inserti32x4(p[0], pTemp[2], 1);
-    p[1] = _mm512_inserti32x4(p[0], pTemp[1], 0);
-    p[1] = _mm512_inserti32x4(p[0], pTemp[3], 1);
-    pTemp[0] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[8]);
-    pTemp[1] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[9]);
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[10]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[11]);
-    _MM_TRANSPOSE4_PS(pTemp[0], pTemp[1], pTemp[2], pTemp[3]);
-
-    /* Repeat the above steps for next 4 dst locations*/
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[12]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[13]);
-    pTemp[4] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[14]);
-    pTemp[5] = _mm_loadu_ps(srcRowPtrsForInterp[0] + loc[15]);
-    _MM_TRANSPOSE4_PS(pTemp[2], pTemp[3], pTemp[4], pTemp[5]);
-    p[0] = _mm512_inserti32x4(p[0], pTemp[0], 2);
-    p[0] = _mm512_inserti32x4(p[0], pTemp[2], 3);
-    p[1] = _mm512_inserti32x4(p[0], pTemp[1], 2);
-    p[1] = _mm512_inserti32x4(p[0], pTemp[3], 3);
-
-    /* Repeat above steps to obtain pixels from the BottomRow*/
-    pTemp[0] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[0]);
-    pTemp[1] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[1]);
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[2]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[3]);
-    _MM_TRANSPOSE4_PS(pTemp[0], pTemp[1], pTemp[2], pTemp[3]);
-
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[4]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[5]);
-    pTemp[4] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[6]);
-    pTemp[5] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[7]);
-    _MM_TRANSPOSE4_PS(pTemp[2], pTemp[3], pTemp[4], pTemp[5]);
-    p[2] = _mm512_inserti32x4(p[0], pTemp[0], 0);
-    p[2] = _mm512_inserti32x4(p[0], pTemp[2], 1);
-    p[3] = _mm512_inserti32x4(p[0], pTemp[1], 0);
-    p[3] = _mm512_inserti32x4(p[0], pTemp[3], 1);
-
-    pTemp[0] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[8]);
-    pTemp[1] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[9]);
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[10]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[11]);
-    _MM_TRANSPOSE4_PS(pTemp[0], pTemp[1], pTemp[2], pTemp[3]);
-
-    pTemp[2] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[12]);
-    pTemp[3] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[13]);
-    pTemp[4] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[14]);
-    pTemp[5] = _mm_loadu_ps(srcRowPtrsForInterp[1] + loc[15]);
-    _MM_TRANSPOSE4_PS(pTemp[2], pTemp[3], pTemp[4], pTemp[5]);
-    p[2] = _mm512_inserti32x4(p[0], pTemp[0], 2);
-    p[2] = _mm512_inserti32x4(p[0], pTemp[2], 3);
-    p[3] = _mm512_inserti32x4(p[0], pTemp[1], 2);
-    p[3] = _mm512_inserti32x4(p[0], pTemp[3], 3);
+    __m512i indices1 = _mm512_set_epi32(loc[15],loc[14],loc[13],loc[12],loc[11],loc[10],loc[9],loc[8],
+                                       loc[7],loc[6],loc[5],loc[4],loc[3],loc[2],loc[1],loc[0]);
+    p[0] = _mm512_i32gather_ps(indices1, srcRowPtrsForInterp[0], sizeof(int32_t));
+    __m512i indices2 = _mm512_set_epi32(loc[15]+1,loc[14]+1,loc[13]+1,loc[12]+1,loc[11]+1,loc[10]+1,loc[9]+1,loc[8]+1,
+                                       loc[7]+1,loc[6]+1,loc[5]+1,loc[4]+1,loc[3]+1,loc[2]+1,loc[1]+1,loc[0]+1);
+    p[1] = _mm512_i32gather_ps(indices2, srcRowPtrsForInterp[0], sizeof(int32_t));
+    p[2] = _mm512_i32gather_ps(indices1, srcRowPtrsForInterp[1], sizeof(int32_t));
+    p[3] = _mm512_i32gather_ps(indices2, srcRowPtrsForInterp[1], sizeof(int32_t));
 
     if(loc[0] < 0 || loc[15] < 0) // If any src location below min src location is encountered replace the source pixel loaded with first pixel of the row
     {
