@@ -3424,6 +3424,64 @@ inline void rpp_bilinear_load_f16pkd3_to_f32pln3_avx(Rpp16f **srcRowPtrsForInter
     }
 }
 
+inline void rpp_bilinear_load_f16pkd3_to_f32pln3_avx512(Rpp16f **srcRowPtrsForInterp, Rpp32s *loc, __m512* p, __m512i &pxSrcLoc, __m512i &pxMaxSrcLoc, Rpp32s maxSrcLoc)
+{
+    Rpp32f topRow0[3][16], topRow1[3][16], bottomRow0[3][16], bottomRow1[3][16];
+    for(int cnt = 0; cnt < 16; cnt++)
+    {
+        *(topRow0[0] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt]);
+        *(topRow0[1] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt] + 1);
+        *(topRow0[2] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt] + 2);
+        *(topRow1[0] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt] + 3);
+        *(topRow1[1] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt] + 4);
+        *(topRow1[2] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt] + 5);
+
+        *(bottomRow0[0] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt]);
+        *(bottomRow0[1] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt] + 1);
+        *(bottomRow0[2] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt] + 2);
+        *(bottomRow1[0] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt] + 3);
+        *(bottomRow1[1] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt] + 4);
+        *(bottomRow1[2] + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt] + 5);
+    }
+
+    p[0] = _mm512_loadu_ps(topRow0[0]);
+    p[4] = _mm512_loadu_ps(topRow0[1]);
+    p[8] = _mm512_loadu_ps(topRow0[2]);
+
+    p[1] = _mm512_loadu_ps(topRow1[0]);
+    p[5] = _mm512_loadu_ps(topRow1[1]);
+    p[9] = _mm512_loadu_ps(topRow1[2]);
+
+    p[2] = _mm512_loadu_ps(bottomRow0[0]);
+    p[6] = _mm512_loadu_ps(bottomRow0[1]);
+    p[10] = _mm512_loadu_ps(bottomRow0[2]);
+
+    p[3] = _mm512_loadu_ps(bottomRow1[0]);
+    p[7] = _mm512_loadu_ps(bottomRow1[1]);
+    p[11] = _mm512_loadu_ps(bottomRow1[2]);
+
+    if(loc[0] < 0 || loc[15] < 0) // If any src location below min src location is encountered replace the source pixel loaded with first pixel of the row
+    {
+        __mmask16 pLowerBoundMask = _mm512_cmpgt_epi32_mask(avx512_px0, pxSrcLoc); // Mask set to true if the location is below min src location
+        p[0] = _mm512_mask_blend_ps(pLowerBoundMask, p[0], p[1]);
+        p[2] = _mm512_mask_blend_ps(pLowerBoundMask, p[2], p[3]);
+        p[4] = _mm512_mask_blend_ps(pLowerBoundMask, p[4], p[5]);
+        p[6] = _mm512_mask_blend_ps(pLowerBoundMask, p[6], p[7]);
+        p[8] = _mm512_mask_blend_ps(pLowerBoundMask, p[8], p[9]);
+        p[10] = _mm512_mask_blend_ps(pLowerBoundMask, p[10], p[11]);
+    }
+    else if(loc[15] > maxSrcLoc || loc[0] > maxSrcLoc) // If any src location beyond max src location -1 is encountered replace the source pixel loaded with first pixel of the row
+    {
+        __mmask16 pUpperBoundMask = _mm512_cmpgt_epi32_mask(pxSrcLoc, pxMaxSrcLoc); // Mask set to true if the location is beyond max src location - 1
+        p[1] = _mm512_mask_blend_ps(pUpperBoundMask, p[1], p[0]);
+        p[3] = _mm512_mask_blend_ps(pUpperBoundMask, p[3], p[2]);
+        p[5] = _mm512_mask_blend_ps(pUpperBoundMask, p[5], p[4]);
+        p[7] = _mm512_mask_blend_ps(pUpperBoundMask, p[7], p[6]);
+        p[9] = _mm512_mask_blend_ps(pUpperBoundMask, p[9], p[8]);
+        p[11] = _mm512_mask_blend_ps(pUpperBoundMask, p[11], p[10]);
+    }
+}
+
 inline void rpp_bilinear_load_f16pln1_to_f32pln1_avx(Rpp16f **srcRowPtrsForInterp, Rpp32s *loc, __m256* p, __m256i &pxSrcLoc, __m256i &pxMaxSrcLoc, Rpp32s maxSrcLoc)
 {
     Rpp32f topRow0[8], topRow1[8], bottomRow0[8], bottomRow1[8];
@@ -3441,7 +3499,7 @@ inline void rpp_bilinear_load_f16pln1_to_f32pln1_avx(Rpp16f **srcRowPtrsForInter
 
     if(loc[0] < 0 || loc[7] < 0) // If any src location below min src location is encountered replace the source pixel loaded with first pixel of the row
     {
-       __m256 pLowerBoundMask = _mm256_castsi256_ps(_mm256_cmpgt_epi32(avx_px0, pxSrcLoc)); // Mask set to true if the location is below min src location
+        __m256 pLowerBoundMask = _mm256_castsi256_ps(_mm256_cmpgt_epi32(avx_px0, pxSrcLoc)); // Mask set to true if the location is below min src location
         p[0] = _mm256_blendv_ps(p[0], p[1], pLowerBoundMask);
         p[2] = _mm256_blendv_ps(p[2], p[3], pLowerBoundMask);
     }
@@ -3450,6 +3508,35 @@ inline void rpp_bilinear_load_f16pln1_to_f32pln1_avx(Rpp16f **srcRowPtrsForInter
         __m256 pUpperBoundMask = _mm256_castsi256_ps(_mm256_cmpgt_epi32(pxSrcLoc, pxMaxSrcLoc)); // Mask set to true if the location is beyond max src location - 1
         p[1] = _mm256_blendv_ps(p[1], p[0], pUpperBoundMask);
         p[3] = _mm256_blendv_ps(p[3], p[2], pUpperBoundMask);
+    }
+}
+
+inline void rpp_bilinear_load_f16pln1_to_f32pln1_avx512(Rpp16f **srcRowPtrsForInterp, Rpp32s *loc, __m512* p, __m512i &pxSrcLoc, __m512i &pxMaxSrcLoc, Rpp32s maxSrcLoc)
+{
+    Rpp32f topRow0[16], topRow1[16], bottomRow0[16], bottomRow1[16];
+    for(int cnt = 0; cnt < 16; cnt++)
+    {
+        *(topRow0 + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt]);
+        *(topRow1 + cnt) = (Rpp32f) *(srcRowPtrsForInterp[0] + loc[cnt] + 1);
+        *(bottomRow0 + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt]);
+        *(bottomRow1 + cnt) = (Rpp32f) *(srcRowPtrsForInterp[1] + loc[cnt] + 1);
+    }
+    p[0] = _mm512_loadu_ps(topRow0);
+    p[1] = _mm512_loadu_ps(topRow1);
+    p[2] = _mm512_loadu_ps(bottomRow0);
+    p[3] = _mm512_loadu_ps(bottomRow1);
+
+    if(loc[0] < 0 || loc[15] < 0) // If any src location below min src location is encountered replace the source pixel loaded with first pixel of the row
+    {
+        __mmask16 pLowerBoundMask = _mm512_cmpgt_epi32_mask(avx512_px0, pxSrcLoc); // Mask set to true if the location is below min src location
+        p[0] = _mm512_mask_blend_ps(pLowerBoundMask, p[0], p[1]);
+        p[2] = _mm512_mask_blend_ps(pLowerBoundMask, p[2], p[3]);
+    }
+    else if(loc[15] > maxSrcLoc || loc[0] > maxSrcLoc) // If any src location beyond max src location -1 is encountered replace the source pixel loaded with first pixel of the row
+    {
+        __mmask16 pUpperBoundMask = _mm512_cmpgt_epi32_mask(pxSrcLoc, pxMaxSrcLoc); // Mask set to true if the location is beyond max src location - 1
+        p[1] = _mm512_mask_blend_ps(pUpperBoundMask, p[1], p[0]);
+        p[3] = _mm512_mask_blend_ps(pUpperBoundMask, p[3], p[2]);
     }
 }
 
@@ -3486,10 +3573,48 @@ inline void rpp_store24_f32pln3_to_f16pkd3_avx(Rpp16f* dstPtr, __m256* p)
     _mm_storeu_si128((__m128i *)(dstPtr + 21), px128[3]);
 }
 
+inline void rpp_store48_f32pln3_to_f16pkd3_avx512(Rpp16f* dstPtr, __m512* p)
+{
+    __m256 px256[4];
+    __m512 px[5];
+    __m512i shuffle_in_pln3 = _mm512_set_epi32(15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0);
+    __m512i avx512_pxPermPkd = _mm512_set_epi32(15, 11, 7, 3, 14, 13, 12, 10, 9, 8, 6, 5, 4, 2, 1, 0); // shuffle to move 0's to the end
+    p[0] = _mm512_permutexvar_ps(shuffle_in_pln3, p[0]); /*R01|R05|R09|R13|R02|R06|R10|R14|R03|R07|R11|R15|R04|R08|R12|R16*/
+    p[1] = _mm512_permutexvar_ps(shuffle_in_pln3, p[1]); /*G01|G05|G09|G13|G02|G06|G10|G14|G03|G07|G11|G15|G04|G08|G12|G16*/
+    p[2] = _mm512_permutexvar_ps(shuffle_in_pln3, p[2]); /*B01|B05|B09|B13|B02|B06|B10|B14|B03|B07|B11|B15|B04|B08|B12|B16*/
+    px[0] = _mm512_unpacklo_ps(p[0], p[2]);              /*R01|B01|R05|B05|R02|B02|R06|B06|R03|B03|R07|R07|R04|B04|R08|B08*/
+    px[1] = _mm512_unpackhi_ps(p[0], p[2]);              /*R09|B09|R13|B13|R10|B10|R14|B14|R11|B11|R15|R15|R12|B12|R16|B16*/
+    px[2] = _mm512_unpacklo_ps(p[1], _mm512_set1_ps(0)); /*G01|0|G05|0|G02|0|G06|0|G03|0|G07|0|G04|0|G08|0*/
+    px[3] = _mm512_unpackhi_ps(p[1], _mm512_set1_ps(0)); /*G09|0|G13|0|G10|0|G14|0|G11|0|G15|0|G12|0|G16|0*/
+    px[4] = _mm512_unpacklo_ps(px[0], px[2]);            /*R01|G01|B01|0|R02|G02|B02|0|R03|G03|B03|0|R04|G04|B04|0*/
+    px[0] = _mm512_unpackhi_ps(px[0], px[2]);            /*R05|G05|B05|0|R06|G06|B06|0|R07|G07|B07|0|R08|G08|B08|0*/
+    px[2] = _mm512_unpacklo_ps(px[1], px[3]);            /*R09|G09|B09|0|R10|G10|B10|0|R11|G11|B11|0|R12|G12|B12|0*/
+    px[1] = _mm512_unpackhi_ps(px[1], px[3]);            /*R13|G13|B13|0|R14|G14|B14|0|R15|G15|B15|0|R16|G16|B16|0*/
+    px[4] = _mm512_permutexvar_ps(avx512_pxPermPkd, px[4]); /*R01|G01|B01|R02|G02|B02|R03|G03|B03|R04|G04|B04|0|0|0|0*/
+    px[0] = _mm512_permutexvar_ps(avx512_pxPermPkd, px[0]); /*R05|G05|B05|R06|G06|B06|R07|G07|B07|R08|G08|B08|0|0|0|0*/
+    px[2] = _mm512_permutexvar_ps(avx512_pxPermPkd, px[2]); /*R09|G09|B09|R10|G10|B10|R11|G11|B11|R12|G12|B12|0|0|0|0*/
+    px[1] = _mm512_permutexvar_ps(avx512_pxPermPkd, px[1]); /*R13|G13|B13|R14|G14|B14|R15|G15|B15|R16|G16|B16|0|0|0|0*/
+
+    px256[0] = _mm512_cvtps_ph(px[4], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    px256[1] = _mm512_cvtps_ph(px[0], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    px256[2] = _mm512_cvtps_ph(px[2], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    px256[3] = _mm512_cvtps_ph(px[1], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    _mm256_storeu_si256((__m256i *)dstPtr, px256[0]);
+    _mm256_storeu_si256((__m256i *)(dstPtr + 12), px256[1]);
+    _mm256_storeu_si256((__m256i *)(dstPtr + 24), px256[2]);
+    _mm256_storeu_si256((__m256i *)(dstPtr + 36), px256[3]);
+}
+
 inline void rpp_store8_f32pln1_to_f16pln1_avx(Rpp16f* dstPtr, __m256 p)
 {
     __m128i px128 = _mm256_cvtps_ph(p, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
     _mm_storeu_si128((__m128i *)dstPtr, px128);
+}
+
+inline void rpp_store16_f32pln1_to_f16pln1_avx512(Rpp16f* dstPtr, __m512 p)
+{
+    __m256i px256 = _mm512_cvtps_ph(p, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    _mm256_storeu_si256((__m256i *)dstPtr, px256);
 }
 
 inline void rpp_store24_f32pln3_to_f16pln3_avx(Rpp16f* dstRPtr, Rpp16f* dstGPtr, Rpp16f* dstBPtr, __m256* p)
@@ -3501,6 +3626,17 @@ inline void rpp_store24_f32pln3_to_f16pln3_avx(Rpp16f* dstRPtr, Rpp16f* dstGPtr,
     _mm_storeu_si128((__m128i *)dstRPtr, px128[0]);
     _mm_storeu_si128((__m128i *)dstGPtr, px128[1]);
     _mm_storeu_si128((__m128i *)dstBPtr, px128[2]);
+}
+
+inline void rpp_store48_f32pln3_to_f16pln3_avx512(Rpp16f* dstRPtr, Rpp16f* dstGPtr, Rpp16f* dstBPtr, __m512* p)
+{
+    __m256i px256[3];
+    px256[0] = _mm512_cvtps_ph(p[0], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    px256[1] = _mm512_cvtps_ph(p[1], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    px256[2] = _mm512_cvtps_ph(p[2], _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    _mm256_storeu_si256((__m256i *)dstRPtr, px256[0]);
+    _mm256_storeu_si256((__m256i *)dstGPtr, px256[1]);
+    _mm256_storeu_si256((__m256i *)dstBPtr, px256[2]);
 }
 
 inline void rpp_resize_load(Rpp8u *srcPtr, __m128 *p)
