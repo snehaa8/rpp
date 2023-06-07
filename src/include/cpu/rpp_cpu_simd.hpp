@@ -1300,19 +1300,23 @@ inline void rpp_load24_f32pln3_to_f32pln3_mirror_avx(Rpp32f *srcPtrR, Rpp32f *sr
 
 inline void rpp_load24_f32pln3_to_f64pln3_avx(Rpp32f *srcPtrR, Rpp32f *srcPtrG, Rpp32f *srcPtrB, __m256d *p)
 {
-    __m128 px[6];
-    px[0] = _mm_loadu_ps(srcPtrR);
-    px[1] = _mm_loadu_ps(srcPtrR + 4);
-    px[2] = _mm_loadu_ps(srcPtrG);
-    px[3] = _mm_loadu_ps(srcPtrG + 4);
-    px[4] = _mm_loadu_ps(srcPtrB);
-    px[5] = _mm_loadu_ps(srcPtrB + 4);
-    p[0] = _mm256_cvtps_pd(px[0]);
-    p[1] = _mm256_cvtps_pd(px[1]);
-    p[2] = _mm256_cvtps_pd(px[2]);
-    p[3] = _mm256_cvtps_pd(px[3]);
-    p[4] = _mm256_cvtps_pd(px[4]);
-    p[5] = _mm256_cvtps_pd(px[5]);
+    __m128 px128[6];
+    __m256 px[3];
+    px[0] = _mm256_loadu_ps(srcPtrR);
+    px[1] = _mm256_loadu_ps(srcPtrG);
+    px[2] = _mm256_loadu_ps(srcPtrB);
+    px128[0] = _mm256_castps256_ps128(px[0]);
+    px128[1] = _mm256_extractf128_ps(px[0], 1);
+    px128[2] = _mm256_castps256_ps128(px[1]);
+    px128[3] = _mm256_extractf128_ps(px[1], 1);
+    px128[4] = _mm256_castps256_ps128(px[2]);
+    px128[5] = _mm256_extractf128_ps(px[2], 1);
+    p[0] = _mm256_cvtps_pd(px128[0]);
+    p[1] = _mm256_cvtps_pd(px128[1]);
+    p[2] = _mm256_cvtps_pd(px128[2]);
+    p[3] = _mm256_cvtps_pd(px128[3]);
+    p[4] = _mm256_cvtps_pd(px128[4]);
+    p[5] = _mm256_cvtps_pd(px128[5]);
 }
 
 inline void rpp_store24_f32pln3_to_f32pkd3_avx(Rpp32f *dstPtr, __m256 *p)
@@ -1372,11 +1376,13 @@ inline void rpp_load8_f32_to_f32_mirror_avx(Rpp32f *srcPtr, __m256 *p)
 
 inline void rpp_load8_f32_to_f64_avx(Rpp32f *srcPtr, __m256d *p)
 {
-    __m128 px[2];
-    px[0] = _mm_loadu_ps(srcPtr);
-    px[1] = _mm_loadu_ps(srcPtr + 4);
-    p[0] = _mm256_cvtps_pd(px[0]);
-    p[1] = _mm256_cvtps_pd(px[1]);
+    __m128 px128[2];
+    __m256 px;
+    px = _mm256_loadu_ps(srcPtr);
+    px128[0] = _mm256_castps256_ps128(px);
+    px128[1] = _mm256_extractf128_ps(px, 1);
+    p[0] = _mm256_cvtps_pd(px128[0]);
+    p[1] = _mm256_cvtps_pd(px128[1]);
 }
 
 inline void rpp_store8_f32_to_f32_avx(Rpp32f *dstPtr, __m256 *p)
