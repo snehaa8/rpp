@@ -645,7 +645,7 @@ int main(int argc, char **argv)
                 testCaseName = "image_min_max";
 
                 if(srcDescPtr->c == 1)
-                    reductionFuncResultArrLength = srcDescPtr->c * 2;
+                    reductionFuncResultArrLength = srcDescPtr->n * 2;
 
                 Rpp8u *reductionFuncResultArrU8 = reinterpret_cast<Rpp8u *>(reductionFuncResultArr);
                 Rpp16f *reductionFuncResultArrF16 = reinterpret_cast<Rpp16f *>(reductionFuncResultArr);

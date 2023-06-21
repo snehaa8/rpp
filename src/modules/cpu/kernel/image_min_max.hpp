@@ -177,9 +177,9 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
             imageMinMaxArr[(batchCount*8) + 7] = max;
         }
     }
-    // printf("\n Min_Max output\n");
-    // for(int i=0;i<imageMinMaxArrLength;i++)
-    //     printf("imageMinMaxArr[%d]: %d\n", i, (int)imageMinMaxArr[i]);
+    printf("\n Min_Max output\n");
+    for(int i=0;i<imageMinMaxArrLength;i++)
+        printf("imageMinMaxArr[%d]: %d\n", i, (int)imageMinMaxArr[i]);
 
     return RPP_SUCCESS;
 }
