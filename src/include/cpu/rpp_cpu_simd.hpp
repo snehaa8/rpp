@@ -1152,6 +1152,22 @@ inline void rpp_load16_u8_to_f32_mirror_avx(Rpp8u *srcPtr, __m256 *p)
     p[1] = _mm256_cvtepi32_ps(_mm256_setr_m128i(_mm_shuffle_epi8(px, xmm_pxMask07To04), _mm_shuffle_epi8(px, xmm_pxMask03To00)));    /* Contains pixels 7-0 */
 }
 
+inline void rpp_load64_u8_avx(Rpp8u *srcPtr, __m256i *p)
+{
+    p[0] = _mm256_lddqu_si256((__m256i *)srcPtr);
+    p[1] = _mm256_lddqu_si256((__m256i *)(srcPtr + 32));
+}
+
+inline void rpp_load192_u8_avx(Rpp8u *srcPtrR, Rpp8u *srcPtrG, Rpp8u *srcPtrB, __m256i *p)
+{
+    p[0] = _mm256_lddqu_si256((__m256i *)srcPtrR);
+    p[1] = _mm256_lddqu_si256((__m256i *)(srcPtrR + 32));
+    p[2] = _mm256_lddqu_si256((__m256i *)srcPtrG);
+    p[3] = _mm256_lddqu_si256((__m256i *)(srcPtrG + 32));
+    p[4] = _mm256_lddqu_si256((__m256i *)srcPtrB);
+    p[5] = _mm256_lddqu_si256((__m256i *)(srcPtrB + 32));
+}
+
 inline void rpp_store16_f32_to_u8_avx(Rpp8u *dstPtr, __m256 *p)
 {
     __m256i pxCvt;
@@ -1290,6 +1306,11 @@ inline void rpp_load8_f32_to_f32_mirror_avx(Rpp32f *srcPtr, __m256 *p)
 inline void rpp_store8_f32_to_f32_avx(Rpp32f *dstPtr, __m256 *p)
 {
     _mm256_storeu_ps(dstPtr, p[0]);
+}
+
+inline void rpp_store32_u8_to_u8_avx(Rpp8u *dstPtr, __m256i *p)
+{
+    _mm256_storeu_si256((__m256i *)dstPtr, p[0]);
 }
 
 inline void rpp_store8_f32_to_f16_avx(Rpp16f *dstPtr, __m256 *p)

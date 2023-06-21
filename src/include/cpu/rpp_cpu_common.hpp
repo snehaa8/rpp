@@ -5860,4 +5860,20 @@ inline void compute_separable_horizontal_resample(Rpp32f *inputPtr, T *outputPtr
     }
 }
 
+inline void compute_min_max_64_host(__m256i *p1, __m256i *pMin, __m256i *pMax)
+{
+    pMin[0] = _mm256_min_epu8(_mm256_min_epu8(p1[0], p1[1]), pMin[0]); //compute min of 64 values and bring it down to 32
+    pMax[0] = _mm256_max_epu8(_mm256_max_epu8(p1[0], p1[1]), pMax[0]); //compute max of 64 values and bring it down to 32
+}
+
+inline void compute_min_max_192_host(__m256i *p1, __m256i *pMinR, __m256i *pMaxR, __m256i *pMinG, __m256i *pMaxG, __m256i *pMinB, __m256i *pMaxB)
+{
+    pMinR[0] = _mm256_min_epu8(_mm256_min_epu8(p1[0], p1[1]), pMinR[0]); //compute min of 64 R values and bring it down to 32
+    pMaxR[0] = _mm256_max_epu8(_mm256_max_epu8(p1[0], p1[1]), pMaxR[0]); //compute max of 64 R values and bring it down to 32
+    pMinG[0] = _mm256_min_epu8(_mm256_min_epu8(p1[2], p1[3]), pMinG[0]); //compute min of 64 G values and bring it down to 32
+    pMaxG[0] = _mm256_max_epu8(_mm256_max_epu8(p1[2], p1[3]), pMaxG[0]); //compute max of 64 G values and bring it down to 32
+    pMinB[0] = _mm256_min_epu8(_mm256_min_epu8(p1[4], p1[5]), pMinB[0]); //compute min of 64 B values and bring it down to 32
+    pMaxB[0] = _mm256_max_epu8(_mm256_max_epu8(p1[4], p1[5]), pMaxB[0]); //compute max of 64 B values and bring it down to 32
+}
+
 #endif //RPP_CPU_COMMON_H
