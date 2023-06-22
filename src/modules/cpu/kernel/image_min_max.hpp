@@ -28,18 +28,18 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
         Rpp8u *srcPtrChannel;
         srcPtrChannel = srcPtrImage + (roi.xywhROI.xy.y * srcDescPtr->strides.hStride) + (roi.xywhROI.xy.x * layoutParams.bufferMultiplier);
 
-        Rpp32u alignedLength = (bufferLength / 192) * 192;
-        Rpp32u vectorIncrement = 192;
-        Rpp32u vectorIncrementPerChannel = 64;
+        Rpp32u alignedLength = (bufferLength / 96) * 96;
+        Rpp32u vectorIncrement = 96;
+        Rpp32u vectorIncrementPerChannel = 32;
 
         // Image Min Max 1 channel (NCHW)
         if ((srcDescPtr->c == 1) && (srcDescPtr->layout == RpptLayout::NCHW))
         {
-            alignedLength = (bufferLength / 64) * 64;
-            vectorIncrement = 64;
+            alignedLength = (bufferLength / vectorIncrementPerChannel) * vectorIncrementPerChannel;
+            vectorIncrement = vectorIncrementPerChannel;
             Rpp8u min = 255;
             Rpp8u max = 0;
-            Rpp8u minAvx[32], maxAvx[32];
+            Rpp8u resultAvx[16];
 
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
@@ -58,9 +58,9 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
 #if __AVX2__
                     for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
                     {
-                        __m256i p1[2];
-                        rpp_simd_load(rpp_load64_u8_avx, srcPtrTemp, p1);
-                        compute_min_max_64_host(p1, &pMin, &pMax);
+                        __m256i p1;
+                        rpp_simd_load(rpp_load32_u8_avx, srcPtrTemp, &p1);
+                        compute_min_max_32_host(&p1, &pMin, &pMax);
 
                         srcPtrTemp += vectorIncrement;
                     }
@@ -75,14 +75,12 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
                 }
                 srcPtrChannel += srcDescPtr->strides.cStride;
 #if __AVX2__
-                rpp_simd_store(rpp_store32_u8_to_u8_avx, minAvx, &pMin);
-                rpp_simd_store(rpp_store32_u8_to_u8_avx, maxAvx, &pMax);
+                __m128i result;
+                reduce_min_max_32_host(&pMin, &pMax, &result);
+                rpp_simd_store(rpp_store16_u8_to_u8_avx, resultAvx, &result);
 
-                for(int i=0;i<16;i++)
-                {
-                    min = std::min(std::min(minAvx[i], minAvx[i + 16]), min);
-                    max = std::max(std::max(maxAvx[i], maxAvx[i + 16]), max);
-                }
+                min = std::min(std::min(resultAvx[0], resultAvx[1]), min);
+                max = std::max(std::max(resultAvx[2], resultAvx[3]), max);
 #endif
             }
             imageMinMaxArr[batchCount*2] = min;
@@ -93,7 +91,7 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
         {
             Rpp8u min = 255, minR = 255, minG = 255, minB = 255;
             Rpp8u max = 0, maxR = 0, maxG = 0, maxB = 0;
-            Rpp8u minAvxR[32], maxAvxR[32], minAvxG[32], maxAvxG[32], minAvxB[32], maxAvxB[32];
+            Rpp8u resultAvx[16];
 
             for(int c = 0; c < layoutParams.channelParam; c++)
             {
@@ -120,9 +118,9 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
 #if __AVX2__
                     for (; vectorLoopCount < alignedLength; vectorLoopCount += vectorIncrement)
                     {
-                        __m256i p[6];
-                        rpp_simd_load(rpp_load192_u8_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);
-                        compute_min_max_192_host(p, &pMinR, &pMaxR, &pMinG, &pMaxG, &pMinB, &pMaxB);
+                        __m256i p[3];
+                        rpp_simd_load(rpp_load96_u8_avx, srcPtrTempR, srcPtrTempG, srcPtrTempB, p);
+                        compute_min_max_96_host(p, &pMinR, &pMaxR, &pMinG, &pMaxG, &pMinB, &pMaxB);
 
                         srcPtrTempR += vectorIncrementPerChannel;
                         srcPtrTempG += vectorIncrementPerChannel;
@@ -147,22 +145,16 @@ RppStatus image_min_max_u8_u8_host_tensor(Rpp8u *srcPtr,
                 }
                 srcPtrChannel += srcDescPtr->strides.cStride;
 #if __AVX2__
-                rpp_simd_store(rpp_store32_u8_to_u8_avx, minAvxR, &pMinR);
-                rpp_simd_store(rpp_store32_u8_to_u8_avx, maxAvxR, &pMaxR);
-				rpp_simd_store(rpp_store32_u8_to_u8_avx, minAvxG, &pMinG);
-                rpp_simd_store(rpp_store32_u8_to_u8_avx, maxAvxG, &pMaxG);
-				rpp_simd_store(rpp_store32_u8_to_u8_avx, minAvxB, &pMinB);
-                rpp_simd_store(rpp_store32_u8_to_u8_avx, maxAvxB, &pMaxB);
+                __m128i result;
+                reduce_min_max_96_host(&pMinR, &pMaxR, &pMinG, &pMaxG, &pMinB, &pMaxB, &result);
+                rpp_simd_store(rpp_store16_u8_to_u8_avx, resultAvx, &result);
 
-                for(int i=0;i<16;i++)
-                {
-                    minR = std::min(std::min(minAvxR[i], minAvxR[i + 16]), minR);
-                    maxR = std::max(std::max(maxAvxR[i], maxAvxR[i + 16]), maxR);
-					minG = std::min(std::min(minAvxG[i], minAvxG[i + 16]), minG);
-                    maxG = std::max(std::max(maxAvxG[i], maxAvxG[i + 16]), maxG);
-					minB = std::min(std::min(minAvxB[i], minAvxB[i + 16]), minB);
-                    maxB = std::max(std::max(maxAvxB[i], maxAvxB[i + 16]), maxB);
-                }
+                minR = std::min(std::min(resultAvx[0], resultAvx[1]), minR);
+                maxR = std::max(std::max(resultAvx[2], resultAvx[3]), maxR);
+                minG = std::min(std::min(resultAvx[4], resultAvx[5]), minG);
+                maxG = std::max(std::max(resultAvx[6], resultAvx[7]), maxG);
+                minB = std::min(std::min(resultAvx[8], resultAvx[9]), minB);
+                maxB = std::max(std::max(resultAvx[10], resultAvx[11]), maxB);
 #endif
             }
 			min = std::min(std::min(minR, minG), minB);
