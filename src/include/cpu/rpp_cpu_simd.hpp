@@ -2464,76 +2464,107 @@ inline void rpp_bilinear_load_u8pkd3_to_f32pln3_avx(Rpp8u **srcRowPtrsForInterp,
 
 inline void rpp_bilinear_load_u8pkd3_to_f32pln3_avx512(Rpp8u **srcRowPtrsForInterp, Rpp32s *loc, __m512* p, __m512i &pxSrcLoc, __m512i &pxMaxSrcLoc, Rpp32s maxSrcLoc)
 {
-    __m512i maskR = _mm512_set1_epi32(0xFF);
-    __m512i maskG = _mm512_slli_epi32(maskR, 8);
-    __m512i maskB = _mm512_slli_epi32(maskR, 16);
-    __m512i px;
+    __m128i px[11];
+    px[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[0]));
+    px[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[1]));
+    px[0] = _mm_unpacklo_epi8(px[0], px[1]); /* unpack 8 lo-pixels of px[0] and px[1] */
+    px[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[2]));
+    px[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[3]));
+    px[1] = _mm_unpacklo_epi8(px[2], px[3]); /* unpack 8 lo-pixels of px[2] and px[3] */
+    px[2] = _mm_unpacklo_epi16(px[0], px[1]); /* unpack 8 lo-pixels of px[0] and px[1] */
+    px[3] = _mm_unpackhi_epi16(px[0], px[1]); /* unpack 8 lo-pixels of px[0] and px[1] */
 
-    /* Top Row R1 G1 B1 pixels*/
-    px = _mm512_set_epi32(*((int *)(srcRowPtrsForInterp[0] + loc[15])), *((int *)(srcRowPtrsForInterp[0] + loc[14])),
-        *((int *)(srcRowPtrsForInterp[0] + loc[13])), *((int *)(srcRowPtrsForInterp[0] + loc[12])), *((int *)(srcRowPtrsForInterp[0] + loc[11])),
-        *((int *)(srcRowPtrsForInterp[0] + loc[10])), *((int *)(srcRowPtrsForInterp[0] + loc[9])), *((int *)(srcRowPtrsForInterp[0] + loc[8])),
-        *((int *)(srcRowPtrsForInterp[0] + loc[7])), *((int *)(srcRowPtrsForInterp[0] + loc[6])), *((int *)(srcRowPtrsForInterp[0] + loc[5])),
-        *((int *)(srcRowPtrsForInterp[0] + loc[4])), *((int *)(srcRowPtrsForInterp[0] + loc[3])), *((int *)(srcRowPtrsForInterp[0] + loc[2])),
-        *((int *)(srcRowPtrsForInterp[0] + loc[1])), *((int *)(srcRowPtrsForInterp[0] + loc[0])));
-    p[0] = _mm512_and_epi32(px, maskR);
-    p[4] = _mm512_and_epi32(px, maskG);
-    p[8] = _mm512_and_epi32(px, maskB);
-    p[4] = _mm512_srli_epi32(p[4], 8);
-    p[8] = _mm512_srli_epi32(p[8], 16);
-    p[0] = _mm512_cvtepi32_ps(p[0]);
-    p[4] = _mm512_cvtepi32_ps(p[4]);
-    p[8] = _mm512_cvtepi32_ps(p[8]);
+    /* Repeat the above steps for next 4 dst locations*/
+    px[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[4]));
+    px[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[5]));
+    px[4] = _mm_unpacklo_epi8(px[4], px[5]);
+    px[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[6]));
+    px[7] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[7]));
+    px[5] = _mm_unpacklo_epi8(px[6], px[7]);
+    px[6] = _mm_unpacklo_epi16(px[4], px[5]);
+    px[7] = _mm_unpackhi_epi16(px[4], px[5]);
+    px[8] = _mm_unpacklo_epi32(px[2], px[6]);
+    px[9] = _mm_unpackhi_epi32(px[2], px[6]);
+    px[10] = _mm_unpacklo_epi32(px[3], px[7]);
 
-    /* Top Row R2 G2 B2 pixels*/
-    Rpp8u *srcRowPtrsForInterpInc3 = srcRowPtrsForInterp[0] + 3;
-    px = _mm512_set_epi32(*((int *)(srcRowPtrsForInterpInc3 + loc[15])), *((int *)(srcRowPtrsForInterpInc3 + loc[14])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[13])), *((int *)(srcRowPtrsForInterpInc3 + loc[12])), *((int *)(srcRowPtrsForInterpInc3 + loc[11])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[10])), *((int *)(srcRowPtrsForInterpInc3 + loc[9])), *((int *)(srcRowPtrsForInterpInc3 + loc[8])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[7])), *((int *)(srcRowPtrsForInterpInc3 + loc[6])), *((int *)(srcRowPtrsForInterpInc3 + loc[5])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[4])), *((int *)(srcRowPtrsForInterpInc3 + loc[3])), *((int *)(srcRowPtrsForInterpInc3 + loc[2])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[1])), *((int *)(srcRowPtrsForInterpInc3 + loc[0])));
-    p[1] = _mm512_and_epi32(px, maskR);
-    p[5] = _mm512_and_epi32(px, maskG);
-    p[9] = _mm512_and_epi32(px, maskB);
-    p[5] = _mm512_srli_epi32(p[5], 8);
-    p[9] = _mm512_srli_epi32(p[9], 16);
-    p[1] = _mm512_cvtepi32_ps(p[1]);
-    p[5] = _mm512_cvtepi32_ps(p[5]);
-    p[9] = _mm512_cvtepi32_ps(p[9]);
+    px[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[8]));
+    px[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[9]));
+    px[0] = _mm_unpacklo_epi8(px[0], px[1]);
+    px[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[10]));
+    px[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[11]));
+    px[1] = _mm_unpacklo_epi8(px[2], px[3]);
+    px[2] = _mm_unpacklo_epi16(px[0], px[1]);
+    px[3] = _mm_unpackhi_epi16(px[0], px[1]);
 
-    /* Bottom Row R1 G1 B1 pixels*/
-    px = _mm512_set_epi32(*((int *)(srcRowPtrsForInterp[1] + loc[15])), *((int *)(srcRowPtrsForInterp[1] + loc[14])),
-        *((int *)(srcRowPtrsForInterp[1] + loc[13])), *((int *)(srcRowPtrsForInterp[1] + loc[12])), *((int *)(srcRowPtrsForInterp[1] + loc[11])),
-        *((int *)(srcRowPtrsForInterp[1] + loc[10])), *((int *)(srcRowPtrsForInterp[1] + loc[9])), *((int *)(srcRowPtrsForInterp[1] + loc[8])),
-        *((int *)(srcRowPtrsForInterp[1] + loc[7])), *((int *)(srcRowPtrsForInterp[1] + loc[6])), *((int *)(srcRowPtrsForInterp[1] + loc[5])),
-        *((int *)(srcRowPtrsForInterp[1] + loc[4])), *((int *)(srcRowPtrsForInterp[1] + loc[3])), *((int *)(srcRowPtrsForInterp[1] + loc[2])),
-        *((int *)(srcRowPtrsForInterp[1] + loc[1])), *((int *)(srcRowPtrsForInterp[1] + loc[0])));
-    p[2] = _mm512_and_epi32(px, maskR);
-    p[6] = _mm512_and_epi32(px, maskG);
-    p[10] = _mm512_and_epi32(px, maskB);
-    p[6] = _mm512_srli_epi32(p[6], 8);
-    p[10] = _mm512_srli_epi32(p[10], 16);
-    p[2] = _mm512_cvtepi32_ps(p[2]);
-    p[6] = _mm512_cvtepi32_ps(p[6]);
-    p[10] = _mm512_cvtepi32_ps(p[10]);
+    /* Repeat the above steps for next 4 dst locations*/
+    px[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[12]));
+    px[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[13]));
+    px[4] = _mm_unpacklo_epi8(px[4], px[5]);
+    px[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[14]));
+    px[7] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[15]));
+    px[5] = _mm_unpacklo_epi8(px[6], px[7]);
+    px[6] = _mm_unpacklo_epi16(px[4], px[5]);
+    px[7] = _mm_unpackhi_epi16(px[4], px[5]);
+    px[0] = _mm_unpacklo_epi32(px[2], px[6]);
+    px[1] = _mm_unpackhi_epi32(px[2], px[6]);
+    px[2] = _mm_unpacklo_epi32(px[3], px[7]);
 
-    /* Bottom Row R2 G2 B2 pixels*/
-    srcRowPtrsForInterpInc3 = srcRowPtrsForInterp[1] + 3;
-    px = _mm512_set_epi32(*((int *)(srcRowPtrsForInterpInc3 + loc[15])), *((int *)(srcRowPtrsForInterpInc3 + loc[14])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[13])), *((int *)(srcRowPtrsForInterpInc3 + loc[12])), *((int *)(srcRowPtrsForInterpInc3 + loc[11])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[10])), *((int *)(srcRowPtrsForInterpInc3 + loc[9])), *((int *)(srcRowPtrsForInterpInc3 + loc[8])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[7])), *((int *)(srcRowPtrsForInterpInc3 + loc[6])), *((int *)(srcRowPtrsForInterpInc3 + loc[5])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[4])), *((int *)(srcRowPtrsForInterpInc3 + loc[3])), *((int *)(srcRowPtrsForInterpInc3 + loc[2])),
-        *((int *)(srcRowPtrsForInterpInc3 + loc[1])), *((int *)(srcRowPtrsForInterpInc3 + loc[0])));
-    p[3] = _mm512_and_epi32(px, maskR);
-    p[7] = _mm512_and_epi32(px, maskG);
-    p[11] = _mm512_and_epi32(px, maskB);
-    p[7] = _mm512_srli_epi32(p[7], 8);
-    p[11] = _mm512_srli_epi32(p[11], 16);
-    p[3] = _mm512_cvtepi32_ps(p[3]);
-    p[7] = _mm512_cvtepi32_ps(p[7]);
-    p[11] = _mm512_cvtepi32_ps(p[11]);
+    p[0] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(px[8], px[0]))); /*R01 from TopRow LOC0-15*/
+    p[1] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(px[9], px[1]))); /*R02 from TopRow LOC0-15*/
+    p[4] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(px[8], px[0]))); /*G01 from TopRow LOC0-15*/
+    p[5] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(px[10], px[2]))); /*G02 from TopRow LOC0-15*/
+    p[8] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(px[9], px[1]))); /*B01 from TopRow LOC0-15*/
+    p[9] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(px[10], px[2]))); /*B02 from TopRow LOC0-15*/
+
+    /* Repeat above steps to obtain pixels from the BottomRow*/
+    px[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[0]));
+    px[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[1]));
+    px[0] = _mm_unpacklo_epi8(px[0], px[1]);
+    px[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[2]));
+    px[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[3]));
+    px[1] = _mm_unpacklo_epi8(px[2], px[3]);
+    px[2] = _mm_unpacklo_epi16(px[0], px[1]);
+    px[3] = _mm_unpackhi_epi16(px[0], px[1]);
+
+    px[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[4]));
+    px[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[5]));
+    px[4] = _mm_unpacklo_epi8(px[4], px[5]);
+    px[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[6]));
+    px[7] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[7]));
+    px[5] = _mm_unpacklo_epi8(px[6], px[7]);
+    px[6] = _mm_unpacklo_epi16(px[4], px[5]);
+    px[7] = _mm_unpackhi_epi16(px[4], px[5]);
+    px[8] = _mm_unpacklo_epi32(px[2], px[6]);
+    px[9] = _mm_unpackhi_epi32(px[2], px[6]);
+    px[10] = _mm_unpacklo_epi32(px[3], px[7]);
+
+    px[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[8]));
+    px[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[9]));
+    px[0] = _mm_unpacklo_epi8(px[0], px[1]);
+    px[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[10]));
+    px[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[11]));
+    px[1] = _mm_unpacklo_epi8(px[2], px[3]);
+    px[2] = _mm_unpacklo_epi16(px[0], px[1]);
+    px[3] = _mm_unpackhi_epi16(px[0], px[1]);
+
+    px[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[12]));
+    px[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[13]));
+    px[4] = _mm_unpacklo_epi8(px[4], px[5]);
+    px[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[14]));
+    px[7] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[15]));
+    px[5] = _mm_unpacklo_epi8(px[6], px[7]);
+    px[6] = _mm_unpacklo_epi16(px[4], px[5]);
+    px[7] = _mm_unpackhi_epi16(px[4], px[5]);
+    px[0] = _mm_unpacklo_epi32(px[2], px[6]);
+    px[1] = _mm_unpackhi_epi32(px[2], px[6]);
+    px[2] = _mm_unpacklo_epi32(px[3], px[7]);
+
+    p[2] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(px[8], px[0]))); /*R01 from BottomRow LOC0-15*/
+    p[3] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(px[9], px[1]))); /*R02 from BottomRow LOC0-15*/
+    p[6] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(px[8], px[0]))); /*G01 from BottomRow LOC0-15*/
+    p[7] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(px[10], px[2]))); /*G02 from BottomRow LOC0-15*/
+    p[10] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(px[9], px[1]))); /*B01 from BottomRow LOC0-15*/
+    p[11] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(px[10], px[2]))); /*B02 from BottomRow LOC0-15*/
 
     if(loc[0] < 0 || loc[15] < 0) // If any src location below min src location is encountered replace the source pixel loaded with first pixel of the row
     {
@@ -2993,90 +3024,38 @@ inline void rpp_bilinear_load_i8pln1_to_f32pln1_avx(Rpp8s **srcRowPtrsForInterp,
 
 inline void rpp_bilinear_load_i8pln1_to_f32pln1_avx512(Rpp8s **srcRowPtrsForInterp, Rpp32s *loc, __m512* p, __m512i &pxSrcLoc, __m512i &pxMaxSrcLoc, Rpp32s maxSrcLoc)
 {
-    __m128i pxTemp[8];
-    pxTemp[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[0]));  /* Top Row load LOC0 [R01|R02|R03|R04|R05|R06|R07|...|R16] Need R01-02 */
-    pxTemp[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[1]));  /* Top Row load LOC1 [R01|R02|R03|R04|R05|R06|R07|...|R16] Need R01-02 */
-    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[2]));  /* Top Row load LOC2 [R01|R02|R03|R04|R05|R06|R07|...|R16] Need R01-02 */
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[3]));  /* Top Row load LOC3 [R01|R02|R03|R04|R05|R06|R07|...|R16] Need R01-02 */
-    pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]);    /* unpack 8 lo-pixels of pxTemp[0] and pxTemp[1] */
-    pxTemp[1] = _mm_unpacklo_epi8(pxTemp[2], pxTemp[3]);    /* unpack 8 lo-pixels of pxTemp[2] and pxTemp[3] */
-    pxTemp[1] = _mm_unpacklo_epi16(pxTemp[0], pxTemp[1]);   /* unpack 8 lo-pixels to obtain 1st and 2nd pixels of TopRow [R01|R01|R01|R01|R02|R02|R02|R02]*/
+    __m512i maskR1 = _mm512_set1_epi32(0xFF);
+    __m512i maskR2 = _mm512_slli_epi32(maskR1, 8);
+    __m512i px;
 
-    /* Repeat the above steps for next 4 dst locations*/
-    pxTemp[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[4]));
-    pxTemp[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[5]));
-    pxTemp[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[6]));
-    pxTemp[7] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[7]));
-    pxTemp[4] = _mm_unpacklo_epi8(pxTemp[4], pxTemp[5]);
-    pxTemp[5] = _mm_unpacklo_epi8(pxTemp[6], pxTemp[7]);
-    pxTemp[4] = _mm_unpacklo_epi16(pxTemp[4], pxTemp[5]); /*[R01|R01|R01|R01|R02|R02|R02|R02]*/
-    pxTemp[0] = _mm_unpacklo_epi32(pxTemp[1], pxTemp[4]); /*[R01|R01|R01|R01|R01|R01|R01|R01|R02|R02|R02|R02|R02|R02|R02|R02] from LOC0-7*/
-    pxTemp[0] = _mm_add_epi8(pxTemp[0], xmm_pxConvertI8);   /* add I8 conversion param */
+    /* Top Row pixels*/
+    px = _mm512_set_epi32(*((int *)(srcRowPtrsForInterp[0] + loc[15])), *((int *)(srcRowPtrsForInterp[0] + loc[14])),
+        *((int *)(srcRowPtrsForInterp[0] + loc[13])), *((int *)(srcRowPtrsForInterp[0] + loc[12])), *((int *)(srcRowPtrsForInterp[0] + loc[11])),
+        *((int *)(srcRowPtrsForInterp[0] + loc[10])), *((int *)(srcRowPtrsForInterp[0] + loc[9])), *((int *)(srcRowPtrsForInterp[0] + loc[8])),
+        *((int *)(srcRowPtrsForInterp[0] + loc[7])), *((int *)(srcRowPtrsForInterp[0] + loc[6])), *((int *)(srcRowPtrsForInterp[0] + loc[5])),
+        *((int *)(srcRowPtrsForInterp[0] + loc[4])), *((int *)(srcRowPtrsForInterp[0] + loc[3])), *((int *)(srcRowPtrsForInterp[0] + loc[2])),
+        *((int *)(srcRowPtrsForInterp[0] + loc[1])), *((int *)(srcRowPtrsForInterp[0] + loc[0])));
+    px = _mm512_add_epi8(px, avx512_pxConvertI8);
+    p[0] = _mm512_and_epi32(px, maskR1);
+    p[1] = _mm512_and_epi32(px, maskR2);
+    p[1] = _mm512_srli_epi32(p[1], 8);
+    p[0] = _mm512_cvtepi32_ps(p[0]);
+    p[1] = _mm512_cvtepi32_ps(p[1]);
 
-    /* Repeat the above steps for next 4 dst locations*/
-    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[8]));
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[9]));
-    pxTemp[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[10]));
-    pxTemp[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[11]));
-    pxTemp[2] = _mm_unpacklo_epi8(pxTemp[2], pxTemp[3]);
-    pxTemp[3] = _mm_unpacklo_epi8(pxTemp[4], pxTemp[5]);
-    pxTemp[2] = _mm_unpacklo_epi16(pxTemp[2], pxTemp[3]);
 
-    /* Repeat the above steps for next 4 dst locations*/
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[12]));
-    pxTemp[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[13]));
-    pxTemp[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[14]));
-    pxTemp[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[0] + loc[15]));
-    pxTemp[3] = _mm_unpacklo_epi8(pxTemp[3], pxTemp[4]);
-    pxTemp[4] = _mm_unpacklo_epi8(pxTemp[5], pxTemp[6]);
-    pxTemp[3] = _mm_unpacklo_epi16(pxTemp[3], pxTemp[4]);
-    pxTemp[4] = _mm_unpacklo_epi32(pxTemp[2], pxTemp[3]);
-    pxTemp[4] = _mm_add_epi8(pxTemp[4], xmm_pxConvertI8);   /* add I8 conversion param */
-
-    p[0] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(pxTemp[0], pxTemp[4]))); /*R01 from LOC0-15*/
-    p[1] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(pxTemp[0], pxTemp[4]))); /*R02 from LOC0-15*/
-
-    /* Repeat above steps to obtain pixels from the BottomRow*/
-    pxTemp[0] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[0]));
-    pxTemp[1] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[1]));
-    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[2]));
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[3]));
-    pxTemp[0] = _mm_unpacklo_epi8(pxTemp[0], pxTemp[1]);
-    pxTemp[1] = _mm_unpacklo_epi8(pxTemp[2], pxTemp[3]);
-    pxTemp[1] = _mm_unpacklo_epi16(pxTemp[0], pxTemp[1]);
-
-    pxTemp[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[4]));
-    pxTemp[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[5]));
-    pxTemp[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[6]));
-    pxTemp[7] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[7]));
-    pxTemp[4] = _mm_unpacklo_epi8(pxTemp[4], pxTemp[5]);
-    pxTemp[5] = _mm_unpacklo_epi8(pxTemp[6], pxTemp[7]);
-    pxTemp[4] = _mm_unpacklo_epi16(pxTemp[4], pxTemp[5]);
-    pxTemp[0] = _mm_unpacklo_epi32(pxTemp[1], pxTemp[4]);
-    pxTemp[0] = _mm_add_epi8(pxTemp[0], xmm_pxConvertI8);   /* add I8 conversion param */
-
-    /* Repeat the above steps for next 4 dst locations*/
-    pxTemp[2] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[8]));
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[9]));
-    pxTemp[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[10]));
-    pxTemp[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[11]));
-    pxTemp[2] = _mm_unpacklo_epi8(pxTemp[2], pxTemp[3]);
-    pxTemp[3] = _mm_unpacklo_epi8(pxTemp[4], pxTemp[5]);
-    pxTemp[2] = _mm_unpacklo_epi16(pxTemp[2], pxTemp[3]);
-
-    /* Repeat the above steps for next 4 dst locations*/
-    pxTemp[3] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[12]));
-    pxTemp[4] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[13]));
-    pxTemp[5] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[14]));
-    pxTemp[6] = _mm_loadu_si128((__m128i *)(srcRowPtrsForInterp[1] + loc[15]));
-    pxTemp[3] = _mm_unpacklo_epi8(pxTemp[3], pxTemp[4]);
-    pxTemp[4] = _mm_unpacklo_epi8(pxTemp[5], pxTemp[6]);
-    pxTemp[3] = _mm_unpacklo_epi16(pxTemp[3], pxTemp[4]);
-    pxTemp[4] = _mm_unpacklo_epi32(pxTemp[2], pxTemp[3]);
-    pxTemp[4] = _mm_add_epi8(pxTemp[4], xmm_pxConvertI8);   /* add I8 conversion param */
-
-    p[2] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpacklo_epi64(pxTemp[0], pxTemp[4])));  /*R01 from LOC0-15*/
-    p[3] = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm_unpackhi_epi64(pxTemp[0], pxTemp[4])));  /*R02 from LOC0-15*/
+    /* Bottom Row pixels*/
+    px = _mm512_set_epi32(*((int *)(srcRowPtrsForInterp[1] + loc[15])), *((int *)(srcRowPtrsForInterp[1] + loc[14])),
+        *((int *)(srcRowPtrsForInterp[1] + loc[13])), *((int *)(srcRowPtrsForInterp[1] + loc[12])), *((int *)(srcRowPtrsForInterp[1] + loc[11])),
+        *((int *)(srcRowPtrsForInterp[1] + loc[10])), *((int *)(srcRowPtrsForInterp[1] + loc[9])), *((int *)(srcRowPtrsForInterp[1] + loc[8])),
+        *((int *)(srcRowPtrsForInterp[1] + loc[7])), *((int *)(srcRowPtrsForInterp[1] + loc[6])), *((int *)(srcRowPtrsForInterp[1] + loc[5])),
+        *((int *)(srcRowPtrsForInterp[1] + loc[4])), *((int *)(srcRowPtrsForInterp[1] + loc[3])), *((int *)(srcRowPtrsForInterp[1] + loc[2])),
+        *((int *)(srcRowPtrsForInterp[1] + loc[1])), *((int *)(srcRowPtrsForInterp[1] + loc[0])));
+    px = _mm512_add_epi8(px, avx512_pxConvertI8);
+    p[2] = _mm512_and_epi32(px, maskR1);
+    p[3] = _mm512_and_epi32(px, maskR2);
+    p[3] = _mm512_srli_epi32(p[3], 8);
+    p[2] = _mm512_cvtepi32_ps(p[2]);
+    p[3] = _mm512_cvtepi32_ps(p[3]);
 
     if(loc[0] < 0 || loc[15] < 0) // If any src location below min src location is encountered replace the source pixel loaded with first pixel of the row
     {
