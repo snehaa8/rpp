@@ -747,6 +747,23 @@ int main(int argc, char * argv[])
                 rppt_subtract_scalar_host(inputF32, descriptorPtr3D, outputF32, descriptorPtr3D, subtractTensor, roiGenericSrcPtr, roiTypeSrc, handle);
                 break;
             }
+            case 5:
+            {
+                testCaseName = "gaussian_noise";
+
+                Rpp32f meanTensor[batchSize];
+                Rpp32f stdDevTensor[batchSize];
+                Rpp32u seed = 1255459;
+                for (int i = 0; i < batchSize; i++)
+                {
+                    meanTensor[i] = 10.0f;
+                    stdDevTensor[i] = 5.0f;
+                }
+
+                startWallTime = omp_get_wtime();
+                rppt_gaussian_noise_voxel_host(inputF32, descriptorPtr3D, outputF32, descriptorPtr3D, meanTensor, stdDevTensor, seed, roiGenericSrcPtr, roiTypeSrc, handle);
+                break;
+            }
             default:
             {
                 missingFuncFlag = 1;

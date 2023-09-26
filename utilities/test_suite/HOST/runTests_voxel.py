@@ -97,6 +97,8 @@ def func_group_finder(case_number):  #TODO: need to chnage
         return "arithmetic_operations"
     elif case_number == 1 or case_number == 2:
         return "geometric_augmentations"
+    elif case_number == 5:
+        return "effects_augmentations"
     else:
         return "miscellaneous"
  # Generate a directory name based on certain parameters
@@ -120,7 +122,7 @@ def process_layout(layout, qaMode, case, dstPath):
     elif layout == 2:
         dstPathTemp = directory_name_generator(qaMode, "host", "pln1", case, dstPath)
         log_file_layout = "pln1"
-    
+
     return dstPathTemp, log_file_layout
 
 # Parse and validate command-line arguments for the RPP test suite
@@ -128,8 +130,8 @@ def rpp_test_suite_parser_and_validator():
     parser = argparse.ArgumentParser()
     parser.add_argument("--header_path", type = str, default = headerFilePath, help = "Path to the nii header")
     parser.add_argument("--data_path", type = str, default = dataFilePath, help = "Path to the nii data file")
-    parser.add_argument("--case_start", type = int, default = 0, help = "Testing range starting case # - (0:4)")
-    parser.add_argument("--case_end", type = int, default = 4, help = "Testing range ending case # - (0:4)")
+    parser.add_argument("--case_start", type = int, default = 0, help = "Testing range starting case # - (0:5)")
+    parser.add_argument("--case_end", type = int, default = 5, help = "Testing range ending case # - (0:5)")
     parser.add_argument('--test_type', type = int, default = 0, help = "Type of Test - (0 = Unit tests / 1 = Performance tests)")
     parser.add_argument('--case_list', nargs = "+", help = "List of case numbers to list", required = False)
     parser.add_argument('--qa_mode', type = int, default = 0, help = "Run with qa_mode? Output images from tests will be compared with golden outputs - (0 / 1)", required = False)
@@ -142,8 +144,8 @@ def rpp_test_suite_parser_and_validator():
     validate_path(qaInputFile)
 
     # validate the parameters passed by user
-    if ((args.case_start < 0 or args.case_start > 4) or (args.case_end < 0 or args.case_end > 4)):
-        print("Starting case# and Ending case# must be in the 0:4 range. Aborting!")
+    if ((args.case_start < 0 or args.case_start > 5) or (args.case_end < 0 or args.case_end > 5)):
+        print("Starting case# and Ending case# must be in the 0:5 range. Aborting!")
         exit(0)
     elif args.case_end < args.case_start:
         print("Ending case# must be greater than starting case#. Aborting!")
@@ -154,7 +156,7 @@ def rpp_test_suite_parser_and_validator():
     elif args.qa_mode < 0 or args.qa_mode > 1:
         print("QA mode must be in the 0 / 1. Aborting!")
         exit(0)
-    elif args.case_list is not None and args.case_start > 0 and args.case_end < 4:
+    elif args.case_list is not None and args.case_start > 0 and args.case_end < 5:
         print("Invalid input! Please provide only 1 option between case_list, case_start and case_end")
         exit(0)
     elif args.num_runs <= 0:
@@ -166,8 +168,8 @@ def rpp_test_suite_parser_and_validator():
         args.case_list = [str(x) for x in args.case_list]
     else:
         for case in args.case_list:
-            if int(case) < 0 or int(case) > 4:
-                 print("The case# must be in the 0:4 range!")
+            if int(case) < 0 or int(case) > 5:
+                 print("The case# must be in the 0:5 range!")
                  exit(0)
     # if QA mode is enabled overwrite the input folders with the folders used for generating golden outputs
     if args.qa_mode:
@@ -228,8 +230,8 @@ print("#########################################################################
 
 if(testType == 0):
     for case in caseList:
-        if int(case) < 0 or int(case) > 4:
-            print(f"Invalid case number {case}. Case number must be in the range of 0 to 4!")
+        if int(case) < 0 or int(case) > 5:
+            print(f"Invalid case number {case}. Case number must be in the range of 0 to 5!")
             continue
         for layout in range(3):
             dstPathTemp, log_file_layout = process_layout(layout, qaMode, case, dstPath)
@@ -251,8 +253,8 @@ if(testType == 0):
         create_layout_directories(dstPath, layoutDict)
 else:
     for case in caseList:
-        if int(case) < 0 or int(case) > 4:
-            print(f"Invalid case number {case}. Case number must be in the range of 0 to 4!")
+        if int(case) < 0 or int(case) > 5:
+            print(f"Invalid case number {case}. Case number must be in the range of 0 to 5!")
             continue
         for layout in range(3):
             dstPathTemp, log_file_layout = process_layout(layout, qaMode, case, dstPath)
