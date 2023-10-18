@@ -8,7 +8,8 @@ __global__ void flip_ncdhw_tensor(T *srcPtr,
                                   uint3 dstStridesCDH,
                                   int channels,
                                   uint3 mirrorXYZ,
-                                  RpptROI3DPtr roiGenericPtrSrc)
+                                  RpptROI3DPtr roiGenericPtrSrc,
+                                  int batchIndex)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;        // W - inner most dim vectorized
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;              // H - second to inner
@@ -20,9 +21,9 @@ __global__ void flip_ncdhw_tensor(T *srcPtr,
     }
 
     uint dstIdx = (id_z * dstStridesCDH.y) + (id_y * dstStridesCDH.z) + id_x;
-    uint xFactor =  id_x + roiGenericPtrSrc->xyzwhdROI.xyz.x;
-    uint yFactor = (id_y + roiGenericPtrSrc->xyzwhdROI.xyz.y) * srcStridesCDH.z;
-    uint zFactor = (id_z + roiGenericPtrSrc->xyzwhdROI.xyz.z) * srcStridesCDH.y;
+    int xFactor =  id_x + roiGenericPtrSrc->xyzwhdROI.xyz.x;
+    int yFactor = (id_y + roiGenericPtrSrc->xyzwhdROI.xyz.y) * srcStridesCDH.z;
+    int zFactor = (id_z + roiGenericPtrSrc->xyzwhdROI.xyz.z) * srcStridesCDH.y;
 
     if (mirrorXYZ.y)
         yFactor = (roiGenericPtrSrc->xyzwhdROI.roiHeight - 1 - id_y) * srcStridesCDH.z;
@@ -30,15 +31,23 @@ __global__ void flip_ncdhw_tensor(T *srcPtr,
         zFactor = (roiGenericPtrSrc->xyzwhdROI.roiDepth - 1 - id_z) * srcStridesCDH.y;
     if (mirrorXYZ.x)
     {
-        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiGenericPtrSrc->xyzwhdROI.roiWidth)
+        if(batchIndex == 0 && (id_x + 8 > roiGenericPtrSrc->xyzwhdROI.roiWidth))
         {
-            xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x;
-            dstIdx -= (id_x + 8 - roiGenericPtrSrc->xyzwhdROI.roiWidth);
+            bool yCheck = ((mirrorXYZ.y && id_y == roiGenericPtrSrc->xyzwhdROI.roiHeight - 1) || (!mirrorXYZ.y && id_y == 0));
+            bool zCheck = ((mirrorXYZ.z && id_z == roiGenericPtrSrc->xyzwhdROI.roiDepth - 1) || (!mirrorXYZ.z && id_z == 0));
+            if(yCheck && zCheck)
+            {
+                xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x;
+                dstIdx -= (id_x + 8 - roiGenericPtrSrc->xyzwhdROI.roiWidth);
+            }
+            else
+            {
+                xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8);
+            }
         }
         else
         {
             xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8);
-            dstIdx -= (id_x + 8 - roiGenericPtrSrc->xyzwhdROI.roiWidth);
         }
         uint srcIdx = zFactor + yFactor + xFactor;
         d_float8 pix_f8;
@@ -70,7 +79,8 @@ __global__ void flip_ndhwc_tensor(T *srcPtr,
                                   T *dstPtr,
                                   uint2 dstStridesDH,
                                   uint3 mirrorXYZ,
-                                  RpptROI3DPtr roiGenericPtrSrc)
+                                  RpptROI3DPtr roiGenericPtrSrc,
+                                  int batchIndex)
 {
     int id_x = (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x) * 8;        // WC - inner most dim vectorized
     int id_y = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;              // H - second to inner
@@ -82,9 +92,9 @@ __global__ void flip_ndhwc_tensor(T *srcPtr,
     }
 
     uint dstIdx = (id_z * dstStridesDH.x) + (id_y * dstStridesDH.y) + id_x * 3;
-    uint xFactor =  (id_x + roiGenericPtrSrc->xyzwhdROI.xyz.x) * 3;
-    uint yFactor = (id_y + roiGenericPtrSrc->xyzwhdROI.xyz.y) * srcStridesDH.y;
-    uint zFactor = (id_z + roiGenericPtrSrc->xyzwhdROI.xyz.z) * srcStridesDH.x;
+    int xFactor =  (id_x + roiGenericPtrSrc->xyzwhdROI.xyz.x) * 3;
+    int yFactor = (id_y + roiGenericPtrSrc->xyzwhdROI.xyz.y) * srcStridesDH.y;
+    int zFactor = (id_z + roiGenericPtrSrc->xyzwhdROI.xyz.z) * srcStridesDH.x;
 
     if (mirrorXYZ.y)
         yFactor = (roiGenericPtrSrc->xyzwhdROI.roiHeight - 1 - id_y) * srcStridesDH.y;
@@ -92,15 +102,23 @@ __global__ void flip_ndhwc_tensor(T *srcPtr,
         zFactor = (roiGenericPtrSrc->xyzwhdROI.roiDepth - 1 - id_z) * srcStridesDH.x;
     if (mirrorXYZ.x)
     {
-        if((id_z == 0) && (id_y == 0) && (id_x + 8) > roiGenericPtrSrc->xyzwhdROI.roiWidth)
+       if(batchIndex == 0 && (id_x + 8 > roiGenericPtrSrc->xyzwhdROI.roiWidth))
         {
-            xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x * 3;
-            dstIdx -= (id_x + 8 - roiGenericPtrSrc->xyzwhdROI.roiWidth) * 3;
+            bool yCheck = ((mirrorXYZ.y && id_y == roiGenericPtrSrc->xyzwhdROI.roiHeight - 1) || (!mirrorXYZ.y && id_y == 0));
+            bool zCheck = ((mirrorXYZ.z && id_z == roiGenericPtrSrc->xyzwhdROI.roiDepth - 1) || (!mirrorXYZ.z && id_z == 0));
+            if(yCheck && zCheck)
+            {
+                xFactor = roiGenericPtrSrc->xyzwhdROI.xyz.x * 3;
+                dstIdx -= (id_x + 8 - roiGenericPtrSrc->xyzwhdROI.roiWidth) * 3;
+            }
+            else
+            {
+                xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8) * 3;
+            }
         }
         else
         {
             xFactor = (roiGenericPtrSrc->xyzwhdROI.xyz.x + roiGenericPtrSrc->xyzwhdROI.roiWidth - id_x - 8) * 3;
-            dstIdx -= (id_x + 8 - roiGenericPtrSrc->xyzwhdROI.roiWidth) * 3;
         }
         uint srcIdx = zFactor + yFactor + xFactor;
         d_float24 pix_f24;
@@ -150,7 +168,8 @@ RppStatus hip_exec_flip_voxel_tensor(T *srcPtr,
                                make_uint3(dstGenericDescPtr->strides[1], dstGenericDescPtr->strides[2], dstGenericDescPtr->strides[3]),
                                dstGenericDescPtr->dims[1],
                                make_uint3(horizontalTensor[batchCount], verticalTensor[batchCount], depthTensor[batchCount]),
-                               &roiGenericPtrSrc[batchCount]);
+                               &roiGenericPtrSrc[batchCount],
+                               batchCount);
         }
     }
     else if (dstGenericDescPtr->layout == RpptLayout::NDHWC)
@@ -174,7 +193,8 @@ RppStatus hip_exec_flip_voxel_tensor(T *srcPtr,
                                dstPtr + (batchCount * dstGenericDescPtr->strides[0]),
                                make_uint2(dstGenericDescPtr->strides[1], dstGenericDescPtr->strides[2]),
                                make_uint3(horizontalTensor[batchCount], verticalTensor[batchCount], depthTensor[batchCount]),
-                               &roiGenericPtrSrc[batchCount]);
+                               &roiGenericPtrSrc[batchCount],
+                               batchCount);
         }
     }
 
