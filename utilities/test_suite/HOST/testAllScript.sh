@@ -164,7 +164,7 @@ directory_name_generator() {
         AFFINITY=$1
         TYPE=$2
 
-        if [ "$case" -lt 5 ] || [ "$case" -eq 13 ] || [ "$case" -eq 31 ] || [ "$case" -eq 34 ] || [ "$case" -eq 36 ]
+        if [ "$case" -lt 5 ] || [ "$case" -eq 13 ] || [ "$case" -eq 31 ] || [ "$case" -eq 34 ] || [ "$case" -eq 36 ] || [ "$case" -eq 45 ]
         then
             FUNCTIONALITY_GROUP="color_augmentations"
         elif [ "$case" -eq 8 ] || [ "$case" -eq 30 ] || [ "$case" -eq 82 ] || [ "$case" -eq 83 ] || [ "$case" -eq 84 ]

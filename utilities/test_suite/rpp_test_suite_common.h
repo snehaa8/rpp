@@ -70,6 +70,7 @@ std::map<int, string> augmentationMap =
     {36, "color_twist"},
     {37, "crop"},
     {38, "crop_mirror_normalize"},
+    {45, "color_temperature"},
     {49, "box_filter"},
     {54, "gaussian_filter"},
     {63, "phase"},
