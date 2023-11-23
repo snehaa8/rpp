@@ -16,6 +16,12 @@ The latest RPP release is: [![GitHub tag (latest SemVer)](https://img.shields.io
 
 <p align="center"><img width="90%" src="https://github.com/GPUOpen-ProfessionalCompute-Libraries/rpp/raw/master/docs/data/supported_functionalities_samples.jpg" /></p>
 
+### Supported 3D Functionalities Samples
+
+Input<br>(nifti1 .nii medical image) | fused_multiply_add_scalar<br>(brightened 3D image)
+:-------------------------:|:-------------------------:
+![](docs/data/niftiInput.gif)  |  ![](docs/data/niftiOutputBrightened.gif)
+
 ## Documentation
 
 You can build our documentation locally using the following code:
@@ -157,10 +163,30 @@ To use RPP, you must have installed the following:
   make -j$nproc
   sudo make install
   ```
+* Libsndfile installation
+  ```
+  sudo apt-get update
+  sudo apt-get install libsndfile1-dev
+  ```
 
-## Build and install RPP
+* Imagemagick
+  ```
+  sudo apt-get install imagemagick
+  ```
 
-To build and install RPP, run the code shown for your backend:
+* Nifti-Imaging nifti_clib
+  ```
+  git clone git@github.com:NIFTI-Imaging/nifti_clib.git
+  cd nifti_clib
+  mkdir build
+  cd build
+  cmake ..
+  sudo make -j$nproc install
+  ```
+
+## Build & Install RPP 
+
+The ROCm Performance Primitives (RPP) library has support for three backends: HIP, OpenCL, and CPU:
 
 * HIP (default)
 
@@ -194,23 +220,17 @@ To build and install RPP, run the code shown for your backend:
 
 ## Test Functionalities
 
-To test the functionalities of RPP, run the code shown for your backend:
+### CPU installation
 
-* HIP
+    $ cd rpp/utilities/rpp-unittests/HOST_NEW
+    $ ./testAllScript.sh
 
-  ```bash
-    cd rpp/utilities/rpp-unittests/HIP_NEW
-    ./testAllScript.sh
-  ```
+### OCL installation
 
-* OpenCL
+    $ cd rpp/utilities/rpp-unittests/OCL_NEW
+    $ ./testAllScript.sh
 
-  ```bash
-    cd rpp/utilities/rpp-unittests/OCL_NEW
-    ./testAllScript.sh
-  ```
-
-  * CPU
+### HIP installation
 
   ```bash
     cd rpp/utilities/rpp-unittests/HOST_NEW
