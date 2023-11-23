@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "kernel/gamma_correction.hpp"
 #include "kernel/blend.hpp"
 #include "kernel/color_twist.hpp"
+#include "kernel/color_temperature.hpp"
 #include "kernel/color_cast.hpp"
 #include "kernel/exposure.hpp"
 #include "kernel/contrast.hpp"
