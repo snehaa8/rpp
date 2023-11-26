@@ -1062,10 +1062,6 @@ int main(int argc, char **argv)
             if (testType == 0)
             {
                 cout << "\n\nGPU Backend Wall Time: " << wallTime <<" ms/batch"<< endl;
-<<<<<<< HEAD
-
-=======
->>>>>>> TOT/develop
                 // Display results for reduction functions
                 if (reductionTypeCase)
                 {
