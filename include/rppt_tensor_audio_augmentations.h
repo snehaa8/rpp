@@ -115,8 +115,8 @@ RppStatus rppt_down_mixing_host(RppPtr_t srcPtr, RpptDescPtr srcDescPtr, RppPtr_
 
 /******************** slice_audio ********************/
 
-/*! \brief Down mixing augmentation HOST
-* \details Down mixing augmentation for audio data
+/*! \brief Slice audio augmentation HOST
+* \details Slice augmentation for audio data
 * \param[in] srcPtr source tensor memory
 * \param[in] srcDescPtr source tensor descriptor
 * \param[out] dstPtr destination tensor memory
