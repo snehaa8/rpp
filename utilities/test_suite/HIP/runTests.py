@@ -147,7 +147,7 @@ def get_log_file_list(preserveOutput):
 
 # Functionality group finder
 def func_group_finder(case_number):
-    if case_number < 5 or case_number == 13 or case_number == 36:
+    if case_number < 5 or case_number == 13 or case_number == 36 or case_number == 45:
         return "color_augmentations"
     elif case_number == 8 or case_number == 30 or case_number == 82 or case_number == 83 or case_number == 84:
         return "effects_augmentations"
